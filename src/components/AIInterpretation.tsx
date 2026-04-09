@@ -1,0 +1,367 @@
+/* ============================================================
+   AI 解读组件
+   丝滑流式输出 + 书法字体 + Markdown 渲染
+   ============================================================ */
+
+import { useState, useCallback, useRef, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import { useChartStore, useSettingsStore, useContentCacheStore } from '@/stores'
+import { extractKnowledge, buildChartIndicators, buildPromptContext } from '@/knowledge'
+import { streamChat, type ChatMessage, type LLMConfig } from '@/lib/llm'
+import { Button } from '@/components/ui'
+
+/* ------------------------------------------------------------
+   系统提示词
+   ------------------------------------------------------------ */
+
+const SYSTEM_PROMPT = `# 角色定位
+你是一位精通「北派紫微斗數」與「欽天四化派」的命理師。此次解盤請**先以北派四化盤為主**，三合派與其他技法僅作輔助，不以星曜廟旺利陷作為主要論斷依據。
+
+# 論盤核心原則
+1. 優先看「來因宮、生年四化、自化／視同自化、飛星、體用、我宮／他宮」。
+2. 必須先做盤面結構判讀，再轉成白話，不可跳步。
+3. 避免空泛雞湯、靈性話術與恐嚇語氣。
+4. 若資料不足，需明說「依目前盤面資訊可先判斷…」，不可虛構。
+
+# 北派欽天四化論斷 SOP
+## 1. 確立來因宮
+- 以出生年干所在之宮位為「來因宮」。
+- 此宮為「體」，決定此生業力來源與生命主軸。
+
+## 2. 定男、女星用神
+- 根據生年四化所坐星曜，區分其陰陽屬性。
+- 用以判斷命主與周遭人物的親疏、助力與債緣。
+
+## 3. 分析生年四化（A / B / C / D）
+- 化祿(A)：緣、財、欲望、圓滿。
+- 化權(B)：權、能、成就、競爭。
+- 化科(C)：名、貴人、條理、風度。
+- 化忌(D)：債、執著、結局、收藏。
+- 先觀察四化分佈宮位，這是命盤的靜態底色。
+
+## 4. 觀察自化與視同自化
+- 自化代表質變、反覆、消散與噴出。
+- 需說清楚其對財、感情、關係與事件結果的影響。
+
+## 5. 運用飛星串聯宮位（體用變換）
+- 追蹤事件的起因、過程與結局。
+- 特別關注化忌的沖照、轉忌與落點。
+
+## 6. 配合象術心學解構心理層次
+- 不只斷吉凶，還要解釋其心理根源與執著所在。
+- 建議需能落實到實際行動與修心方向。
+
+## 7. 運限推演（大限、流年、流月）
+- 將大限與流年疊回本命盤。
+- 說明哪一個宮位、哪一條四化線在當下最活躍。
+
+# 輸出格式（務必依序）
+## 壹· 北派四化盤摘要
+- 來因宮是什麼，代表的人生主軸是什麼。
+- 生年四化分佈在哪些宮位。
+- 哪些自化／視同自化最關鍵。
+- 目前大限／流年的焦點落在哪裡。
+
+## 貳· 命格總斷
+- 依來因宮與四化格局概括一生基調。
+- 結合命宮、福德宮與自化，分析性情與內在需求。
+
+## 參· 事業與財運
+- 官祿方向：依官祿宮與飛化指出發展方向。
+- 財運機緣：分析財帛宮與田宅宮，是守成、流動或財來財去。
+
+## 肆· 婚姻與情感
+- 夫妻宮與對待位的關係。
+- 說明是福緣、債緣，還是彼此消耗，並給具體建議。
+
+## 伍· 六親與人際
+- 遷移、交友、父母、子女等宮位的得失互動。
+- 說明誰是助力、誰是課題。
+
+## 陸· 運勢隱憂與具體建議
+- 健康提醒：依疾厄宮與相關飛化說明注意點。
+- 本年／大限焦點：指出當前最需要注意的飛化忌與轉折。
+- 修行課題：給出可執行的修心與行動建議。
+
+# 表達要求
+- 使用繁體中文、專業但白話。
+- 每段先講「盤面依據」，再講「白話解釋」。
+- 保留術語，但要立刻補一句通俗說明。`
+
+/* ------------------------------------------------------------
+   Markdown 自定义样式组件
+   ------------------------------------------------------------ */
+
+const MarkdownComponents = {
+  h1: ({ children }: { children?: React.ReactNode }) => (
+    <h1 className="text-2xl font-bold text-gold mt-6 mb-3 first:mt-0">{children}</h1>
+  ),
+  h2: ({ children }: { children?: React.ReactNode }) => (
+    <h2 className="text-xl font-semibold text-gold/90 mt-5 mb-2">{children}</h2>
+  ),
+  h3: ({ children }: { children?: React.ReactNode }) => (
+    <h3 className="text-lg font-medium text-star-light mt-4 mb-2">{children}</h3>
+  ),
+  p: ({ children }: { children?: React.ReactNode }) => (
+    <p className="mb-3 leading-relaxed">{children}</p>
+  ),
+  strong: ({ children }: { children?: React.ReactNode }) => (
+    <strong className="text-gold font-semibold">{children}</strong>
+  ),
+  ul: ({ children }: { children?: React.ReactNode }) => (
+    <ul className="list-none space-y-1.5 mb-3 pl-4">{children}</ul>
+  ),
+  ol: ({ children }: { children?: React.ReactNode }) => (
+    <ol className="list-decimal list-inside space-y-1.5 mb-3 pl-2">{children}</ol>
+  ),
+  li: ({ children }: { children?: React.ReactNode }) => (
+    <li className="relative pl-4 before:content-['◆'] before:absolute before:left-0 before:text-star/60 before:text-xs">
+      {children}
+    </li>
+  ),
+  blockquote: ({ children }: { children?: React.ReactNode }) => (
+    <blockquote className="border-l-2 border-gold/40 pl-4 my-3 italic text-text-secondary">
+      {children}
+    </blockquote>
+  ),
+}
+
+/* ------------------------------------------------------------
+   AI 解读面板组件
+   ------------------------------------------------------------ */
+
+export function AIInterpretation() {
+  const { chart, birthInfo } = useChartStore()
+  const { provider, providerSettings, enableThinking, enableWebSearch, searchApiKey, language } = useSettingsStore()
+  const { aiInterpretation, setAiInterpretation } = useContentCacheStore()
+  const currentSettings = providerSettings[provider]
+  const isTraditional = language === 'zh-TW'
+
+  // 显示的文本（逐字输出）
+  const [displayText, setDisplayText] = useState('')
+  // 完整文本（缓冲区）
+  const fullTextRef = useRef('')
+  // 当前显示位置
+  const displayIndexRef = useRef(0)
+  // 定时器
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // 是否正在接收（ref 用于定时器闭包）
+  const loadingRef = useRef(false)
+  const [loading, setLoading] = useState(false)
+  // 是否正在输出动画
+  const animating = loading
+  const [error, setError] = useState<string | null>(null)
+
+  // 组件挂载时，如果有缓存则直接显示
+  useEffect(() => {
+    if (aiInterpretation && !displayText) {
+      setDisplayText(aiInterpretation)
+      fullTextRef.current = aiInterpretation
+      displayIndexRef.current = aiInterpretation.length
+    }
+  }, [aiInterpretation, displayText])
+
+  /* ------------------------------------------------------------
+     立即同步显示输出内容
+     ------------------------------------------------------------ */
+
+  const syncDisplayText = useCallback(() => {
+    setDisplayText(fullTextRef.current)
+    displayIndexRef.current = fullTextRef.current.length
+  }, [])
+
+  // 组件卸载时清理定时器
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+      }
+    }
+  }, [])
+
+  /* ------------------------------------------------------------
+     开始解读
+     ------------------------------------------------------------ */
+
+  const handleInterpret = useCallback(async () => {
+    if (loadingRef.current || loading) {
+      console.warn('[AIInterpretation] duplicate request prevented')
+      return
+    }
+
+    if (!chart || !birthInfo) return
+    if (!currentSettings.apiKey) {
+      setError(isTraditional ? '請先在設定中配置 API Key' : '请先在设置中配置 API Key')
+      return
+    }
+
+    // 重置状态
+    loadingRef.current = true
+    setLoading(true)
+    setError(null)
+    setDisplayText('')
+    fullTextRef.current = ''
+    displayIndexRef.current = 0
+
+    // 清理旧定时器
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+
+    try {
+      // 提取知识上下文 + 关键指标 JSON
+      const knowledge = extractKnowledge(chart, birthInfo.year)
+      const indicators = buildChartIndicators(chart, birthInfo.year, knowledge)
+      const indicatorsJson = JSON.stringify(indicators, null, 2)
+      const contextStr = buildPromptContext(knowledge)
+
+      // 构建用户消息
+      const userMessage = `请解读以下命盘：
+
+## 關鍵指標 JSON
+以下 JSON 是程式依命盤自動整理出的關鍵指標，請**優先依此做結構判讀**，再參考後面的補充上下文做交叉驗證。
+
+\`\`\`json
+${indicatorsJson}
+\`\`\`
+
+## 基本信息
+- 阳历：${birthInfo.year}年${birthInfo.month}月${birthInfo.day}日
+- 性别：${birthInfo.gender === 'male' ? '男' : '女'}
+- 五行局：${chart.fiveElementsClass}
+
+## 補充盤面上下文
+${contextStr}
+
+請先依「北派欽天四化論斷 SOP」解盤，優先交代：來因宮、生年四化、自化/視同自化、飛化落點，以及本命/大限/流年的體用關係，再做白話解讀。`
+
+      const messages: ChatMessage[] = [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: userMessage },
+      ]
+
+      const config: LLMConfig = {
+        provider,
+        apiKey: currentSettings.apiKey,
+        baseUrl: currentSettings.customBaseUrl || undefined,
+        model: currentSettings.customModel || undefined,
+        enableThinking,
+        enableWebSearch,
+        searchApiKey: searchApiKey || undefined,
+      }
+
+      // 流式接收，立即更新显示
+      for await (const token of streamChat(config, messages)) {
+        fullTextRef.current += token
+        syncDisplayText()
+      }
+
+      // 保存到全局缓存
+      setAiInterpretation(fullTextRef.current)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : (isTraditional ? '解讀失敗，請重試' : '解读失败，请重试'))
+    } finally {
+      loadingRef.current = false
+      setLoading(false)
+    }
+  }, [chart, birthInfo, provider, currentSettings, enableThinking, enableWebSearch, searchApiKey, syncDisplayText, setAiInterpretation])
+
+  if (!chart) return null
+
+  return (
+    <div
+      className="
+        relative p-6 lg:p-8
+        bg-gradient-to-br from-white/[0.04] to-transparent
+        backdrop-blur-xl border border-white/[0.08] rounded-2xl
+        shadow-[0_8px_32px_rgba(0,0,0,0.3)]
+      "
+    >
+      {/* 顶部发光线 */}
+      <div
+        className="
+          absolute top-0 left-1/2 -translate-x-1/2
+          w-1/3 h-px
+          bg-gradient-to-r from-transparent via-gold/50 to-transparent
+        "
+      />
+
+      {/* 头部 */}
+      <div className="flex items-center justify-between mb-6">
+        <h2
+          className="
+            text-xl lg:text-2xl font-semibold
+            bg-gradient-to-r from-gold via-gold-light to-gold
+            bg-clip-text text-transparent
+          "
+          style={{ fontFamily: 'var(--font-serif)' }}
+        >
+          {isTraditional ? 'AI 命盤解讀' : 'AI 命盘解读'}
+        </h2>
+        <Button
+          onClick={handleInterpret}
+          disabled={loading || !currentSettings.apiKey}
+          size="sm"
+          variant="gold"
+        >
+          {loading ? (
+            <span className="flex items-center gap-2">
+              <span className="w-3 h-3 border-2 border-night border-t-transparent rounded-full animate-spin" />
+              {isTraditional ? '解讀中' : '解读中'}
+            </span>
+          ) : currentSettings.apiKey ? (isTraditional ? '開始解讀' : '开始解读') : (isTraditional ? '請先配置 API' : '请先配置 API')}
+        </Button>
+      </div>
+
+      {/* 错误提示 */}
+      {error && (
+        <div className="p-3 rounded-lg bg-misfortune/10 text-misfortune text-sm mb-4 border border-misfortune/20">
+          {error}
+        </div>
+      )}
+
+      {/* 未配置提示 */}
+      {!currentSettings.apiKey && !displayText && (
+        <div className="text-text-muted text-sm py-8 text-center">
+          <div className="text-3xl mb-3 opacity-30">☆</div>
+          {isTraditional
+            ? '請先在設定中配置 AI 模型的 API Key，即可獲得深度命盤解讀。'
+            : '请先在设置中配置 AI 模型的 API Key，即可获得深度命盘解读。'}
+        </div>
+      )}
+
+      {/* 解读内容 - 书法字体 + Markdown 渲染 */}
+      {displayText && (
+        <div
+          className="
+            prose prose-invert max-w-none
+            text-text-secondary text-lg lg:text-xl leading-loose
+          "
+          style={{ fontFamily: 'var(--font-sans)' }}
+        >
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={MarkdownComponents}
+          >
+            {displayText}
+          </ReactMarkdown>
+
+          {/* 光标指示器 */}
+          {animating && (
+            <span className="inline-block w-0.5 h-5 bg-gold/80 animate-pulse ml-0.5 align-middle" />
+          )}
+        </div>
+      )}
+
+      {/* 加载占位 */}
+      {loading && !displayText && (
+        <div className="flex items-center justify-center gap-3 text-text-muted py-12">
+          <div className="w-5 h-5 border-2 border-star border-t-transparent rounded-full animate-spin" />
+          <span>{isTraditional ? '正在分析命盤...' : '正在分析命盘...'}</span>
+        </div>
+      )}
+    </div>
+  )
+}

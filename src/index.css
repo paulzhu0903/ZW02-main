@@ -1,0 +1,438 @@
+@import 'tailwindcss';
+
+/* ============================================================
+   紫微斗数 App - 全局样式 (Apple Style Light)
+   色彩系统：Apple Design System Light Mode
+   ============================================================ */
+
+@theme {
+  /* 背景色调 - Apple Light Mode */
+  --color-night: #FFFFFF;
+  --color-night-light: #F5F5F7;
+  --color-night-lighter: #ECECF0;
+
+  /* 主色 - Apple Blue */
+  --color-star: #007AFF;
+  --color-star-light: #5AC8FA;
+  --color-star-dark: #0051D5;
+
+  /* 强调色 - Apple Purple*/
+  --color-gold: #9333EA;
+  --color-gold-light: #A78BFA;
+  --color-gold-dark: #6D28D9;
+  --color-amber: #9333EA;
+  --color-amber-light: #A78BFA;
+  --color-amber-dark: #6D28D9;
+
+  /* 语义色 */
+  --color-fortune: #34C759;
+  --color-misfortune: #FF3B30;
+  --color-neutral: #A2A2A7;
+
+  /* 文字色 */
+  --color-text: #1D1D1F;
+  --color-text-secondary: #1D1D1F;
+  --color-text-muted: #86868B;
+
+  /* 毛玻璃 */
+  --color-glass: rgba(255, 255, 255, 0.7);
+  --color-glass-border: rgba(0, 0, 0, 0.06);
+
+  /* 字体 - 中英文混排优化 */
+  --font-sans: 'Noto Sans SC', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Noto Serif SC', 'Georgia', serif;
+  --font-display: 'Noto Serif SC', 'Georgia', serif;
+  --font-brush: 'Ma Shan Zheng', 'STKaiti', 'KaiTi', cursive;
+}
+
+/* ============================================================
+   基础样式
+   ============================================================ */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(0, 122, 255, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(175, 82, 222, 0.05) 0%, transparent 50%),
+    linear-gradient(135deg, #FFFFFF 0%, #F5F5F7 50%, #FFFFFF 100%);
+  color: var(--color-text);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* ============================================================
+   毛玻璃卡片 - Apple Light Mode
+   ============================================================ */
+
+.glass {
+  background: rgba(245, 245, 247, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.glass-glow {
+  box-shadow:
+    0 0 40px rgba(0, 122, 255, 0.1),
+    0 4px 24px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.glass-gold {
+  border-color: rgba(175, 82, 222, 0.15);
+  box-shadow:
+    0 0 30px rgba(175, 82, 222, 0.1),
+    0 4px 24px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* 悬停发光效果 */
+.hover-glow {
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.hover-glow:hover {
+  box-shadow:
+    0 0 50px rgba(0, 122, 255, 0.15),
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  border-color: rgba(0, 122, 255, 0.2);
+}
+
+/* ============================================================
+   星点背景动画
+   ============================================================ */
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+@keyframes twinkle-slow {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+@keyframes aurora-drift {
+  0%, 100% {
+    transform: translate(0%, 0%) rotate(0deg);
+    opacity: 0.4;
+  }
+  25% {
+    transform: translate(5%, -5%) rotate(2deg);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translate(-3%, 3%) rotate(-1deg);
+    opacity: 0.5;
+  }
+  75% {
+    transform: translate(2%, -2%) rotate(1deg);
+    opacity: 0.55;
+  }
+}
+
+.star-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.star-bg::before {
+  content: '';
+  position: absolute;
+  width: 1.5px;
+  height: 1.5px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  box-shadow:
+    100px 50px 0 rgba(0,0,0,0.08),
+    200px 150px 0 rgba(0,0,0,0.12),
+    300px 80px 0 rgba(0,0,0,0.1),
+    400px 200px 0 rgba(0,0,0,0.08),
+    500px 120px 0 rgba(0,0,0,0.15),
+    600px 180px 0 rgba(0,0,0,0.1),
+    700px 60px 0 rgba(0,0,0,0.12),
+    800px 220px 0 rgba(0,0,0,0.08),
+    150px 300px 0 rgba(0,0,0,0.1),
+    350px 350px 0 rgba(0,0,0,0.12),
+    550px 280px 0 rgba(0,0,0,0.08),
+    750px 320px 0 rgba(0,0,0,0.1),
+    50px 450px 0 rgba(0,0,0,0.08),
+    250px 500px 0 rgba(0,0,0,0.1),
+    450px 420px 0 rgba(0,0,0,0.12),
+    650px 480px 0 rgba(0,0,0,0.08),
+    850px 400px 0 rgba(0,0,0,0.1),
+    950px 150px 0 rgba(0,0,0,0.08),
+    1050px 300px 0 rgba(0,0,0,0.12),
+    1150px 100px 0 rgba(0,0,0,0.1);
+  animation: twinkle 4s ease-in-out infinite;
+}
+
+.star-bg::after {
+  content: '';
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  background: rgba(0, 122, 255, 0.15);
+  border-radius: 50%;
+  box-shadow:
+    180px 100px 0 rgba(0, 122, 255, 0.1),
+    380px 250px 0 rgba(0, 122, 255, 0.08),
+    580px 50px 0 rgba(0, 122, 255, 0.12),
+    780px 300px 0 rgba(0, 122, 255, 0.1),
+    280px 400px 0 rgba(0, 122, 255, 0.08),
+    480px 150px 0 rgba(0, 122, 255, 0.12);
+  animation: twinkle-slow 6s ease-in-out infinite;
+}
+
+/* ============================================================
+   Aurora 极光背景 - Apple Light Mode
+   ============================================================ */
+
+.aurora-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: -2;
+}
+
+.aurora-bg::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 20%, rgba(0, 122, 255, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 80% 30%, rgba(90, 200, 250, 0.06) 0%, transparent 45%),
+    radial-gradient(ellipse 70% 60% at 60% 80%, rgba(175, 82, 222, 0.05) 0%, transparent 50%);
+  animation: aurora-drift 20s ease-in-out infinite;
+}
+
+.aurora-bg::after {
+  content: '';
+  position: absolute;
+  top: -30%;
+  left: -30%;
+  width: 160%;
+  height: 160%;
+  background:
+    radial-gradient(ellipse 50% 80% at 70% 60%, rgba(52, 199, 89, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse 40% 50% at 30% 70%, rgba(175, 82, 222, 0.04) 0%, transparent 45%);
+  animation: aurora-drift 25s ease-in-out infinite reverse;
+}
+
+/* ============================================================
+   动画工具类
+   ============================================================ */
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+/* ============================================================
+   交互增强
+   ============================================================ */
+
+/* 按钮基础样式 */
+.btn {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.btn:hover::before {
+  opacity: 1;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+/* 主要按钮 - 紫星渐变 */
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-star) 0%, var(--color-star-dark) 100%);
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.3);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 6px 24px rgba(124, 58, 237, 0.4);
+}
+
+/* 金色按钮 */
+.btn-gold {
+  background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-gold-dark) 100%);
+  color: #0f0f23;
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.3);
+}
+
+.btn-gold:hover {
+  box-shadow: 0 6px 24px rgba(212, 175, 55, 0.4);
+}
+
+/* 卡片悬停提升 */
+.card-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-lift:hover {
+  transform: translateY(-4px);
+}
+
+/* 标签激活指示器 */
+.tab-indicator {
+  position: relative;
+}
+
+.tab-indicator::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-star-light), var(--color-gold));
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+  border-radius: 1px;
+}
+
+.tab-indicator.active::after,
+.tab-indicator:hover::after {
+  width: 80%;
+}
+
+/* 输入框聚焦效果 */
+.input-glow {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.input-glow:focus {
+  outline: none;
+  border-color: rgba(124, 58, 237, 0.5);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+
+/* 流星动画（偶发） */
+@keyframes shooting-star {
+  0% {
+    transform: translateX(0) translateY(0);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(300px) translateY(300px);
+    opacity: 0;
+  }
+}
+
+.shooting-star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: linear-gradient(135deg, #fff 0%, rgba(212, 175, 55, 0.8) 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.3);
+  animation: shooting-star 1.5s ease-out forwards;
+}
+
+.shooting-star::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 60px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.6), transparent);
+  transform: translateY(-50%);
+}
+
+/* ============================================================
+   自定義滾動條
+   ============================================================ */
+
+.settings-scrollable {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 122, 255, 0.5) transparent;
+}
+
+.settings-scrollable::-webkit-scrollbar {
+  width: 6px;
+}
+
+.settings-scrollable::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.settings-scrollable::-webkit-scrollbar-thumb {
+  background: rgba(0, 122, 255, 0.5);
+  border-radius: 3px;
+}
+
+.settings-scrollable::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 122, 255, 0.7);
+}
+
+.settings-scrollable::-webkit-scrollbar-button {
+  display: none !important;
+  height: 0;
+  width: 0;
+}

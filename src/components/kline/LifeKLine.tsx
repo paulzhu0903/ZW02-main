@@ -30,6 +30,7 @@ import {
   type LifetimeKLinePoint,
 } from '@/lib/fortune-score'
 import { type LLMConfig } from '@/lib/llm'
+import { t } from '@/lib/i18n'
 
 /* ============================================================
    自定义 Tooltip (深色玻璃态)
@@ -40,15 +41,30 @@ interface TooltipProps {
   payload?: Array<{ payload: LifetimeKLinePoint }>
 }
 
+function localizeKlineProgress(message: string, language: 'zh-TW' | 'zh-CN') {
+  const progressMap: Record<string, string> = {
+    '初始化...': t('kline.initializing', language),
+    '正在计算运势...': t('kline.calculating', language),
+    '正在分析命盘...': t('kline.analyzingChart', language),
+    'AI 正在推演运势走向...': t('kline.aiReasoning', language),
+    '正在解析数据...': t('kline.parsingData', language),
+  }
+
+  return progressMap[message] ?? message
+}
+
 function CustomTooltip({ active, payload }: TooltipProps) {
+  const { language } = useSettingsStore()
+
   if (!active || !payload?.length) return null
 
   const data = payload[0].payload
   const isUp = data.close >= data.open
-  const scoreLevel = data.score >= 80 ? '大吉' :
-                     data.score >= 60 ? '吉' :
-                     data.score >= 40 ? '平' :
-                     data.score >= 20 ? '凶' : '大凶'
+  const ageUnit = language === 'zh-TW' ? '歲' : '岁'
+  const scoreLevel = data.score >= 80 ? t('kline.scoreExcellent', language) :
+                     data.score >= 60 ? t('kline.scoreGood', language) :
+                     data.score >= 40 ? t('kline.scoreFlat', language) :
+                     data.score >= 20 ? t('kline.scoreBad', language) : t('kline.scoreWorst', language)
 
   return (
     <div className="bg-night/95 backdrop-blur-md p-5 rounded-xl shadow-2xl border border-white/10 z-50 w-[320px] md:w-[380px]">
@@ -57,10 +73,10 @@ function CustomTooltip({ active, payload }: TooltipProps) {
         <div>
           <p className="text-xl font-bold text-white" style={{ fontFamily: 'var(--font-serif)' }}>
             {data.year} {data.ganZhi}年
-            <span className="text-base text-text-muted ml-2">({data.age}歲)</span>
+            <span className="text-base text-text-muted ml-2">({data.age}{ageUnit})</span>
           </p>
           <p className="text-sm text-star-light font-medium mt-1">
-            大运：{data.daYun} ({data.daYunRange})
+            {t('kline.daYun', language)}：{data.daYun} ({data.daYunRange})
           </p>
         </div>
         <div className={`text-sm font-bold px-3 py-1.5 rounded-lg ${
@@ -75,19 +91,19 @@ function CustomTooltip({ active, payload }: TooltipProps) {
       {/* ─── OHLC Grid ─── */}
       <div className="grid grid-cols-4 gap-2 text-xs mb-4 bg-white/[0.03] p-3 rounded-lg">
         <div className="text-center">
-          <span className="block text-text-muted mb-1">年初</span>
+          <span className="block text-text-muted mb-1">{t('kline.startOfYear', language)}</span>
           <span className="font-mono text-white font-bold">{data.open}</span>
         </div>
         <div className="text-center">
-          <span className="block text-text-muted mb-1">年末</span>
+          <span className="block text-text-muted mb-1">{t('kline.endOfYear', language)}</span>
           <span className={`font-mono font-bold ${isUp ? 'text-green-400' : 'text-rose-400'}`}>{data.close}</span>
         </div>
         <div className="text-center">
-          <span className="block text-text-muted mb-1">年内高</span>
+          <span className="block text-text-muted mb-1">{t('kline.highOfYear', language)}</span>
           <span className="font-mono text-gold font-bold">{data.high}</span>
         </div>
         <div className="text-center">
-          <span className="block text-text-muted mb-1">年内低</span>
+          <span className="block text-text-muted mb-1">{t('kline.lowOfYear', language)}</span>
           <span className="font-mono text-rose-400 font-bold">{data.low}</span>
         </div>
       </div>
@@ -98,7 +114,7 @@ function CustomTooltip({ active, payload }: TooltipProps) {
         {data.reason || (
           <span className="text-text-muted flex items-center gap-2">
             <span className="inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-            AI 解读生成中...
+            {t('kline.interpretationLoading', language)}
           </span>
         )}
       </div>
@@ -209,7 +225,7 @@ function PeakLabel(props: PeakLabelProps) {
 
 export function LifeKLine() {
   const { chart, birthInfo } = useChartStore()
-  const { provider, getCurrentSettings, enableThinking, enableWebSearch, searchApiKey } = useSettingsStore()
+  const { provider, getCurrentSettings, enableThinking, enableWebSearch, searchApiKey, language } = useSettingsStore()
   const { klineCache, setKlineCache } = useContentCacheStore()
 
   const [isGenerating, setIsGenerating] = useState(false)
@@ -238,7 +254,7 @@ export function LifeKLine() {
     if (!chart || !birthInfo) return
 
     setIsGenerating(true)
-    setProgress('初始化...')
+    setProgress(t('kline.initializing', language))
 
     try {
       let lifetime: LifetimeKLinePoint[]
@@ -249,11 +265,11 @@ export function LifeKLine() {
           chart,
           birthInfo.year,
           llmConfig,
-          setProgress
+          (message) => setProgress(localizeKlineProgress(message, language))
         )
       } else {
         // 无 API Key 时使用算法生成
-        setProgress('正在计算运势...')
+        setProgress(t('kline.calculating', language))
         lifetime = generateLifetimeKLines(chart, birthInfo.year)
       }
 
@@ -261,7 +277,7 @@ export function LifeKLine() {
       setProgress('')
     } catch (error) {
       console.error('K 线生成失败:', error)
-      setProgress('生成失败，请重试')
+      setProgress(t('kline.failedRetry', language))
 
       // 失败时使用算法兜底
       const lifetime = generateLifetimeKLines(chart, birthInfo.year)
@@ -269,7 +285,7 @@ export function LifeKLine() {
     }
 
     setIsGenerating(false)
-  }, [chart, birthInfo, llmConfig, setKlineCache])
+  }, [chart, birthInfo, llmConfig, setKlineCache, language])
 
   /* ------------------------------------------------------------
      数据转换
@@ -329,10 +345,10 @@ export function LifeKLine() {
           className="text-2xl font-bold bg-gradient-to-r from-star-light via-gold to-star-light bg-clip-text text-transparent"
           style={{ fontFamily: 'var(--font-serif)' }}
         >
-          人生 K 线
+          {t('nav.kline', language)}
         </h2>
         <p className="text-text-muted text-sm mt-2">
-          {birthInfo?.year}年生 · 100 年运势起伏一目了然
+          {birthInfo?.year}{t('kline.bornSuffix', language)}
         </p>
       </div>
 
@@ -344,10 +360,10 @@ export function LifeKLine() {
             disabled={isGenerating}
             className="px-8 py-3 rounded-xl bg-gradient-to-r from-star to-gold text-night font-medium hover:shadow-[0_0_30px_rgba(124,58,237,0.4)] transition-all duration-300 disabled:opacity-50"
           >
-            {isGenerating ? (progress || '生成中...') : '✨ AI 生成人生 K 线'}
+            {isGenerating ? (progress || t('kline.generating', language)) : t('kline.generate', language)}
           </button>
           {!llmConfig.apiKey && (
-            <p className="text-text-muted text-xs">提示：配置 API Key 可使用 AI 分析命盘生成</p>
+            <p className="text-text-muted text-xs">{t('kline.apiHint', language)}</p>
           )}
         </div>
       ) : (
@@ -360,14 +376,14 @@ export function LifeKLine() {
             {/* 图表标题 */}
             <div className="mb-4 flex justify-between items-center px-2">
               <h3 className="text-lg font-bold text-white" style={{ fontFamily: 'var(--font-serif)' }}>
-                人生流年大运 K 线图
+                {t('kline.chartTitle', language)}
               </h3>
               <div className="flex gap-3 text-xs font-medium">
                 <span className="flex items-center text-green-400 bg-green-500/10 px-2 py-1 rounded">
-                  <div className="w-2 h-2 bg-green-500 mr-2 rounded-full" /> 吉运
+                  <div className="w-2 h-2 bg-green-500 mr-2 rounded-full" /> {t('kline.goodLuck', language)}
                 </span>
                 <span className="flex items-center text-rose-400 bg-rose-500/10 px-2 py-1 rounded">
-                  <div className="w-2 h-2 bg-rose-500 mr-2 rounded-full" /> 凶运
+                  <div className="w-2 h-2 bg-rose-500 mr-2 rounded-full" /> {t('kline.badLuck', language)}
                 </span>
               </div>
             </div>
@@ -391,7 +407,7 @@ export function LifeKLine() {
                   axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
                   tickLine={false}
                   label={{
-                    value: '年龄',
+                    value: t('kline.age', language),
                     position: 'insideBottomRight',
                     offset: -5,
                     fontSize: 10,
@@ -406,7 +422,7 @@ export function LifeKLine() {
                   tickLine={false}
                   ticks={[0, 25, 50, 75, 100]}
                   label={{
-                    value: '运势分',
+                    value: t('kline.fortuneScore', language),
                     angle: -90,
                     position: 'insideLeft',
                     fontSize: 10,
@@ -458,7 +474,7 @@ export function LifeKLine() {
             {klineCache.isGenerating && (
               <div className="absolute bottom-4 right-4 flex items-center gap-2 text-xs text-text-muted bg-night/80 px-3 py-1.5 rounded-lg">
                 <span className="inline-block w-3 h-3 border-2 border-star border-t-transparent rounded-full animate-spin" />
-                AI 正在生成运势解读...
+                {t('kline.aiGenerating', language)}
               </div>
             )}
           </div>
@@ -473,23 +489,23 @@ export function LifeKLine() {
                   trend: selectedPoint.close >= selectedPoint.open ? 'up' : 'down',
                   dimensions: selectedPoint.dimensions,
                 }}
-                period={`${selectedPoint.year}年 (${selectedPoint.age}歲)`}
+                period={`${selectedPoint.year}年 (${selectedPoint.age}${language === 'zh-TW' ? '歲' : '岁'})`}
               />
 
               {/* 详细信息卡片 */}
               <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] backdrop-blur-sm">
                 <h3 className="text-sm text-text-muted font-medium mb-4">
-                  📌 {selectedPoint.year}年 {selectedPoint.ganZhi} · {selectedPoint.age}歲
+                  📌 {selectedPoint.year}年 {selectedPoint.ganZhi} · {selectedPoint.age}{language === 'zh-TW' ? '歲' : '岁'}
                 </h3>
 
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-text-muted">所属大运</span>
+                    <span className="text-text-muted">{t('kline.belongDaYun', language)}</span>
                     <span className="text-star-light font-medium">{selectedPoint.daYun} ({selectedPoint.daYunRange})</span>
                   </div>
 
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-text-muted">综合评分</span>
+                    <span className="text-text-muted">{t('kline.totalScore', language)}</span>
                     <span className={`font-bold ${
                       selectedPoint.score >= 70 ? 'text-gold' :
                       selectedPoint.score >= 50 ? 'text-green-400' :
@@ -501,7 +517,7 @@ export function LifeKLine() {
 
                   {selectedPoint.yearlyMutagens && selectedPoint.yearlyMutagens.length > 0 && (
                     <div className="pt-3 border-t border-white/10">
-                      <span className="text-text-muted text-sm block mb-2">流年四化</span>
+                      <span className="text-text-muted text-sm block mb-2">{t('kline.yearlyMutagens', language)}</span>
                       <div className="flex flex-wrap gap-1.5">
                         {selectedPoint.yearlyMutagens.map((m, i) => (
                           <span key={i} className="px-2 py-0.5 rounded text-xs bg-star/20 text-star-light">
@@ -514,7 +530,7 @@ export function LifeKLine() {
 
                   {selectedPoint.reason && (
                     <div className="pt-3 border-t border-white/10">
-                      <span className="text-text-muted text-sm block mb-2">运势解读</span>
+                      <span className="text-text-muted text-sm block mb-2">{t('kline.interpretation', language)}</span>
                       <p className="text-text-secondary text-sm leading-relaxed" style={{ fontFamily: 'var(--font-brush)' }}>
                         {selectedPoint.reason}
                       </p>
@@ -535,11 +551,13 @@ export function LifeKLine() {
    ============================================================ */
 
 function EmptyState() {
+  const { language } = useSettingsStore()
+
   return (
     <div className="text-center p-8 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
       <div className="text-4xl mb-4 opacity-30">📈</div>
       <p className="text-text-muted mb-4">
-        请先在「命盘解读」中输入您的生辰信息
+        {t('empty.noChart', language)}
       </p>
     </div>
   )

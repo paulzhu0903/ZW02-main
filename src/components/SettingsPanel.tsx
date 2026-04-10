@@ -188,24 +188,24 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
         <div className="absolute inset-0 bg-black/60 rounded-2xl flex items-center justify-center z-10 p-4">
           <div className="bg-surface p-5 rounded-xl max-w-sm w-full space-y-4">
             <p className="text-text-secondary text-sm">
-              当前配置有未保存的修改，切换厂商将丢失这些修改。
+              {t('settings.unsavedChanges', language)}
             </p>
             <div className="flex gap-3">
               <Button
                 onClick={handleDiscardAndSwitch}
                 className="flex-1 !bg-white/10 hover:!bg-white/20"
               >
-                放弃修改
+                {t('settings.discardChanges', language)}
               </Button>
               <Button onClick={handleSaveAndSwitch} className="flex-1">
-                保存并切换
+                {t('settings.saveAndSwitch', language)}
               </Button>
             </div>
             <button
               onClick={() => setPendingProvider(null)}
               className="w-full text-sm text-text-muted hover:text-text transition-colors"
             >
-              取消
+              {t('settings.cancel', language)}
             </button>
           </div>
         </div>
@@ -263,7 +263,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             </div>
           </div>
 
-          {/* ② 預設盤面 */}
+          {/* 預設盤面 */}
           <div>
             <h3 className="text-sm font-medium text-text-secondary mb-2">② {t('settings.defaultChart', language).replace('② ', '')}</h3>
             <div className="space-y-2">
@@ -327,7 +327,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             </div>
           </div>
 
-          {/* ③ 安星法 */}
+          {/* 安星法 */}
           <div>
             <h3 className="text-sm font-medium text-text-secondary mb-2">③ {t('settings.starPlacement', language).replace('③ ', '')}</h3>
             <div className="space-y-2">
@@ -391,7 +391,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             </div>
           </div>
 
-          {/* ④ 四化盤面設定 */}
+          {/* 四化盤面設定 */}
           <div>
             <h3 className="text-sm font-medium text-text-secondary mb-2">④ {t('settings.transformation', language)}</h3>
             <div className="space-y-2">
@@ -470,7 +470,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             </div>
           </div>
 
-          {/* ⑤ 飛星盤面設定 */}
+          {/* 飛星盤面設定 */}
           <div>
             <h3 className="text-sm font-medium text-text-secondary mb-2">⑤ {t('settings.flying', language)}</h3>
             <div className="space-y-2">
@@ -559,7 +559,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           </div>
         </div>
 
-        {/* ⑥ AI 提供廠商 */}
+        {/* AI 提供廠商 */}
         <div className="border-t border-white/10 pt-3 space-y-3">
           <h3 className="text-sm font-medium text-text-secondary mb-2">⑥ {t('settings.aiProvider', language)}</h3>
           
@@ -743,7 +743,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                   </label>
                   <input
                     type="password"
-                    placeholder="输入 Tavily API Key"
+                    placeholder={t('settings.tavilyApiKeyPlaceholder', language)}
                     value={localSearchApiKey}
                     onChange={(e) => setLocalSearchApiKey(e.target.value)}
                     className={`

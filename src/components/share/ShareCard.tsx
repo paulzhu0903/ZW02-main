@@ -5,8 +5,9 @@
 
 import { useRef, useState, useCallback } from 'react'
 import html2canvas from 'html2canvas'
-import { useChartStore, useContentCacheStore } from '@/stores'
+import { useChartStore, useContentCacheStore, useSettingsStore } from '@/stores'
 import { Button } from '@/components/ui'
+import { t } from '@/lib/i18n'
 
 /* ------------------------------------------------------------
    字体常量 (html2canvas 不支持 CSS 变量，需硬编码)
@@ -55,7 +56,7 @@ function extractQuote(content: string): string | null {
    ------------------------------------------------------------ */
 
 function getLifePalaceStars(chart: any): string {
-  const lifePalace = chart?.palaces?.find((p: any) => p.name === '命宫')
+  const lifePalace = chart?.palaces?.find((p: any) => p.name === '命宫' || p.name === '命宮')
   if (!lifePalace?.majorStars?.length) return '未知'
   return lifePalace.majorStars.map((s: any) => s.name.replace('星', '')).join('·')
 }
@@ -64,18 +65,22 @@ function getLifePalaceStars(chart: any): string {
    获取格局名称
    ------------------------------------------------------------ */
 
-function getPatternName(chart: any): string | null {
+function getPatternName(chart: any, language: 'zh-TW' | 'zh-CN'): string | null {
   // 简化版格局判断 - 可后续扩展
-  const lifePalace = chart?.palaces?.find((p: any) => p.name === '命宫')
+  const lifePalace = chart?.palaces?.find((p: any) => p.name === '命宫' || p.name === '命宮')
   const stars = lifePalace?.majorStars?.map((s: any) => s.name) || []
+  const palaceChar = language === 'zh-TW' ? '宮' : '宫'
+  const hasStar = (simplified: string, traditional = simplified) => (
+    stars.includes(simplified) || stars.includes(traditional)
+  )
 
-  if (stars.includes('紫微') && stars.includes('天府')) return '紫府同宫格'
-  if (stars.includes('紫微') && stars.includes('贪狼')) return '紫贪同宫格'
-  if (stars.includes('紫微') && stars.includes('天相')) return '紫相同宫格'
-  if (stars.includes('太阳') && stars.includes('太阴')) return '日月同宫格'
-  if (stars.includes('天机') && stars.includes('太阴')) return '机月同梁格'
-  if (stars.includes('廉贞') && stars.includes('贪狼')) return '廉贪同宫格'
-  if (stars.includes('武曲') && stars.includes('贪狼')) return '武贪同宫格'
+  if (hasStar('紫微') && hasStar('天府')) return `紫府同${palaceChar}格`
+  if (hasStar('紫微') && hasStar('贪狼', '貪狼')) return language === 'zh-TW' ? `紫貪同${palaceChar}格` : `紫贪同${palaceChar}格`
+  if (hasStar('紫微') && hasStar('天相')) return `紫相同${palaceChar}格`
+  if (hasStar('太阳', '太陽') && hasStar('太阴', '太陰')) return `日月同${palaceChar}格`
+  if (hasStar('天机', '天機') && hasStar('太阴', '太陰')) return language === 'zh-TW' ? '機月同梁格' : '机月同梁格'
+  if (hasStar('廉贞', '廉貞') && hasStar('贪狼', '貪狼')) return language === 'zh-TW' ? `廉貪同${palaceChar}格` : `廉贪同${palaceChar}格`
+  if (hasStar('武曲') && hasStar('贪狼', '貪狼')) return language === 'zh-TW' ? `武貪同${palaceChar}格` : `武贪同${palaceChar}格`
 
   return null
 }
@@ -87,6 +92,7 @@ function getPatternName(chart: any): string | null {
 export function ShareCard() {
   const { chart, birthInfo } = useChartStore()
   const { aiInterpretation } = useContentCacheStore()
+  const { language } = useSettingsStore()
   const cardRef = useRef<HTMLDivElement>(null)
   const [generating, setGenerating] = useState(false)
   const [customQuote, setCustomQuote] = useState('')
@@ -94,13 +100,13 @@ export function ShareCard() {
 
   // 从 AI 解读中提取金句
   const extractedQuote = aiInterpretation ? extractQuote(aiInterpretation) : null
-  const displayQuote = customQuote || extractedQuote || '命由天定，事在人为。\n知命而不惧，顺势而为之。'
+  const displayQuote = customQuote || extractedQuote || t('share.defaultQuote', language)
 
   // 命盘信息
   const ganZhi = birthInfo ? yearToGanZhi(birthInfo.year) : ''
   const gender = birthInfo?.gender === 'male' ? '乾造' : '坤造'
   const stars = chart ? getLifePalaceStars(chart) : ''
-  const pattern = chart ? getPatternName(chart) : null
+  const pattern = chart ? getPatternName(chart, language) : null
   const fiveElements = chart?.fiveElementsClass || ''
 
   const handleDownload = useCallback(async () => {
@@ -130,17 +136,17 @@ export function ShareCard() {
       document.body.removeChild(link)
     } catch (err) {
       console.error('生成图片失败:', err)
-      alert(`图片生成失败: ${err instanceof Error ? err.message : '未知错误'}`)
+      alert(`${t('share.downloadFailed', language)}: ${err instanceof Error ? err.message : t('share.unknownError', language)}`)
     } finally {
       setGenerating(false)
     }
-  }, [ganZhi, gender])
+  }, [ganZhi, gender, language])
 
   if (!chart || !birthInfo) {
     return (
       <div className="text-center py-12 text-text-muted">
         <div className="text-4xl mb-3 opacity-30">✦</div>
-        <p>请先生成命盘，再创建分享卡片</p>
+        <p>{t('share.noChart', language)}</p>
       </div>
     )
   }
@@ -150,7 +156,7 @@ export function ShareCard() {
       {/* 提示信息 */}
       {!extractedQuote && (
         <div className="text-center text-text-muted text-sm px-4">
-          <p>💡 先进行 AI 命盘解读，即可自动提取专属金句</p>
+          <p>{t('share.aiTip', language)}</p>
         </div>
       )}
 
@@ -228,7 +234,7 @@ export function ShareCard() {
                 margin: 0,
               }}
             >
-              紫微命格
+              {t('share.cardTitle', language)}
             </h2>
           </div>
 
@@ -267,11 +273,11 @@ export function ShareCard() {
                 margin: '0 0 8px 0',
               }}
             >
-              命宫主星：{stars}
+              {t('share.lifePalaceStars', language)}：{stars}
             </p>
             {pattern && (
               <p style={{ fontSize: '12px', color: 'rgba(212, 175, 55, 0.6)', margin: '0 0 4px 0' }}>
-                格局：{pattern}
+                {t('share.pattern', language)}：{pattern}
               </p>
             )}
             <p style={{ fontSize: '12px', color: 'rgba(212, 175, 55, 0.5)', margin: 0 }}>
@@ -306,7 +312,7 @@ export function ShareCard() {
           {/* 底部水印 */}
           <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid rgba(212, 175, 55, 0.1)', textAlign: 'center' }}>
             <p style={{ color: 'rgba(212, 175, 55, 0.3)', fontSize: '12px', letterSpacing: '0.2em', margin: 0 }}>
-              ─── 紫微知道 ───
+              {t('share.watermark', language)}
             </p>
           </div>
         </div>
@@ -319,16 +325,16 @@ export function ShareCard() {
             <textarea
               value={customQuote}
               onChange={(e) => setCustomQuote(e.target.value)}
-              placeholder="输入自定义金句，每句话换行..."
+              placeholder={t('share.quotePlaceholder', language)}
               className="w-full h-24 px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-text-primary placeholder:text-text-muted focus:outline-none focus:border-gold/30 resize-none"
               style={{ fontFamily: FONT_BRUSH }}
             />
             <div className="flex gap-2">
               <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>
-                取消
+                {t('form.cancel', language)}
               </Button>
               <Button size="sm" onClick={() => setIsEditing(false)}>
-                确定
+                {t('form.confirm', language)}
               </Button>
             </div>
           </div>
@@ -337,7 +343,7 @@ export function ShareCard() {
             onClick={() => setIsEditing(true)}
             className="w-full py-2 text-sm text-text-muted hover:text-text-secondary transition-colors"
           >
-            ✎ 自定义金句
+            {t('share.customizeQuote', language)}
           </button>
         )}
       </div>
@@ -352,16 +358,13 @@ export function ShareCard() {
         {generating ? (
           <span className="flex items-center justify-center gap-2">
             <span className="w-4 h-4 border-2 border-night border-t-transparent rounded-full animate-spin" />
-            生成中...
+            {t('share.generating', language)}
           </span>
         ) : (
-          '保存分享图'
+          t('share.saveImage', language)
         )}
       </Button>
 
-      <p className="text-center text-text-muted text-xs">
-        长按保存图片，分享到小红书 📕
-      </p>
     </div>
   )
 }

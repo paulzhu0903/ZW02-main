@@ -10,6 +10,7 @@ import { useChartStore, useSettingsStore, useContentCacheStore } from '@/stores'
 import { streamChat, type ChatMessage, type LLMConfig } from '@/lib/llm'
 import { extractKnowledge, buildPromptContext } from '@/knowledge'
 import { Button, Select } from '@/components/ui'
+import { t } from '@/lib/i18n'
 
 /* ------------------------------------------------------------
    年份选项
@@ -179,7 +180,7 @@ function buildYearlyContext(
 
 export function YearlyFortune() {
   const { chart, birthInfo } = useChartStore()
-  const { provider, providerSettings, enableThinking, enableWebSearch, searchApiKey } = useSettingsStore()
+  const { provider, providerSettings, enableThinking, enableWebSearch, searchApiKey, language } = useSettingsStore()
   const { yearlyFortune, setYearlyFortune } = useContentCacheStore()
   const currentSettings = providerSettings[provider]
 
@@ -291,7 +292,7 @@ ${yearlyContext}
             "
             style={{ fontFamily: 'var(--font-serif)' }}
           >
-            年度运势
+            {t('nav.fortune', language)}
           </h2>
 
           <div className="flex items-center gap-4">
@@ -310,9 +311,9 @@ ${yearlyContext}
               {loading ? (
                 <span className="flex items-center gap-2">
                   <span className="w-3 h-3 border-2 border-night border-t-transparent rounded-full animate-spin" />
-                  分析中
+                  {t('fortune.analyzing', language)}
                 </span>
-              ) : currentSettings.apiKey ? '查看运势' : '请先配置 API'}
+              ) : currentSettings.apiKey ? t('fortune.view', language) : t('fortune.configureApi', language)}
             </Button>
           </div>
         </div>
@@ -355,7 +356,7 @@ ${yearlyContext}
         {currentSettings.apiKey && !fortune && !loading && (
           <div className="text-text-muted text-sm py-8 text-center">
             <div className="text-3xl mb-3 opacity-30">◎</div>
-            选择年份并点击「查看运势」开始分析
+            {t('fortune.selectYearHint', language)}
           </div>
         )}
 

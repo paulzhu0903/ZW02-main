@@ -197,7 +197,7 @@ export default function App() {
               hover:bg-white/[0.08] hover:border-white/[0.12]
               transition-all duration-200
             "
-            title="设置"
+            title={t('nav.settings', language)}
           >
             <svg
               className="w-5 h-5 text-text-muted group-hover:text-text transition-colors"
@@ -268,7 +268,7 @@ export default function App() {
               relative flex flex-col items-center gap-1 px-1 py-1.5 rounded-lg
               text-text-muted transition-all duration-200 hover:text-text
             "
-            title="设置"
+            title={t('nav.settings', language)}
           >
             <svg
               className="w-4 h-4"
@@ -289,7 +289,7 @@ export default function App() {
                 d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
               />
             </svg>
-            <span className="text-[8pt] leading-none">设置</span>
+            <span className="text-[8pt] leading-none">{t('nav.settings', language)}</span>
           </button>
         </div>
       </nav>

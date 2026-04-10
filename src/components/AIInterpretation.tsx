@@ -10,6 +10,7 @@ import { useChartStore, useSettingsStore, useContentCacheStore } from '@/stores'
 import { extractKnowledge, buildChartIndicators, buildPromptContext } from '@/knowledge'
 import { streamChat, type ChatMessage, type LLMConfig } from '@/lib/llm'
 import { Button } from '@/components/ui'
+import { t } from '@/lib/i18n'
 
 /* ------------------------------------------------------------
    系统提示词
@@ -85,7 +86,7 @@ const SYSTEM_PROMPT = `# 角色定位
 - 修行課題：給出可執行的修心與行動建議。
 
 # 表達要求
-- 使用繁體中文、專業但白話。
+- 使用專業但白話的中文表達。
 - 每段先講「盤面依據」，再講「白話解釋」。
 - 保留術語，但要立刻補一句通俗說明。`
 
@@ -192,7 +193,7 @@ export function AIInterpretation() {
 
     if (!chart || !birthInfo) return
     if (!currentSettings.apiKey) {
-      setError(isTraditional ? '請先在設定中配置 API Key' : '请先在设置中配置 API Key')
+      setError(t('ai.configureApiKey', language))
       return
     }
 
@@ -218,27 +219,34 @@ export function AIInterpretation() {
       const contextStr = buildPromptContext(knowledge)
 
       // 构建用户消息
-      const userMessage = `请解读以下命盘：
+      const userMessage = `${isTraditional ? '請解讀以下命盤：' : '请解读以下命盘：'}
 
-## 關鍵指標 JSON
-以下 JSON 是程式依命盤自動整理出的關鍵指標，請**優先依此做結構判讀**，再參考後面的補充上下文做交叉驗證。
+## ${isTraditional ? '關鍵指標 JSON' : '关键指标 JSON'}
+${isTraditional
+  ? '以下 JSON 是程式依命盤自動整理出的關鍵指標，請**優先依此做結構判讀**，再參考後面的補充上下文做交叉驗證。'
+  : '以下 JSON 是程序依命盘自动整理出的关键指标，请**优先依此做结构判读**，再参考后面的补充上下文做交叉验证。'}
 
 \`\`\`json
 ${indicatorsJson}
 \`\`\`
 
-## 基本信息
-- 阳历：${birthInfo.year}年${birthInfo.month}月${birthInfo.day}日
-- 性别：${birthInfo.gender === 'male' ? '男' : '女'}
-- 五行局：${chart.fiveElementsClass}
+## ${isTraditional ? '基本資訊' : '基本信息'}
+- ${t('chart.solarCalendar', language)}：${birthInfo.year}年${birthInfo.month}月${birthInfo.day}日
+- ${t('form.gender', language)}：${birthInfo.gender === 'male' ? t('form.male', language) : t('form.female', language)}
+- ${t('chart.fiveElementsClass', language)}：${chart.fiveElementsClass}
 
-## 補充盤面上下文
+## ${isTraditional ? '補充盤面上下文' : '补充盘面上下文'}
 ${contextStr}
 
-請先依「北派欽天四化論斷 SOP」解盤，優先交代：來因宮、生年四化、自化/視同自化、飛化落點，以及本命/大限/流年的體用關係，再做白話解讀。`
+${isTraditional
+  ? '請先依「北派欽天四化論斷 SOP」解盤，優先交代：來因宮、生年四化、自化/視同自化、飛化落點，以及本命/大限/流年的體用關係，再做白話解讀。'
+  : '请先依「北派钦天四化论断 SOP」解盘，优先交代：来因宫、生年四化、自化/视同自化、飞化落点，以及本命/大限/流年的体用关系，再做白话解读。'}`
 
       const messages: ChatMessage[] = [
-        { role: 'system', content: SYSTEM_PROMPT },
+        {
+          role: 'system',
+          content: `${SYSTEM_PROMPT}\n\n${isTraditional ? '請使用繁體中文輸出全部內容。' : '请使用简体中文输出全部内容。'}`,
+        },
         { role: 'user', content: userMessage },
       ]
 
@@ -261,12 +269,12 @@ ${contextStr}
       // 保存到全局缓存
       setAiInterpretation(fullTextRef.current)
     } catch (err) {
-      setError(err instanceof Error ? err.message : (isTraditional ? '解讀失敗，請重試' : '解读失败，请重试'))
+      setError(err instanceof Error ? err.message : t('ai.failedRetry', language))
     } finally {
       loadingRef.current = false
       setLoading(false)
     }
-  }, [chart, birthInfo, provider, currentSettings, enableThinking, enableWebSearch, searchApiKey, syncDisplayText, setAiInterpretation])
+  }, [chart, birthInfo, provider, currentSettings, enableThinking, enableWebSearch, searchApiKey, syncDisplayText, setAiInterpretation, loading, isTraditional, language])
 
   if (!chart) return null
 
@@ -298,7 +306,7 @@ ${contextStr}
           "
           style={{ fontFamily: 'var(--font-serif)' }}
         >
-          {isTraditional ? 'AI 命盤解讀' : 'AI 命盘解读'}
+          {t('ai.title', language)}
         </h2>
         <Button
           onClick={handleInterpret}
@@ -309,9 +317,9 @@ ${contextStr}
           {loading ? (
             <span className="flex items-center gap-2">
               <span className="w-3 h-3 border-2 border-night border-t-transparent rounded-full animate-spin" />
-              {isTraditional ? '解讀中' : '解读中'}
+              {t('ai.loading', language)}
             </span>
-          ) : currentSettings.apiKey ? (isTraditional ? '開始解讀' : '开始解读') : (isTraditional ? '請先配置 API' : '请先配置 API')}
+          ) : currentSettings.apiKey ? t('ai.start', language) : t('fortune.configureApi', language)}
         </Button>
       </div>
 
@@ -326,9 +334,7 @@ ${contextStr}
       {!currentSettings.apiKey && !displayText && (
         <div className="text-text-muted text-sm py-8 text-center">
           <div className="text-3xl mb-3 opacity-30">☆</div>
-          {isTraditional
-            ? '請先在設定中配置 AI 模型的 API Key，即可獲得深度命盤解讀。'
-            : '请先在设置中配置 AI 模型的 API Key，即可获得深度命盘解读。'}
+          {t('ai.configureApiLong', language)}
         </div>
       )}
 
@@ -359,7 +365,7 @@ ${contextStr}
       {loading && !displayText && (
         <div className="flex items-center justify-center gap-3 text-text-muted py-12">
           <div className="w-5 h-5 border-2 border-star border-t-transparent rounded-full animate-spin" />
-          <span>{isTraditional ? '正在分析命盤...' : '正在分析命盘...'}</span>
+          <span>{t('ai.analyzingChart', language)}</span>
         </div>
       )}
     </div>

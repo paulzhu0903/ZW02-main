@@ -11,6 +11,7 @@ import { generateChart, type BirthInfo, type Gender } from '@/lib/astro'
 import { extractKnowledge, buildPromptContext } from '@/knowledge'
 import { streamChat, type ChatMessage, type LLMConfig } from '@/lib/llm'
 import { Button, Select } from '@/components/ui'
+import { t } from '@/lib/i18n'
 
 /* ------------------------------------------------------------
    年份/月份/日期选项
@@ -29,20 +30,24 @@ const DAY_OPTIONS = Array.from({ length: 31 }, (_, i) => ({
   value: i + 1,
   label: `${i + 1}日`,
 }))
-const HOUR_OPTIONS = [
-  { value: 23, label: '子时 (23:00-00:59)' },
-  { value: 2, label: '丑时 (01:00-02:59)' },
-  { value: 4, label: '寅时 (03:00-04:59)' },
-  { value: 6, label: '卯时 (05:00-06:59)' },
-  { value: 8, label: '辰时 (07:00-08:59)' },
-  { value: 10, label: '巳时 (09:00-10:59)' },
-  { value: 12, label: '午时 (11:00-12:59)' },
-  { value: 14, label: '未时 (13:00-14:59)' },
-  { value: 16, label: '申时 (15:00-16:59)' },
-  { value: 18, label: '酉时 (17:00-18:59)' },
-  { value: 20, label: '戌时 (19:00-20:59)' },
-  { value: 22, label: '亥时 (21:00-22:59)' },
-]
+function getHourOptions(language: 'zh-TW' | 'zh-CN') {
+  const shi = language === 'zh-TW' ? '時' : '时'
+
+  return [
+    { value: 23, label: `子${shi} (23:00-00:59)` },
+    { value: 2, label: `丑${shi} (01:00-02:59)` },
+    { value: 4, label: `寅${shi} (03:00-04:59)` },
+    { value: 6, label: `卯${shi} (05:00-06:59)` },
+    { value: 8, label: `辰${shi} (07:00-08:59)` },
+    { value: 10, label: `巳${shi} (09:00-10:59)` },
+    { value: 12, label: `午${shi} (11:00-12:59)` },
+    { value: 14, label: `未${shi} (13:00-14:59)` },
+    { value: 16, label: `申${shi} (15:00-16:59)` },
+    { value: 18, label: `酉${shi} (17:00-18:59)` },
+    { value: 20, label: `戌${shi} (19:00-20:59)` },
+    { value: 22, label: `亥${shi} (21:00-22:59)` },
+  ]
+}
 const GENDER_OPTIONS = [
   { value: 'male', label: '男' },
   { value: 'female', label: '女' },
@@ -139,6 +144,8 @@ interface PersonInputProps {
 }
 
 function PersonInput({ label, value, onChange }: PersonInputProps) {
+  const { language } = useSettingsStore()
+
   const update = (field: keyof BirthInfo, val: number | Gender) => {
     onChange({ ...value, [field]: val })
   }
@@ -161,27 +168,27 @@ function PersonInput({ label, value, onChange }: PersonInputProps) {
       <div className="space-y-3">
         <div className="grid grid-cols-3 gap-2">
           <Select
-            label="年"
+            label={t('match.year', language)}
             options={YEAR_OPTIONS}
             value={value.year}
             onChange={(e) => update('year', Number(e.target.value))}
           />
           <Select
-            label="月"
+            label={t('match.month', language)}
             options={MONTH_OPTIONS}
             value={value.month}
             onChange={(e) => update('month', Number(e.target.value))}
           />
           <Select
-            label="日"
+            label={t('match.day', language)}
             options={DAY_OPTIONS}
             value={value.day}
             onChange={(e) => update('day', Number(e.target.value))}
           />
         </div>
         <Select
-          label="时辰"
-          options={HOUR_OPTIONS}
+          label={t('match.hour', language)}
+          options={getHourOptions(language)}
           value={value.hour}
           onChange={(e) => update('hour', Number(e.target.value))}
         />
@@ -218,7 +225,7 @@ function PersonInput({ label, value, onChange }: PersonInputProps) {
    ------------------------------------------------------------ */
 
 export function MatchAnalysis() {
-  const { provider, providerSettings, enableThinking, enableWebSearch, searchApiKey } = useSettingsStore()
+  const { provider, providerSettings, enableThinking, enableWebSearch, searchApiKey, language } = useSettingsStore()
   const currentSettings = providerSettings[provider]
 
   const [person1, setPerson1] = useState<BirthInfo>({
@@ -233,7 +240,7 @@ export function MatchAnalysis() {
 
   const handleAnalyze = useCallback(async () => {
     if (!currentSettings.apiKey) {
-      setError('请先在设置中配置 API Key')
+      setError(t('match.configureApiKey', language))
       return
     }
 
@@ -252,26 +259,30 @@ export function MatchAnalysis() {
       const context1 = buildPromptContext(knowledge1)
       const context2 = buildPromptContext(knowledge2)
 
-      const userMessage = `请分析以下两人的命盘契合度：
+      const isTraditional = language === 'zh-TW'
+      const userMessage = `${isTraditional ? '請分析以下兩人的命盤契合度：' : '请分析以下两人的命盘契合度：'}
 
-## 第一人
-- 出生：${person1.year}年${person1.month}月${person1.day}日
-- 性别：${person1.gender === 'male' ? '男' : '女'}
-- 五行局：${chart1.fiveElementsClass}
+## ${t('match.firstPerson', language)}
+- ${isTraditional ? '出生' : '出生'}：${person1.year}年${person1.month}月${person1.day}日
+- ${t('form.gender', language)}：${person1.gender === 'male' ? t('form.male', language) : t('form.female', language)}
+- ${t('chart.fiveElementsClass', language)}：${chart1.fiveElementsClass}
 
 ${context1}
 
-## 第二人
-- 出生：${person2.year}年${person2.month}月${person2.day}日
-- 性别：${person2.gender === 'male' ? '男' : '女'}
-- 五行局：${chart2.fiveElementsClass}
+## ${t('match.secondPerson', language)}
+- ${isTraditional ? '出生' : '出生'}：${person2.year}年${person2.month}月${person2.day}日
+- ${t('form.gender', language)}：${person2.gender === 'male' ? t('form.male', language) : t('form.female', language)}
+- ${t('chart.fiveElementsClass', language)}：${chart2.fiveElementsClass}
 
 ${context2}
 
-请分析两人的契合度和相处建议。`
+${isTraditional ? '請分析兩人的契合度和相處建議。' : '请分析两人的契合度和相处建议。'}`
 
       const messages: ChatMessage[] = [
-        { role: 'system', content: MATCH_PROMPT },
+        {
+          role: 'system',
+          content: `${MATCH_PROMPT}\n\n${isTraditional ? '請使用繁體中文輸出全部內容。' : '请使用简体中文输出全部内容。'}`,
+        },
         { role: 'user', content: userMessage },
       ]
 
@@ -291,11 +302,11 @@ ${context2}
         setResult(fullText)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '分析失败，请重试')
+      setError(err instanceof Error ? err.message : t('match.analysisFailed', language))
     } finally {
       setLoading(false)
     }
-  }, [person1, person2, provider, currentSettings, enableThinking, enableWebSearch, searchApiKey])
+  }, [person1, person2, provider, currentSettings, enableThinking, enableWebSearch, searchApiKey, language])
 
   return (
     <div className="animate-fade-in space-y-8 max-w-6xl mx-auto">
@@ -326,7 +337,7 @@ ${context2}
             "
             style={{ fontFamily: 'var(--font-serif)' }}
           >
-            双人合盘
+            {t('nav.match', language)}
           </h2>
 
           <Button
@@ -338,16 +349,16 @@ ${context2}
             {loading ? (
               <span className="flex items-center gap-2">
                 <span className="w-3 h-3 border-2 border-night border-t-transparent rounded-full animate-spin" />
-                分析中
+                {t('fortune.analyzing', language)}
               </span>
-            ) : currentSettings.apiKey ? '开始合盘分析' : '请先配置 API'}
+            ) : currentSettings.apiKey ? t('match.startAnalyze', language) : t('fortune.configureApi', language)}
           </Button>
         </div>
 
         {/* 双人信息输入区 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <PersonInput label="第一人" value={person1} onChange={setPerson1} />
-          <PersonInput label="第二人" value={person2} onChange={setPerson2} />
+          <PersonInput label={t('match.firstPerson', language)} value={person1} onChange={setPerson1} />
+          <PersonInput label={t('match.secondPerson', language)} value={person2} onChange={setPerson2} />
         </div>
 
         {/* 错误提示 */}
@@ -380,7 +391,7 @@ ${context2}
         {!currentSettings.apiKey && !result && (
           <div className="text-text-muted text-sm py-8 text-center">
             <div className="text-3xl mb-3 opacity-30">⚭</div>
-            请先在设置中配置 AI 模型的 API Key，即可获得双人合盘分析。
+            {t('match.configureApiLong', language)}
           </div>
         )}
 
@@ -388,7 +399,7 @@ ${context2}
         {currentSettings.apiKey && !result && !loading && (
           <div className="text-text-muted text-sm py-8 text-center">
             <div className="text-3xl mb-3 opacity-30">⚭</div>
-            输入双方信息并点击「开始合盘分析」
+            {t('match.inputHint', language)}
           </div>
         )}
 
@@ -396,7 +407,7 @@ ${context2}
         {loading && !result && (
           <div className="flex items-center justify-center gap-3 text-text-muted py-12">
             <div className="w-5 h-5 border-2 border-star border-t-transparent rounded-full animate-spin" />
-            <span>正在分析两人契合度...</span>
+            <span>{t('match.loadingText', language)}</span>
           </div>
         )}
 

@@ -21,9 +21,11 @@ const SYSTEM_PROMPT = `# 角色定位
 
 # 論盤核心原則
 1. 優先看「來因宮、生年四化、自化／視同自化、飛星、體用、我宮／他宮」。
-2. 必須先做盤面結構判讀，再轉成白話，不可跳步。
-3. 避免空泛雞湯、靈性話術與恐嚇語氣。
-4. 若資料不足，需明說「依目前盤面資訊可先判斷…」，不可虛構。
+2. 必須先建立「北派欽天四化座標系」：各宮宮干、各宮地支、生年四化落宮、離心自化、向心自化、男女星、我宮/他宮。
+3. 論述時需清楚交代能量流向，盡量用「A宮 → B宮」描述因果與體用變化。
+4. 必須先做盤面結構判讀，再轉成白話，不可跳步。
+5. 避免空泛雞湯、靈性話術與恐嚇語氣。
+6. 若資料不足，需明說「依目前盤面資訊可先判斷…」，不可虛構。
 
 # 北派欽天四化論斷 SOP
 ## 1. 確立來因宮
@@ -153,6 +155,8 @@ export function AIInterpretation() {
   // 是否正在输出动画
   const animating = loading
   const [error, setError] = useState<string | null>(null)
+  const [showPrompt, setShowPrompt] = useState(false)
+  const [promptPreview, setPromptPreview] = useState('')
 
   // 组件挂载时，如果有缓存则直接显示
   useEffect(() => {
@@ -180,6 +184,59 @@ export function AIInterpretation() {
       }
     }
   }, [])
+
+  const buildPromptPreview = useCallback(() => {
+    if (!chart || !birthInfo) return null
+
+    const knowledge = extractKnowledge(chart, birthInfo.year)
+    const indicators = buildChartIndicators(chart, birthInfo.year, knowledge)
+
+    if (import.meta.env.DEV) {
+      console.log('[AIInterpretation] current indicators index:', indicators)
+    }
+
+    const indicatorsJson = JSON.stringify(indicators, null, 2)
+    const contextStr = buildPromptContext(knowledge)
+
+    const userMessage = `${isTraditional ? '請解讀以下命盤：' : '请解读以下命盘：'}
+
+## ${isTraditional ? '關鍵指標 JSON' : '关键指标 JSON'}
+${isTraditional
+  ? '以下 JSON 是程式依命盤自動整理出的關鍵指標，請**優先依此做結構判讀**，再參考後面的補充上下文做交叉驗證。'
+  : '以下 JSON 是程序依命盘自动整理出的关键指标，请**优先依此做结构判读**，再参考后面的补充上下文做交叉验证。'}
+
+\`\`\`json
+${indicatorsJson}
+\`\`\`
+
+// ## ${isTraditional ? '基本資訊' : '基本信息'}
+// - ${t('chart.solarCalendar', language)}：${birthInfo.year}年${birthInfo.month}月${birthInfo.day}日
+// - ${t('form.gender', language)}：${birthInfo.gender === 'male' ? t('form.male', language) : t('form.female', language)}
+// - ${t('chart.fiveElementsClass', language)}：${chart.fiveElementsClass}
+
+// ## ${isTraditional ? '補充盤面上下文' : '补充盘面上下文'}
+// ${contextStr}
+
+${isTraditional
+  ? '請先依「北派欽天四化論斷 SOP」解盤，先建立座標系：各宮位天干、各宮位地支、生年四化落宮、離心自化、向心自化、男女星標記、我宮/他宮標記；再依此說明本命/大限/流年的體用關係與能量流動，最後才做白話解讀。'
+  : '请先依「北派钦天四化论断 SOP」解盘，先建立坐标系：各宫位天干、各宫位地支、生年四化落宫、离心自化、向心自化、男女星标记、我宫/他宫标记；再依此说明本命/大限/流年的体用关系与能量流动，最后才做白话解读。'}`
+
+    const systemMessage = `${SYSTEM_PROMPT}\n\n${isTraditional ? '請使用繁體中文輸出全部內容。' : '请使用简体中文输出全部内容。'}`
+
+    const promptText = [
+      '===== System Prompt =====',
+      systemMessage,
+      '',
+      '===== User Prompt =====',
+      userMessage,
+    ].join('\n')
+
+    return {
+      systemMessage,
+      userMessage,
+      promptText,
+    }
+  }, [chart, birthInfo, isTraditional, language])
 
   /* ------------------------------------------------------------
      开始解读
@@ -212,42 +269,17 @@ export function AIInterpretation() {
     }
 
     try {
-      // 提取知识上下文 + 关键指标 JSON
-      const knowledge = extractKnowledge(chart, birthInfo.year)
-      const indicators = buildChartIndicators(chart, birthInfo.year, knowledge)
-      const indicatorsJson = JSON.stringify(indicators, null, 2)
-      const contextStr = buildPromptContext(knowledge)
+      const promptData = buildPromptPreview()
+      if (!promptData) return
 
-      // 构建用户消息
-      const userMessage = `${isTraditional ? '請解讀以下命盤：' : '请解读以下命盘：'}
-
-## ${isTraditional ? '關鍵指標 JSON' : '关键指标 JSON'}
-${isTraditional
-  ? '以下 JSON 是程式依命盤自動整理出的關鍵指標，請**優先依此做結構判讀**，再參考後面的補充上下文做交叉驗證。'
-  : '以下 JSON 是程序依命盘自动整理出的关键指标，请**优先依此做结构判读**，再参考后面的补充上下文做交叉验证。'}
-
-\`\`\`json
-${indicatorsJson}
-\`\`\`
-
-## ${isTraditional ? '基本資訊' : '基本信息'}
-- ${t('chart.solarCalendar', language)}：${birthInfo.year}年${birthInfo.month}月${birthInfo.day}日
-- ${t('form.gender', language)}：${birthInfo.gender === 'male' ? t('form.male', language) : t('form.female', language)}
-- ${t('chart.fiveElementsClass', language)}：${chart.fiveElementsClass}
-
-## ${isTraditional ? '補充盤面上下文' : '补充盘面上下文'}
-${contextStr}
-
-${isTraditional
-  ? '請先依「北派欽天四化論斷 SOP」解盤，優先交代：來因宮、生年四化、自化/視同自化、飛化落點，以及本命/大限/流年的體用關係，再做白話解讀。'
-  : '请先依「北派钦天四化论断 SOP」解盘，优先交代：来因宫、生年四化、自化/视同自化、飞化落点，以及本命/大限/流年的体用关系，再做白话解读。'}`
+      setPromptPreview(promptData.promptText)
 
       const messages: ChatMessage[] = [
         {
           role: 'system',
-          content: `${SYSTEM_PROMPT}\n\n${isTraditional ? '請使用繁體中文輸出全部內容。' : '请使用简体中文输出全部内容。'}`,
+          content: promptData.systemMessage,
         },
-        { role: 'user', content: userMessage },
+        { role: 'user', content: promptData.userMessage },
       ]
 
       const config: LLMConfig = {
@@ -274,7 +306,18 @@ ${isTraditional
       loadingRef.current = false
       setLoading(false)
     }
-  }, [chart, birthInfo, provider, currentSettings, enableThinking, enableWebSearch, searchApiKey, syncDisplayText, setAiInterpretation, loading, isTraditional, language])
+  }, [chart, birthInfo, provider, currentSettings, enableThinking, enableWebSearch, searchApiKey, syncDisplayText, setAiInterpretation, loading, buildPromptPreview])
+
+  const handleTogglePrompt = useCallback(() => {
+    if (!showPrompt) {
+      const promptData = buildPromptPreview()
+      if (promptData) {
+        setPromptPreview(promptData.promptText)
+      }
+    }
+
+    setShowPrompt(prev => !prev)
+  }, [showPrompt, buildPromptPreview])
 
   if (!chart) return null
 
@@ -297,7 +340,7 @@ ${isTraditional
       />
 
       {/* 头部 */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 gap-3">
         <h2
           className="
             text-xl lg:text-2xl font-semibold
@@ -308,19 +351,31 @@ ${isTraditional
         >
           {t('ai.title', language)}
         </h2>
-        <Button
-          onClick={handleInterpret}
-          disabled={loading || !currentSettings.apiKey}
-          size="sm"
-          variant="gold"
-        >
-          {loading ? (
-            <span className="flex items-center gap-2">
-              <span className="w-3 h-3 border-2 border-night border-t-transparent rounded-full animate-spin" />
-              {t('ai.loading', language)}
-            </span>
-          ) : currentSettings.apiKey ? t('ai.start', language) : t('fortune.configureApi', language)}
-        </Button>
+        <div className="flex items-center gap-2">
+          {currentSettings.apiKey && (
+            <button
+              type="button"
+              onClick={handleTogglePrompt}
+              title={t('ai.promptHintNoApi', language)}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors"
+            >
+              {showPrompt ? t('ai.hidePrompt', language) : t('ai.showPrompt', language)}
+            </button>
+          )}
+          <Button
+            onClick={currentSettings.apiKey ? handleInterpret : handleTogglePrompt}
+            disabled={loading}
+            size="sm"
+            variant="gold"
+          >
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <span className="w-3 h-3 border-2 border-night border-t-transparent rounded-full animate-spin" />
+                {t('ai.loading', language)}
+              </span>
+            ) : currentSettings.apiKey ? t('ai.start', language) : (showPrompt ? t('ai.hidePrompt', language) : t('ai.showPrompt', language))}
+          </Button>
+        </div>
       </div>
 
       {/* 错误提示 */}
@@ -330,11 +385,35 @@ ${isTraditional
         </div>
       )}
 
+      {showPrompt && promptPreview && (
+        <div className="mb-4 rounded-xl border border-white/10 bg-night/40 overflow-hidden">
+          <div className="px-3 py-2 text-xs font-semibold text-star-light border-b border-white/10">
+            {t('ai.promptPreview', language)}
+          </div>
+          <pre
+            className="p-3 text-text-secondary whitespace-pre-wrap break-words max-h-80 overflow-auto leading-relaxed"
+            style={{ fontFamily: 'var(--font-sans)', fontSize: '12px' }}
+          >
+            {promptPreview}
+          </pre>
+        </div>
+      )}
+
       {/* 未配置提示 */}
       {!currentSettings.apiKey && !displayText && (
-        <div className="text-text-muted text-sm py-8 text-center">
+        <div className="text-text-muted text-sm py-8 text-center space-y-3">
           <div className="text-3xl mb-3 opacity-30">☆</div>
-          {t('ai.configureApiLong', language)}
+          <p>{t('ai.configureApiLong', language)}</p>
+          <p className="text-xs text-gold/80">{t('ai.promptHintNoApi', language)}</p>
+          <div className="pt-2 flex justify-center">
+            <button
+              type="button"
+              onClick={handleTogglePrompt}
+              className="px-4 py-2 rounded-xl text-sm font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors"
+            >
+              {showPrompt ? t('ai.hidePrompt', language) : t('ai.showPrompt', language)}
+            </button>
+          </div>
         </div>
       )}
 
@@ -343,9 +422,9 @@ ${isTraditional
         <div
           className="
             prose prose-invert max-w-none
-            text-text-secondary text-lg lg:text-xl leading-loose
+            text-text-secondary text-base leading-5
           "
-          style={{ fontFamily: 'var(--font-sans)' }}
+          style={{ fontFamily: 'var(--font-sans)', fontSize: '12px' }}
         >
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}

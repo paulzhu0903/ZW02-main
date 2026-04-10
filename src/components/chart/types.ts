@@ -64,6 +64,7 @@ export interface PalaceCardProps extends PalaceData {
   chartType?: 'flying' | 'trireme' | 'transformation'
   selectedDecadal?: number | null
   selectedAnnual?: number | null
+  monthlySequenceLabels?: string[]
   selectedAnnualYear?: number | null
   selectedAnnualAge?: number | null
   selectedAnnualGanZhi?: string | null
@@ -80,6 +81,8 @@ export interface DecadalAnnualMonthlyTableProps {
   setSelectedDecadal?: (index: number | null) => void
   selectedAnnual?: number | null
   setSelectedAnnual?: (index: number | null) => void
+  selectedMonthly?: number | null
+  setSelectedMonthly?: (index: number | null) => void
   isExpanded?: boolean
 }
 

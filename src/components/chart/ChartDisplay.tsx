@@ -60,6 +60,87 @@ function getYearGanZhi(year: number): string {
   return gan + zhi
 }
 
+const EARTHLY_BRANCH_ORDER = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'] as const
+const LUNAR_MONTH_NAMES = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'] as const
+
+function normalizeIndex(value: number): number {
+  return ((value % 12) + 12) % 12
+}
+
+function getLunarMonthNumber(lunarDateText: string | undefined): number | null {
+  if (!lunarDateText) return null
+
+  const match = lunarDateText.match(/年(闰|閏)?(正|一|二|三|四|五|六|七|八|九|十[一二]?|冬|腊|臘)月/)
+  const lunarMonthText = match?.[2]
+  if (!lunarMonthText) return null
+
+  const monthMap: Record<string, number> = {
+    '正': 1, '一': 1,
+    '二': 2,
+    '三': 3,
+    '四': 4,
+    '五': 5,
+    '六': 6,
+    '七': 7,
+    '八': 8,
+    '九': 9,
+    '十': 10,
+    '十一': 11, '冬': 11,
+    '十二': 12, '腊': 12, '臘': 12,
+  }
+
+  return monthMap[lunarMonthText] ?? null
+}
+
+function getTimeBranchIndex(timeText: string | undefined): number | null {
+  if (!timeText) return null
+
+  const match = timeText.match(/[子丑寅卯辰巳午未申酉戌亥]/)
+  if (!match) return null
+
+  const index = EARTHLY_BRANCH_ORDER.indexOf(match[0] as typeof EARTHLY_BRANCH_ORDER[number])
+  return index >= 0 ? index : null
+}
+
+function getMonthlySequenceByBranch(
+  chart: FunctionalAstrolabe,
+  palaceData: PalaceData[],
+  selectedDecadal: number | null,
+  selectedAnnual: number | null,
+): Record<string, string[]> {
+  if (selectedDecadal === null || selectedAnnual === null) return {}
+
+  const birthLunarMonth = getLunarMonthNumber((chart as any).lunarDate)
+  const birthTimeBranchIndex = getTimeBranchIndex((chart as any).time)
+
+  if (birthLunarMonth === null || birthTimeBranchIndex === null) return {}
+
+  const annualBranchCursor = (selectedDecadal * 10 + selectedAnnual) % 12
+  const annualBranch = EARTHLY_BRANCH_ORDER[annualBranchCursor]
+  const yearlyIndex = PALACE_BRANCH_INDEX[annualBranch] ?? -1
+
+  if (yearlyIndex < 0) return {}
+
+  const monthlyMap: Record<string, string[]> = {}
+
+  // 依照 iztro horoscope() 規則：
+  // 「流年地支逆數到生月所在宮位，再從該宮位順數到生時，為正月所在宮位，之後每月一宮」
+  LUNAR_MONTH_NAMES.forEach((monthName, idx) => {
+    const lunarMonth = idx + 1
+    const monthlyIndex = normalizeIndex(yearlyIndex - birthLunarMonth + birthTimeBranchIndex + lunarMonth)
+    const targetPalace = palaceData.find((palace) => (PALACE_BRANCH_INDEX[palace.branch] ?? -1) === monthlyIndex)
+
+    if (targetPalace) {
+      if (!monthlyMap[targetPalace.branch]) {
+        monthlyMap[targetPalace.branch] = []
+      }
+      monthlyMap[targetPalace.branch].push(`${monthName}月`)
+    }
+  })
+
+  return monthlyMap
+}
+
 /**
  * 根据语言设置获取亮度显示字符
  * @param brightness - 亮度值（中文字符，如"廟"、"庙"、"望"、"平"、"陷"）
@@ -383,11 +464,10 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, chartType =
    ============================================================ */
 
 function PalaceCard({
-  name, stem, branch, majorStars, minorStars, adjectiveStars, decadal,
-  boshi12Deity, longlifeDeity, isLife, isBody, isCausePalace, isSelected, onClick, chartType = 'flying', selectedDecadal = null, selectedAnnual = null, selectedAnnualAge = null, yearGan = '', gender = 'male', birthInfo = null, palaceData = null
+  name, stem, branch, majorStars, minorStars, adjectiveStars,
+  boshi12Deity, longlifeDeity, isLife, isBody, isCausePalace, isSelected, onClick, chartType = 'flying', selectedDecadal = null, selectedAnnual = null, monthlySequenceLabels = [], selectedAnnualAge = null, yearGan = '', gender = 'male', birthInfo = null, palaceData = null
 }: PalaceCardProps) {
   const { language, transformationShowGods, flyingShowGods, transformationShowCausePalace } = useSettingsStore()
-  const decadalRange = decadal?.range ? `${decadal.range[0]}-${decadal.range[1]}` : ''
   
   // 計算流年和虛歲 - 基於當前宮位在大限中的相對位置
   let decadalYear: number | null = null
@@ -469,23 +549,17 @@ function PalaceCard({
     annualPalaceLabel = ''
   }
   
-  // 计算流年标签（如果选择了流年）
-  // 根据流年的年份和当前宫位的地支来计算年命/年父等标签
+  // 计算流年标签
   let selectedAnnualLabel: string = ''
   if (selectedAnnual !== null && selectedAnnual !== undefined && selectedAnnualAge !== null) {
-    // 大限的起始宫位是第0个宫位对应的地支
     const decadalYearNumber = selectedDecadal ?? 0
     const decadalStartBranchIndex = (decadalYearNumber * 10) % 12
-    const zhibranches = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
-    const decadalYearBranch = zhibranches[(decadalStartBranchIndex + selectedAnnual) % 12]
-    
-    // 当前palace的地支
+    const decadalYearBranch = EARTHLY_BRANCH_ORDER[(decadalStartBranchIndex + selectedAnnual) % 12]
+
     const currentBranchIndex = PALACE_BRANCH_INDEX[branch] ?? -1
-    const branchOrder = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
-    const decadalYearBranchIndex = branchOrder.indexOf(decadalYearBranch)
+    const decadalYearBranchIndex = PALACE_BRANCH_INDEX[decadalYearBranch] ?? -1
     const relativePosition = (currentBranchIndex - decadalYearBranchIndex + 12) % 12
-    
-    // 根据相对位置映射到年命/年父等标签
+
     const annualLabels = ['年命', '年父', '年福', '年官', '年田', '年疾', '年遷', '年友', '年財', '年子', '年兄', '年夫']
     if (relativePosition < annualLabels.length) {
       selectedAnnualLabel = annualLabels[relativePosition]
@@ -560,35 +634,39 @@ function PalaceCard({
           <span className="text-[11pt] sm:text-[12pt] lg:text-[14pt] text-text-secondary">{stem}{branch}</span>
         </div>
 
-        {/* 中間: 大限名稱(橫排) + 時間 */}
-        <div className="flex flex-col items-center justify-center flex-1 text-center">
-          {/* 流年和年齡信息 */}
+        {/* 中間: 由上而下顯示 年歲、流月、流年、大限 */}
+        <div className="flex flex-col items-center justify-center flex-1 text-center gap-0">
           {(decadalYear !== null || masterAge !== null) && (
-            <div className="text-[8.5pt] sm:text-[9pt] lg:text-[10pt] text-text-muted mb-1 text-center">
-              {decadalYear !== null && (
-                <span className="mr-2">{decadalYear}年</span>
-              )}
-              {masterAge !== null && (
-                <span>{masterAge}歲</span>
-              )}
+            <div className="text-[8.5pt] sm:text-[9pt] lg:text-[10pt] text-text-muted text-center leading-none">
+              {decadalYear !== null && <span className="mr-1">{decadalYear}年</span>}
+              {masterAge !== null && <span>{masterAge}歲</span>}
             </div>
           )}
-          <div className="flex flex-col items-center justify-center leading-tight min-h-[34px] sm:min-h-[40px]">
+
+          {monthlySequenceLabels.length > 0 && (
+            <div className="flex flex-wrap items-center justify-center gap-x-1 gap-y-0 text-[9pt] sm:text-[10pt] lg:text-[11pt] text-gray-400 leading-none">
+              {monthlySequenceLabels.map((label) => (
+                <span key={`${branch}-${label}`} className="whitespace-nowrap">{label}</span>
+              ))}
+            </div>
+          )}
+
+          {(selectedAnnualLabel || annualPalaceLabel) && (
+            <div className="flex flex-col items-center justify-center leading-none min-h-[16px] sm:min-h-[18px]">
+              <span className="text-[10pt] sm:text-[11pt] lg:text-[12pt] text-gray-400 text-center leading-none">
+                {selectedAnnualLabel || annualPalaceLabel}
+              </span>
+            </div>
+          )}
+
+          <div className="flex flex-col items-center justify-center leading-none min-h-[24px] sm:min-h-[28px]">
             <span className={`
               px-1 py-0 rounded font-medium text-[11pt] sm:text-[12pt] lg:text-[14pt] text-center
               ${!isLife && !isBody ? 'text-text-secondary' : ''}
             `}>
               {displayPalaceName}
             </span>
-            {(selectedAnnualLabel || annualPalaceLabel) && (
-              <span className="text-[10pt] sm:text-[11pt] lg:text-[12pt] text-gray-400 text-center">
-                {selectedAnnualLabel || annualPalaceLabel}
-              </span>
-            )}
           </div>
-          {decadalRange && (
-            <span className="text-gray-400 font-mono text-[9pt] sm:text-[10pt] lg:text-[11pt] mt-0 text-center">{decadalRange}</span>
-          )}
         </div>
 
         {/* 右下: 原始宮位名稱(縱排) */}
@@ -850,7 +928,17 @@ function parsePalaces(chart: FunctionalAstrolabe): PalaceData[] {
    大限-流年-流月-流日-流時表格組件（支持展開/收闔）
    ============================================================ */
 
-function DecadalAnnualMonthlyTable({ palaceData, birthInfo, selectedDecadal: externalSelectedDecadal = null, setSelectedDecadal: externalSetSelectedDecadal, selectedAnnual: externalSelectedAnnual = null, setSelectedAnnual: externalSetSelectedAnnual, isExpanded: externalIsExpanded }: DecadalAnnualMonthlyTableProps) {
+function DecadalAnnualMonthlyTable({
+  palaceData,
+  birthInfo,
+  selectedDecadal: externalSelectedDecadal = null,
+  setSelectedDecadal: externalSetSelectedDecadal,
+  selectedAnnual: externalSelectedAnnual = null,
+  setSelectedAnnual: externalSetSelectedAnnual,
+  selectedMonthly: externalSelectedMonthly = null,
+  setSelectedMonthly: externalSetSelectedMonthly,
+  isExpanded: externalIsExpanded,
+}: DecadalAnnualMonthlyTableProps) {
   // 使用外部传入的状态，如果没有则使用内部状态
   const [internalSelectedDecadal, internalSetSelectedDecadal] = useState<number | null>(0)
   const selectedDecadal = externalSelectedDecadal !== undefined ? externalSelectedDecadal : internalSelectedDecadal
@@ -863,7 +951,10 @@ function DecadalAnnualMonthlyTable({ palaceData, birthInfo, selectedDecadal: ext
   const [internalIsExpanded] = useState(false)
   const isExpanded = externalIsExpanded !== undefined ? externalIsExpanded : internalIsExpanded
   
-  const [selectedMonthly, setSelectedMonthly] = useState<number | null>(0)
+  const [internalSelectedMonthly, internalSetSelectedMonthly] = useState<number | null>(0)
+  const selectedMonthly = externalSelectedMonthly !== undefined ? externalSelectedMonthly : internalSelectedMonthly
+  const setSelectedMonthly = externalSetSelectedMonthly || internalSetSelectedMonthly
+
   const [selectedDaily, setSelectedDaily] = useState<number | null>(0)
   const [dailyScrollOffset, setDailyScrollOffset] = useState(0)
   const [needsScrollSpacer, setNeedsScrollSpacer] = useState(false)
@@ -1168,6 +1259,7 @@ export function ChartDisplay() {
   const [chartType, setChartType] = useState<'flying' | 'trireme' | 'transformation'>(defaultChartType)
   const [selectedDecadal, setSelectedDecadal] = useState<number | null>(null)
   const [selectedAnnual, setSelectedAnnual] = useState<number | null>(null)
+  const [selectedMonthly, setSelectedMonthly] = useState<number | null>(null)
   const [isDecadalExpanded, setIsDecadalExpanded] = useState(false)
   const gridRef = useRef<HTMLDivElement>(null)
   const [gridOffset, setGridOffset] = useState({ x: 0, y: 0 })
@@ -1348,6 +1440,8 @@ export function ChartDisplay() {
     }
   }
 
+  const monthlySequenceByBranch = getMonthlySequenceByBranch(chart, palaceData, selectedDecadal, selectedAnnual)
+
   const renderPalace = (palace: PalaceData | null, key: string) => {
     if (!palace) return <div key={key} />
     return (
@@ -1360,6 +1454,7 @@ export function ChartDisplay() {
           chartType={chartType}
           selectedDecadal={selectedDecadal}
           selectedAnnual={selectedAnnual}
+          monthlySequenceLabels={monthlySequenceByBranch[palace.branch] || []}
           selectedAnnualYear={selectedAnnualYear}
           selectedAnnualAge={selectedAnnualAge}
           selectedAnnualGanZhi={selectedAnnualGanZhi}
@@ -1844,6 +1939,8 @@ export function ChartDisplay() {
           setSelectedDecadal={setSelectedDecadal}
           selectedAnnual={selectedAnnual}
           setSelectedAnnual={setSelectedAnnual}
+          selectedMonthly={selectedMonthly}
+          setSelectedMonthly={setSelectedMonthly}
           isExpanded={isDecadalExpanded}
         />
       </div>

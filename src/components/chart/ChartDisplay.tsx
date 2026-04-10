@@ -1559,12 +1559,13 @@ export function ChartDisplay() {
                   const starRect = starElement.getBoundingClientRect()
                   
                   // 相對於grid的坐標
-                  const cardCenterX = cardRect.left - gridRect.left + cardRect.width / 2
+                  const cardLeft = cardRect.left - gridRect.left
+                  const cardRight = cardRect.right - gridRect.left
                   const cardCenterY = cardRect.top - gridRect.top + cardRect.height / 2
-                  const cardRadius = Math.max(cardRect.width, cardRect.height) / 2
                   const cardTop = cardRect.top - gridRect.top
                   const cardBottom = cardRect.bottom - gridRect.top
                   const arrowLength = isCompactMobile ? 7 : 10 // 箭頭長度
+                  const arrowExtension = 2 * arrowLength
                   
                   const starCenterX = starRect.left - gridRect.left + starRect.width / 2
                   const starTop = starRect.top - gridRect.top
@@ -1579,13 +1580,13 @@ export function ChartDisplay() {
                     line1X1 = starCenterX
                     line1Y1 = starBottom
                     line1X2 = starCenterX
-                    line1Y2 = cardBottom + 2.5*arrowLength
+                    line1Y2 = cardBottom + arrowExtension
                   } else if (fromPalacePos.row === 0) {
                     // 上排：從star頂部垂直向上到card邊界外延伸（直接用cardTop）
                     line1X1 = starCenterX
                     line1Y1 = starTop
                     line1X2 = starCenterX
-                    line1Y2 = cardTop - 2.5*arrowLength
+                    line1Y2 = cardTop - arrowExtension
                   } else if (fromPalacePos.col === 0) {
                     // 左邊：L型 - 先垂直後水平
                     // 第一段：從star底部垂直到轉彎點（card中心高度）
@@ -1594,10 +1595,10 @@ export function ChartDisplay() {
                     line1X2 = starCenterX
                     line1Y2 = cardCenterY
                     
-                    // 第二段：從轉彎點水平到左邊界外（超出箭頭長度）
+                    // 第二段：從轉彎點水平到 card 左邊界外，額外突出 arrowExtension
                     line2X1 = starCenterX
                     line2Y1 = cardCenterY
-                    line2X2 = cardCenterX - cardRadius - 2.5*arrowLength
+                    line2X2 = cardLeft - arrowExtension
                     line2Y2 = cardCenterY
                   } else if (fromPalacePos.col === 3) {
                     // 右邊：L型 - 先垂直後水平
@@ -1607,10 +1608,10 @@ export function ChartDisplay() {
                     line1X2 = starCenterX
                     line1Y2 = cardCenterY
                     
-                    // 第二段：從轉彎點水平到右邊界外（超出箭頭長度）
+                    // 第二段：從轉彎點水平到 card 右邊界外，額外突出 arrowExtension
                     line2X1 = starCenterX
                     line2Y1 = cardCenterY
-                    line2X2 = cardCenterX + cardRadius + 2.5*arrowLength
+                    line2X2 = cardRight + arrowExtension
                     line2Y2 = cardCenterY
                   } else {
                     return null

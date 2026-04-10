@@ -47,16 +47,20 @@ export default function App() {
       month: record.month,
       day: record.day,
       hour: record.hour,
+      minute: record.minute ?? 0,
       gender: record.gender,
       name: record.name,
+      birthLocation: record.birthLocation || undefined,
     })
     const newChart = generateChart({
       year: record.year,
       month: record.month,
       day: record.day,
       hour: record.hour,
+      minute: record.minute ?? 0,
       gender: record.gender,
       name: record.name,
+      birthLocation: record.birthLocation || undefined,
     })
     setChart(newChart)
     setActiveTab('chart')

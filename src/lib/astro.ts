@@ -167,74 +167,29 @@ function calculateSolarTimeCorrection(longitude: number): number {
  * @returns 真太陽時字符串 (格式: YYYY-MM-DD HH:MM)
  */
 export function calculateSolarTime(birthInfo: Partial<BirthInfo>): string {
-  // 获取基础时间
   const year = birthInfo.year || new Date().getFullYear()
   const month = birthInfo.month || 1
   const day = birthInfo.day || 1
   const hour = birthInfo.hour ?? 9
   const minute = birthInfo.minute ?? 0
-  
-  // 如果没有出生地，直接返回标准时间
+
+  const formatDate = (date: Date) => {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+  }
+
+  const baseDate = new Date(year, month - 1, day, hour, minute, 0, 0)
+
   const location = birthInfo.birthLocation
   const longitude = getLocationLongitude(location)
-  
+
   if (longitude === null) {
-    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+    return formatDate(baseDate)
   }
-  
-  // 计算时间差修正量
+
   const correctionMinutes = calculateSolarTimeCorrection(longitude)
-  
-  // 计算真太阳时
-  let totalMinutes = hour * 60 + minute + correctionMinutes
-  let correctedHour = Math.floor(totalMinutes / 60)
-  let correctedMinute = totalMinutes % 60
-  
-  // 处理超出24小时
-  let correctedDay = day
-  let correctedMonth = month
-  let correctedYear = year
-  
-  if (correctedHour >= 24) {
-    correctedHour -= 24
-    correctedDay += 1
-    // 简单处理月份变化（实际应该考虑闰年等）
-    const daysPerMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-    if ((correctedYear % 4 === 0 && correctedYear % 100 !== 0) || (correctedYear % 400 === 0)) {
-      daysPerMonth[1] = 29
-    }
-    if (correctedDay > daysPerMonth[correctedMonth - 1]) {
-      correctedDay = 1
-      correctedMonth += 1
-    }
-  } else if (correctedHour < 0) {
-    correctedHour += 24
-    correctedDay -= 1
-    if (correctedDay < 1) {
-      correctedMonth -= 1
-      if (correctedMonth < 1) {
-        correctedMonth = 12
-        correctedYear -= 1
-      }
-      const daysPerMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-      if ((correctedYear % 4 === 0 && correctedYear % 100 !== 0) || (correctedYear % 400 === 0)) {
-        daysPerMonth[1] = 29
-      }
-      correctedDay = daysPerMonth[correctedMonth - 1]
-    }
-  }
-  
-  // 处理负分钟
-  if (correctedMinute < 0) {
-    correctedHour -= 1
-    correctedMinute += 60
-    if (correctedHour < 0) {
-      correctedHour += 24
-      correctedDay -= 1
-    }
-  }
-  
-  return `${correctedYear}-${String(correctedMonth).padStart(2, '0')}-${String(correctedDay).padStart(2, '0')} ${String(correctedHour).padStart(2, '0')}:${String(Math.round(correctedMinute)).padStart(2, '0')}`
+  const correctedDate = new Date(baseDate.getTime() + correctionMinutes * 60 * 1000)
+
+  return formatDate(correctedDate)
 }
 
 export function getShichenOptions() {

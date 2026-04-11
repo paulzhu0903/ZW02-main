@@ -65,7 +65,6 @@ export interface PalaceCardProps extends PalaceData {
   selectedDecadal?: number | null
   selectedAnnual?: number | null
   monthlySequenceLabels?: string[]
-  selectedAnnualYear?: number | null
   selectedAnnualAge?: number | null
   selectedAnnualGanZhi?: string | null
   yearGan?: string

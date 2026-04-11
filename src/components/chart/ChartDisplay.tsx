@@ -468,7 +468,7 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, chartType =
 
 function PalaceCard({
   name, stem, branch, majorStars, minorStars, adjectiveStars,
-  boshi12Deity, longlifeDeity, isLife, isBody, isCausePalace, isSelected, onClick, chartType = 'flying', selectedDecadal = null, selectedAnnual = null, monthlySequenceLabels = [], selectedAnnualAge = null, selectedAnnualYear = null, selectedAnnualGanZhi = null, yearGan = '', gender = 'male', birthInfo = null, palaceData = null
+  boshi12Deity, longlifeDeity, isLife, isBody, isCausePalace, isSelected, onClick, chartType = 'flying', selectedDecadal = null, selectedAnnual = null, monthlySequenceLabels = [], selectedAnnualAge = null, selectedAnnualGanZhi = null, yearGan = '', gender = 'male', birthInfo = null, palaceData = null
 }: PalaceCardProps) {
   const { language, transformationShowGods, flyingShowGods, transformationShowCausePalace } = useSettingsStore()
   
@@ -1461,7 +1461,6 @@ export function ChartDisplay() {
           selectedDecadal={selectedDecadal}
           selectedAnnual={selectedAnnual}
           monthlySequenceLabels={monthlySequenceByBranch[palace.branch] || []}
-          selectedAnnualYear={selectedAnnualYear}
           selectedAnnualAge={selectedAnnualAge}
           selectedAnnualGanZhi={selectedAnnualGanZhi}
           yearGan={yearGan}

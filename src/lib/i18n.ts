@@ -2,7 +2,7 @@
    国际化 (i18n) 翻译系统
    ============================================================ */
 
-type Language = 'zh-TW' | 'zh-CN'
+export type Language = 'zh-TW' | 'zh-CN'
 
 const translations: Record<Language, Record<string, any>> = {
   'zh-TW': {
@@ -37,6 +37,32 @@ const translations: Record<Language, Record<string, any>> = {
     'ai.configureApiLong': '請先在設置中配置 AI 模型的 API Key，即可獲得深度命盤解讀。',
     'ai.failedRetry': '解讀失敗，請重試',
     'ai.analyzingChart': '正在分析命盤...',
+
+    // AI Prompt (User Message)
+    'ai.prompt.readChart': '請解讀以下命盤：',
+    'ai.prompt.keyIndicators': '關鍵指標 JSON',
+    'ai.prompt.indicatorsHint': '以下 JSON 是程式自動整理的關鍵指標，**優先依此做結構判讀**，再參考補充上下文交叉驗證。',
+    'ai.prompt.basicInfo': '基本資訊',
+    'ai.prompt.supplementContext': '補充盤面上下文',
+    'ai.prompt.analyzeOrder': '先建立座標系（各宮干地支、生年四化、自化、男女星、我宮/他宮），再說明體用與能量流動，最後白話解讀。',
+
+    // AI Prompt Context (JSON Labels)
+    'ai.context.complete': '【命盤完整信息】',
+    'ai.context.lifePalaceStars': '## 命宮主星',
+    'ai.context.bodyPalacePosition': '## 身宮位置',
+    'ai.context.bodyPalaceIn': '- 身宮在',
+    'ai.context.transformationCoordinate': '## 北派四化座標',
+    'ai.context.transformationCoordinateHint': '（以宮干、地支、生年四化、離心/向心自化、我宮/他宮為主）',
+    'ai.context.natalMutation': '## 生年四化',
+    'ai.context.decadalLimits': '## 十二大限',
+    'ai.context.decadalHint': '（每個大限10年，按宮位天干飛化）',
+    'ai.context.majorStars': '主星',
+    'ai.context.genderStars': '男女星',
+    'ai.context.centrifugalMutation': '離心自化',
+    'ai.context.centripetal': '向心自化',
+    'ai.context.decadalAgeRange': '大限天干',
+    'ai.context.mutagenList': '大限四化',
+    'ai.context.noMajorStars': '無主星',
 
     // Life K Line
     'kline.generate': '✨ AI 生成人生K線',
@@ -388,6 +414,32 @@ const translations: Record<Language, Record<string, any>> = {
     'ai.configureApiLong': '请先在设置中配置 AI 模型的 API Key，即可获得深度命盘解读。',
     'ai.failedRetry': '解读失败，请重试',
     'ai.analyzingChart': '正在分析命盘...',
+
+    // AI Prompt (User Message)
+    'ai.prompt.readChart': '请解读以下命盘：',
+    'ai.prompt.keyIndicators': '关键指标 JSON',
+    'ai.prompt.indicatorsHint': '以下 JSON 是程序自动整理的关键指标，**优先依此做结构判读**，再参考补充上下文交叉验证。',
+    'ai.prompt.basicInfo': '基本信息',
+    'ai.prompt.supplementContext': '补充盘面上下文',
+    'ai.prompt.analyzeOrder': '先建立坐标系（各宫干地支、生年四化、自化、男女星、我宫/他宫），再说明体用与能量流动，最后白话解读。',
+
+    // AI Prompt Context (JSON Labels)
+    'ai.context.complete': '【命盘完整信息】',
+    'ai.context.lifePalaceStars': '## 命宫主星',
+    'ai.context.bodyPalacePosition': '## 身宫位置',
+    'ai.context.bodyPalaceIn': '- 身宫在',
+    'ai.context.transformationCoordinate': '## 北派四化坐标',
+    'ai.context.transformationCoordinateHint': '（以宫干、地支、生年四化、离心/向心自化、我宫/他宫为主）',
+    'ai.context.natalMutation': '## 生年四化',
+    'ai.context.decadalLimits': '## 十二大限',
+    'ai.context.decadalHint': '（每个大限10年，按宫位天干飞化）',
+    'ai.context.majorStars': '主星',
+    'ai.context.genderStars': '男女星',
+    'ai.context.centrifugalMutation': '离心自化',
+    'ai.context.centripetal': '向心自化',
+    'ai.context.decadalAgeRange': '大限天干',
+    'ai.context.mutagenList': '大限四化',
+    'ai.context.noMajorStars': '无主星',
 
     // Life K Line
     'kline.generate': '✨ AI 生成人生K线',
@@ -1068,5 +1120,3 @@ export const BRIGHTNESS_MAP: Record<string, string> = {
 export function getTranslations(language: Language) {
   return translations[language]
 }
-
-export type { Language }

@@ -5,6 +5,7 @@
 
 import { getStarInfo, type StarInfo } from './stars/majorStars'
 import { getSihuaByGan, getSihuaInfo, type SihuaInfo } from './sihua'
+import { t, type Language } from '@/lib/i18n'
 import type FunctionalAstrolabe from 'iztro/lib/astro/FunctionalAstrolabe'
 
 /* ------------------------------------------------------------
@@ -64,9 +65,21 @@ export interface KnowledgeContext {
     star: string
     palace: string
   }>
+}
 
-  // 格局提示
-  格局提示: string[]
+export interface CentrifugalMutagenInfo {
+  發生宮位: string
+  星曜: string
+  四化: string
+  代號: 'A' | 'B' | 'C' | 'D' | '?'
+}
+
+export interface CounterMutagenInfo {
+  來源宮位: string
+  目標對宮: string
+  星曜: string
+  四化: string
+  代號: 'A' | 'B' | 'C' | 'D' | '?'
 }
 
 export interface ChartIndicatorPalaceSummary {
@@ -75,8 +88,8 @@ export interface ChartIndicatorPalaceSummary {
   我宮他宮: '我宮' | '他宮' | ''
   主星: string[]
   男女星: string[]
-  離心自化: string[]
-  向心自化: string[]
+  離心自化: (string | CentrifugalMutagenInfo)[]
+  向心自化: (string | CounterMutagenInfo)[]
   大限: string
 }
 
@@ -86,25 +99,20 @@ export interface ChartIndicators {
     年干: string
     五行局: string
     命主: string
-    身主: string
     命宮: string
-    身宮: string
     來因宮: string
-  }
-  北派四化重點: {
-    生年四化: Array<{
+    生年四化?: Array<{
       代號: 'A' | 'B' | 'C' | 'D' | '?'
-      發生星曜: string
       星曜: string
       四化: string
-      發生宮位: string
-      發生地支: string
-      落點: string
+      宮位: string
       我宮他宮: '我宮' | '他宮' | ''
       男女星: string
     }>
-    離心自化: string[]
-    向心自化: string[]
+  }
+  北派四化重點: {
+    離心自化: (string | CentrifugalMutagenInfo)[]
+    向心自化: (string | CounterMutagenInfo)[]
   }
   論命座標系: Array<{
     宮位: string
@@ -113,11 +121,6 @@ export interface ChartIndicators {
     我宮他宮: '我宮' | '他宮' | ''
     主星: string[]
     男女星: string[]
-    離心自化?: string[]
-    向心自化?: string[]
-    來因宮?: true
-    命宮?: true
-    身宮?: true
   }>
   核心宮位: Record<string, ChartIndicatorPalaceSummary | null>
   運限焦點: {
@@ -125,7 +128,6 @@ export interface ChartIndicators {
     目前虛歲: number | null
     當前大限: {
       宮位: string
-      年齡範圍: string
       天干: string
       四化: string[]
     } | null
@@ -137,7 +139,7 @@ export interface ChartIndicators {
       四化: string[]
     }>
   }
-  格局提示: string[]
+
 }
 
 const MUTAGEN_LABEL_MAP: Record<string, 'A' | 'B' | 'C' | 'D'> = {
@@ -188,6 +190,8 @@ function normalizePalaceName(name: unknown): string {
     .replace('財帛', '财帛')
     .replace('遷移', '迁移')
     .replace('官祿', '官禄')
+    .replace('仆役', '交友')
+    .replace('僕役', '交友')
 }
 
 function getPalaceRole(name: unknown): '我宮' | '他宮' | '' {
@@ -213,26 +217,32 @@ function getStarPolarityInfo(starName: unknown): { 陰陽: string; 男女星: st
 }
 
 function formatGenderMarker(starName: unknown): string {
-  const name = String(starName || '')
+  const name = normalizeStarName(starName)
   const { 陰陽, 男女星 } = getStarPolarityInfo(name)
   if (!男女星 && !陰陽) return ''
   return `${name}(${[男女星, 陰陽].filter(Boolean).join('/')})`
 }
 
-function normalizeMutagen(mutagen: string): string {
-  return mutagen.replace('祿', '禄').replace('權', '权')
-}
-
 function getMutagenList(mutagen: unknown): string[] {
   if (!mutagen) return []
-  if (Array.isArray(mutagen)) {
-    return mutagen.map(item => String(item)).filter(Boolean)
-  }
-  return [String(mutagen)]
+  
+  const values = Array.isArray(mutagen)
+    ? mutagen.map(item => String(item)).filter(Boolean)
+    : [String(mutagen)]
+  
+  // 确保格式正确：如果没有"化"字前缀，则添加
+  return values.map(val => {
+    const str = val.trim()
+    if (str.startsWith('化')) {
+      return str  // 已经有"化"字
+    }
+    // iztro 返回的是"禄"、"权"等单字，需要添加"化"字前缀
+    return `化${str}`
+  })
 }
 
 function formatStarLabel(star: { name?: unknown; brightness?: unknown; mutagen?: unknown }): string {
-  const name = String(star.name || '')
+  const name = normalizeStarName(star.name)
   const mutagens = getMutagenList(star.mutagen)
   const mutagenStr = mutagens.length > 0 ? `[${mutagens.join('、')}]` : ''
   return `${name}${mutagenStr}`
@@ -246,46 +256,80 @@ function getPalaceStem(palace: Record<string, unknown>): string {
   return String(palace.heavenlyStem || palace.stem || '')
 }
 
-function resolveMutagenTargetStar(stem: string, mutagen: string): string | null {
-  const sihuaMap = getSihuaByGan(stem)
-  if (!sihuaMap) return null
-
-  const key = normalizeMutagen(mutagen.startsWith('化') ? mutagen : `化${mutagen}`)
-  const starName = sihuaMap[key]
-  return starName ? normalizeStarName(starName) : null
-}
 
 function collectPalaceMutagenHighlights(
   palace: Record<string, unknown>,
   oppositePalace?: Record<string, unknown>,
-): { self: string[]; counter: string[] } {
-  const self = new Set<string>()
-  const counter = new Set<string>()
-  const stars = [
-    ...((palace.majorStars as Array<Record<string, unknown>> | undefined) || []),
-    ...((palace.minorStars as Array<Record<string, unknown>> | undefined) || []),
-  ]
+): { self: (string | CentrifugalMutagenInfo)[]; counter: (string | CounterMutagenInfo)[] } {
+  const self: (string | CentrifugalMutagenInfo)[] = []
+  const counter: (string | CounterMutagenInfo)[] = []
+  
+  const palaceName = normalizePalaceName(palace.name as string)
+  const oppositeName = oppositePalace ? normalizePalaceName(oppositePalace.name as string) : ''
 
-  for (const star of stars) {
-    const starName = normalizeStarName(star.name)
-    for (const mutagen of getMutagenList(star.mutagen)) {
-      const selfTarget = resolveMutagenTargetStar(getPalaceStem(palace), mutagen)
-      if (selfTarget && selfTarget === starName) {
-        self.add(`${String(star.name)}${mutagen}`)
-      }
-
-      if (oppositePalace) {
-        const counterTarget = resolveMutagenTargetStar(getPalaceStem(oppositePalace), mutagen)
-        if (counterTarget && counterTarget === starName) {
-          counter.add(`${String(star.name)}${mutagen}`)
+  const palaceStem = getPalaceStem(palace)
+  
+  // 離心自化: 本宮天干的四化
+  if (palaceStem) {
+    const sihuaMap = getSihuaByGan(palaceStem)
+    if (sihuaMap) {
+      const allStars = [
+        ...((palace.majorStars as Array<Record<string, unknown>> | undefined) || []),
+        ...((palace.minorStars as Array<Record<string, unknown>> | undefined) || []),
+      ]
+      
+      // 遍歷四化表中的每個四化類型
+      Object.entries(sihuaMap).forEach(([mutagenKey, targetStar]) => {
+        // 檢查本宮中是否有該四化指向的星
+        const targetStarNorm = normalizeStarName(targetStar)
+        const hasTargetStar = allStars.some(s => normalizeStarName(s.name) === targetStarNorm)
+        
+        if (hasTargetStar) {
+          self.push({
+            發生宮位: palaceName,
+            星曜: targetStarNorm,
+            四化: mutagenKey,
+            代號: MUTAGEN_LABEL_MAP[mutagenKey] || '?',
+          })
         }
+      })
+    }
+  }
+  
+  // 向心自化: 對宮天干的四化指向本宮
+  if (oppositePalace) {
+    const oppositeStem = getPalaceStem(oppositePalace)
+    if (oppositeStem) {
+      const sihuaMap = getSihuaByGan(oppositeStem)
+      if (sihuaMap) {
+        const allStars = [
+          ...((palace.majorStars as Array<Record<string, unknown>> | undefined) || []),
+          ...((palace.minorStars as Array<Record<string, unknown>> | undefined) || []),
+        ]
+        
+        // 遍歷四化表中的每個四化類型
+        Object.entries(sihuaMap).forEach(([mutagenKey, targetStar]) => {
+          // 檢查本宮中是否有該四化指向的星
+          const targetStarNorm = normalizeStarName(targetStar)
+          const hasTargetStar = allStars.some(s => normalizeStarName(s.name) === targetStarNorm)
+          
+          if (hasTargetStar) {
+            counter.push({
+              來源宮位: oppositeName,
+              目標對宮: palaceName,
+              星曜: targetStarNorm,
+              四化: mutagenKey,
+              代號: MUTAGEN_LABEL_MAP[mutagenKey] || '?',
+            })
+          }
+        })
       }
     }
   }
 
   return {
-    self: Array.from(self),
-    counter: Array.from(counter),
+    self,
+    counter,
   }
 }
 
@@ -325,8 +369,7 @@ export function buildChartIndicators(
     palaceByBranch.set(getPalaceBranch(palace), palace)
   })
 
-  const lifePalace = palaces.find(palace => String(palace.name) === '命宫')
-  const bodyPalace = palaces.find(palace => palace.isBodyPalace === true)
+  const lifePalace = palaces.find(palace => normalizePalaceName(palace.name) === '命宫')
   const causePalace = palaces.find(palace => getPalaceBranch(palace) === causeBranch)
 
   const corePalaceMap: Array<[string, string]> = [
@@ -346,7 +389,7 @@ export function buildChartIndicators(
 
   const corePalaces: Record<string, ChartIndicatorPalaceSummary | null> = {}
   for (const [label, palaceName] of corePalaceMap) {
-    const palace = palaces.find(item => String(item.name) === palaceName)
+    const palace = palaces.find(item => normalizePalaceName(item.name) === palaceName)
     if (!palace) {
       corePalaces[label] = null
       continue
@@ -370,16 +413,18 @@ export function buildChartIndicators(
     const oppositeBranch = OPPOSITE_BRANCH_MAP[getPalaceBranch(palace)]
     const oppositePalace = oppositeBranch ? palaceByBranch.get(oppositeBranch) : undefined
     const summary = summarizeIndicatorPalace(palace, oppositePalace)
+    const normalizedPalaceName = normalizePalaceName(palace.name)
+    const normalizedOppositeName = oppositePalace ? normalizePalaceName(oppositePalace.name) : ''
 
     return {
-      宮位: String(palace.name || ''),
+      宮位: normalizedPalaceName,
       宮干: summary.宮干,
       地支: summary.地支,
       宮位屬性: summary.我宮他宮,
-      ...(String(palace.name || '') === '命宫' ? { 是否命宮: true as const } : {}),
+      ...(normalizedPalaceName === '命宫' ? { 是否命宮: true as const } : {}),
       ...(palace.isBodyPalace === true ? { 是否身宮: true as const } : {}),
       ...(getPalaceBranch(palace) === causeBranch ? { 是否來因宮: true as const } : {}),
-      對宮: String(oppositePalace?.name || ''),
+      對宮: normalizedOppositeName,
       主星: summary.主星,
       男女星標記: summary.男女星,
       離心自化: summary.離心自化,
@@ -388,13 +433,41 @@ export function buildChartIndicators(
     }
   })
 
-  const selfHighlights = Object.values(corePalaces)
-    .flatMap(item => item?.離心自化 || [])
-    .filter((value, index, array) => array.indexOf(value) === index)
+  // Collect all self/counter mutagens from all 12 palaces
+  const allSelfMutagens: (string | CentrifugalMutagenInfo)[] = []
+  const allCounterMutagens: (string | CounterMutagenInfo)[] = []
+  
+  // 从所有12个宫位收集数据，而不仅仅是核心宫位
+  palaceCoordinates.forEach(item => {
+    if (item?.離心自化) {
+      allSelfMutagens.push(...item.離心自化)
+    }
+    if (item?.向心自化) {
+      allCounterMutagens.push(...item.向心自化)
+    }
+  })
 
-  const counterHighlights = Object.values(corePalaces)
-    .flatMap(item => item?.向心自化 || [])
-    .filter((value, index, array) => array.indexOf(value) === index)
+  const selfHighlights = allSelfMutagens.filter((value, index, array) => {
+    // Handle both string and object types
+    if (typeof value === 'string') {
+      return array.indexOf(value) === index
+    } else {
+      // For objects, find unique ones based on stringify comparison
+      const stringified = JSON.stringify(value)
+      return array.findIndex(v => typeof v === 'object' && JSON.stringify(v) === stringified) === index
+    }
+  })
+
+  const counterHighlights = allCounterMutagens.filter((value, index, array) => {
+    // Handle both string and object types
+    if (typeof value === 'string') {
+      return array.indexOf(value) === index
+    } else {
+      // For objects, find unique ones based on stringify comparison
+      const stringified = JSON.stringify(value)
+      return array.findIndex(v => typeof v === 'object' && JSON.stringify(v) === stringified) === index
+    }
+  })
 
   const natalMutagens = [...knowledge.四化分布]
     .sort((a, b) => {
@@ -404,18 +477,16 @@ export function buildChartIndicators(
       return aIndex - bIndex
     })
     .map(item => {
-      const palace = palaces.find(entry => String(entry.name) === item.palace)
-      const polarity = getStarPolarityInfo(item.star)
+      const normalizedPalace = normalizePalaceName(item.palace)
+      const normalizedStar = normalizeStarName(item.star)
+      const polarity = getStarPolarityInfo(normalizedStar)
 
       return {
         代號: MUTAGEN_LABEL_MAP[item.sihua.name] || '?',
-        發生星曜: item.star,
-        星曜: item.star,
+        星曜: normalizedStar,
         四化: item.sihua.name,
-        發生宮位: item.palace,
-        發生地支: palace ? getPalaceBranch(palace) : '',
-        落點: `${item.palace}${palace ? `(${getPalaceBranch(palace)})` : ''}`,
-        我宮他宮: getPalaceRole(item.palace),
+        宮位: normalizedPalace,
+        我宮他宮: getPalaceRole(normalizedPalace),
         男女星: [polarity.男女星, polarity.陰陽].filter(Boolean).join('/'),
       }
     })
@@ -425,11 +496,15 @@ export function buildChartIndicators(
       出生年: birthYear,
       年干: yearGan,
       五行局: String((chart as unknown as { fiveElementsClass?: string }).fiveElementsClass || ''),
-      // 命主: String((chart as unknown as { soul?: string }).soul || ''),
-      // 身主: String((chart as unknown as { body?: string }).body || ''),
-      命宮: String(lifePalace?.name || ''),
-      身宮: String(bodyPalace?.name || ''),
-      來因宮: String(causePalace?.name || ''),
+      命主: String((chart as unknown as { soul?: string }).soul || ''),
+      命宮: normalizePalaceName(lifePalace?.name || ''),
+      來因宮: normalizePalaceName(causePalace?.name || ''),
+      生年四化: natalMutagens,
+    },
+
+    北派四化重點: {
+      離心自化: selfHighlights,
+      向心自化: counterHighlights,
     },
 
     論命座標系: palaceCoordinates.map(item => ({
@@ -451,7 +526,6 @@ export function buildChartIndicators(
       目前虛歲: currentAge,
       當前大限: currentDecadal ? {
         宮位: currentDecadal.palaceName,
-        年齡範圍: currentDecadal.ageRange,
         天干: currentDecadal.stem,
         四化: currentDecadal.mutagens,
       } : null,
@@ -487,7 +561,7 @@ export function extractKnowledge(chart: FunctionalAstrolabe, birthYear?: number)
 
   // 遍历所有十二宫
   for (const palace of palaces) {
-    const palaceName = String(palace.name)
+    const palaceName = normalizePalaceName(palace.name)
     const majorStars = palace.majorStars || []
     const minorStars = palace.minorStars || []
     const adjectiveStars = palace.adjectiveStars || []
@@ -559,8 +633,8 @@ export function extractKnowledge(chart: FunctionalAstrolabe, birthYear?: number)
 
     // 收集四化分布（主星 + 辅星）
     for (const star of majorStars) {
-      if (star.mutagen) {
-        const sihuaInfo = getSihuaInfo(String(star.mutagen))
+      for (const mutagen of getMutagenList(star.mutagen)) {
+        const sihuaInfo = getSihuaInfo(mutagen)
         if (sihuaInfo) {
           context.四化分布.push({
             sihua: sihuaInfo,
@@ -572,8 +646,8 @@ export function extractKnowledge(chart: FunctionalAstrolabe, birthYear?: number)
     }
 
     for (const star of minorStars) {
-      if (star.mutagen) {
-        const sihuaInfo = getSihuaInfo(String(star.mutagen))
+      for (const mutagen of getMutagenList(star.mutagen)) {
+        const sihuaInfo = getSihuaInfo(mutagen)
         if (sihuaInfo) {
           context.四化分布.push({
             sihua: sihuaInfo,
@@ -616,9 +690,6 @@ export function extractKnowledge(chart: FunctionalAstrolabe, birthYear?: number)
     }
   }
 
-  // 生成格局提示
-  context.格局提示 = detectPatterns(chart)
-
   return context
 }
 
@@ -643,10 +714,8 @@ function getDecadalMutagens(stem: string): string[] {
   return STEM_SIHUA[stem] || []
 }
 
-/* ------------------------------------------------------------
-   格局检测（简化版）
-   ------------------------------------------------------------ */
-
+/* 格局检测（未启用） */
+/*
 function detectPatterns(chart: FunctionalAstrolabe): string[] {
   const patterns: string[] = []
   const palaces = chart.palaces || []
@@ -688,47 +757,67 @@ function detectPatterns(chart: FunctionalAstrolabe): string[] {
 
   return patterns
 }
+*/
 
-/* ------------------------------------------------------------
-   生成 AI 提示词上下文
-   ------------------------------------------------------------ */
+/* 辅助：格式化极性标记 */
+function formatPolarityMarker(starName: unknown): string {
+  const { 男女星, 陰陽 } = getStarPolarityInfo(starName)
+  return [男女星, 陰陽].filter(Boolean).join('/')
+}
 
-export function buildPromptContext(context: KnowledgeContext): string {
-  const lines: string[] = []
+/* 辅助：格式化条件标签 */
+function formatTags(...items: (string | boolean)[]): string {
+  const tags = items.filter(item => typeof item === 'string' && item)
+  return tags.length > 0 ? `【${tags.join(' / ')}】` : ''
+}
 
-  lines.push('【命盘完整信息】')
-  lines.push('')
+/* 辅助：包装括号内容 */
+function wrapContent(content: string): string {
+  return content ? `（${content}）` : ''
+}
+
+/* 辅助：条件行追加 */
+function addIfExists(lines: string[], label: string, content: string): void {
+  if (content) lines.push(`  ${label}：${content}`)
+}
+
+/* 辅助：生成大限表项 */
+function formatDecadalEntry(d: DecadalData): string[] {
+  return [
+    `### ${d.ageRange}歲：${d.palaceName}`,
+    `- 大限天干：${d.stem}`,
+    `- 大限四化：${d.mutagens.join('、')}`,
+  ]
+}
+
+/* 生成 AI 提示词上下文 */
+export function buildPromptContext(context: KnowledgeContext, language: Language = 'zh-TW'): string {
+  const lines: string[] = ['【命盘完整信息】', '']
 
   // 命宫主星
   if (context.命宫主星.length > 0) {
     lines.push('## 命宫主星')
-    for (const star of context.命宫主星) {
+    context.命宫主星.forEach(star => 
       lines.push(`- ${star.name}（${star.group}）：${star.description}`)
-    }
+    )
     lines.push('')
   }
 
   // 身宫信息
   if (context.身宫位置) {
-    lines.push('## 身宫位置')
-    lines.push(`- 身宫在${context.身宫位置}`)
-    if (context.身宫主星.length > 0) {
-      for (const star of context.身宫主星) {
-        lines.push(`- ${star.name}：${star.description}`)
-      }
-    }
+    lines.push('## 身宫位置', `- 身宫在${context.身宫位置}`)
+    context.身宫主星.forEach(star => 
+      lines.push(`- ${star.name}：${star.description}`)
+    )
     lines.push('')
   }
 
   // 完整十二宫信息
-  lines.push('## 北派四化座標')
-  lines.push('（以宮干、地支、生年四化、離心/向心自化、我宮/他宮為主）')
-  lines.push('')
+  lines.push('## 北派四化座標', '（以宮干、地支、生年四化、離心/向心自化、我宮/他宮為主）', '')
 
-  const palaceByBranch = new Map(context.十二宫.map(palace => [palace.branch, palace]))
+  const palaceByBranch = new Map(context.十二宫.map(p => [p.branch, p]))
 
   for (const palace of context.十二宫) {
-    const palaceRole = getPalaceRole(palace.name)
     const oppositePalace = palace.branch ? palaceByBranch.get(OPPOSITE_BRANCH_MAP[palace.branch]) : undefined
     const { self, counter } = collectPalaceMutagenHighlights(
       palace as unknown as Record<string, unknown>,
@@ -737,72 +826,57 @@ export function buildPromptContext(context: KnowledgeContext): string {
 
     const majorStarsStr = palace.majorStars.length > 0
       ? palace.majorStars.map(s => {
-          let str = s.name
-          if (s.mutagen) str += `[${s.mutagen}]`
-          return str
+          const name = normalizeStarName(s.name)
+          const mutagens = getMutagenList(s.mutagen)
+          const mutagenStr = mutagens.length > 0 ? `[${mutagens.join('、')}]` : ''
+          return `${name}${mutagenStr}`
         }).join('、')
-      : '无主星'
+      : t('ai.context.noMajorStars', language)
 
     const genderMarkers = palace.majorStars
-      .map(star => formatGenderMarker(star.name))
+      .map(s => formatGenderMarker(s.name))
       .filter(Boolean)
       .join('、')
 
-    const tags = [
-      palaceRole,
-      palace.isBodyPalace ? '身宮' : '',
-    ].filter(Boolean).join(' / ')
-
-    lines.push(`- ${palace.name}${tags ? `【${tags}】` : ''}：${palace.stem}${palace.branch}`)
+    const tags = formatTags(getPalaceRole(normalizePalaceName(palace.name)), palace.isBodyPalace && '身宮')
+    lines.push(`- ${normalizePalaceName(palace.name)}${tags}：${palace.stem}${palace.branch}`)
     lines.push(`  主星：${majorStarsStr}`)
-    if (genderMarkers) lines.push(`  男女星：${genderMarkers}`)
-    if (self.length > 0) lines.push(`  離心自化：${self.join('、')}`)
-    if (counter.length > 0) lines.push(`  向心自化：${counter.join('、')}`)
+    addIfExists(lines, '男女星', genderMarkers)
+    
+    // Format self and counter mutagens (可能是字符串或对象)
+    const selfStr = self
+      .map(item => typeof item === 'string' ? item : `${item.星曜}${item.四化}`)
+      .join('、')
+    const counterStr = counter
+      .map(item => typeof item === 'string' ? item : `${item.星曜}${item.四化}`)
+      .join('、')
+    
+    addIfExists(lines, '離心自化', selfStr)
+    addIfExists(lines, '向心自化', counterStr)
   }
 
   lines.push('')
 
+  // 生年四化
   if (context.四化分布.length > 0) {
     lines.push('## 生年四化')
-    for (const item of context.四化分布) {
-      const polarity = getStarPolarityInfo(item.star)
-      const palaceRole = getPalaceRole(item.palace)
-      const marker = [polarity.男女星, polarity.陰陽].filter(Boolean).join('/')
-      lines.push(`- ${item.star}${item.sihua.name} → ${item.palace}${palaceRole ? `【${palaceRole}】` : ''}${marker ? `（${marker}）` : ''}`)
-    }
+    context.四化分布.forEach(item => {
+      const normalizedStar = normalizeStarName(item.star)
+      const normalizedPalace = normalizePalaceName(item.palace)
+      const marker = formatPolarityMarker(normalizedStar)
+      const role = getPalaceRole(normalizedPalace)
+      const roleTag = role ? `【${role}】` : ''
+      lines.push(`- ${normalizedStar}${item.sihua.name} → ${normalizedPalace}${roleTag}${wrapContent(marker)}`)
+    })
     lines.push('')
   }
 
   // 大限信息
   if (context.大限.length > 0) {
-    lines.push('## 十二大限')
-    lines.push('（每个大限10年，按宫位天干飞化）')
-    lines.push('')
-    for (const d of context.大限) {
-      lines.push(`### ${d.ageRange}歲：${d.palaceName}`)
-      lines.push(`- 大限天干：${d.stem}`)
-      lines.push(`- 大限四化：${d.mutagens.join('、')}`)
-      lines.push('')
-    }
-  }
-
-  // 流年信息
-  if (context.流年.length > 0) {
-    lines.push('## 近年流年信息')
-    lines.push('')
-    for (const y of context.流年) {
-      lines.push(`- ${y.year}年（${y.stem}${y.branch}）：流年命宫在${y.palaceName}，四化：${y.mutagens.join('、')}`)
-    }
-    lines.push('')
-  }
-
-  // 格局提示
-  if (context.格局提示.length > 0) {
-    lines.push('## 格局提示')
-    for (const pattern of context.格局提示) {
-      lines.push(`- ${pattern}`)
-    }
-    lines.push('')
+    lines.push('## 十二大限', '（每个大限10年，按宫位天干飞化）', '')
+    context.大限.forEach(d => {
+      lines.push(...formatDecadalEntry(d), '')
+    })
   }
 
   return lines.join('\n')

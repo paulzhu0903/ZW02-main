@@ -676,13 +676,18 @@ export function extractKnowledge(chart: FunctionalAstrolabe, birthYear?: number)
       try {
         const horoscope = chart.horoscope(new Date(`${year}-6-15`))
         const yearly = horoscope.yearly
+        const yearlyBranch = String(yearly.earthlyBranch || '')
+
+        // 根据流年地支查找对应的宫位
+        const yearlyPalace = palaces.find(p => String(p.earthlyBranch || (p as unknown as { branch?: string }).branch || '') === yearlyBranch)
+        const palaceName = yearlyPalace ? normalizePalaceName(yearlyPalace.name) : ''
 
         context.流年.push({
           year,
           stem: String(yearly.heavenlyStem || ''),
-          branch: String(yearly.earthlyBranch || ''),
+          branch: yearlyBranch,
           mutagens: (yearly.mutagen || []).map(m => String(m)),
-          palaceName: String(yearly.palaceNames?.[0] || ''),
+          palaceName,
         })
       } catch {
         // 忽略计算错误

@@ -24,6 +24,16 @@ const translations: Record<Language, Record<string, any>> = {
     'fortune.selectYearHint': '選擇年份並點擊「查看運勢」開始分析',
     'fortune.analyzing': '分析中',
     'fortune.configureApi': '請先配置 API',
+    'fortune.configureApiLong': '請先在設置中配置 AI 模型的 API Key，即可獲得年度運勢分析。',
+    'fortune.analyzingFull': '正在分析 {year} 年運勢...',
+    'fortune.previewTitle': '📋 {year} 年運勢分析預查',
+    'fortune.yearlyData': '流年數據（JSON）',
+    'fortune.userPrompt': '用戶提示詞',
+    'fortune.confirmAnalyze': '✓ 確認分析',
+    'fortune.cancelAnalyze': '✕ 返回修改',
+    'fortune.showPrompt': '顯示 Prompt',
+    'fortune.hidePrompt': '隱藏 Prompt',
+    'fortune.failedAnalyze': '分析失敗，請重試',
 
     // AI Interpretation
     'ai.title': 'AI 命盤解讀',
@@ -401,6 +411,16 @@ const translations: Record<Language, Record<string, any>> = {
     'fortune.selectYearHint': '选择年份并点击「查看运势」开始分析',
     'fortune.analyzing': '分析中',
     'fortune.configureApi': '请先配置 API',
+    'fortune.configureApiLong': '请先在设置中配置 AI 模型的 API Key，即可获得年度运势分析。',
+    'fortune.analyzingFull': '正在分析 {year} 年运势...',
+    'fortune.previewTitle': '📋 {year} 年运势分析预查',
+    'fortune.yearlyData': '流年数据（JSON）',
+    'fortune.userPrompt': '用户提示词',
+    'fortune.confirmAnalyze': '✓ 确认分析',
+    'fortune.cancelAnalyze': '✕ 返回修改',
+    'fortune.showPrompt': '显示 Prompt',
+    'fortune.hidePrompt': '隐藏 Prompt',
+    'fortune.failedAnalyze': '分析失败，请重试',
 
     // AI Interpretation
     'ai.title': 'AI 命盘解读',

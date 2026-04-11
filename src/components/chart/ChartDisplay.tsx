@@ -107,17 +107,20 @@ function getMonthlySequenceByBranch(
   palaceData: PalaceData[],
   selectedDecadal: number | null,
   selectedAnnual: number | null,
+  selectedAnnualGanZhi: string | null,
 ): Record<string, string[]> {
-  if (selectedDecadal === null || selectedAnnual === null) return {}
+  if (selectedDecadal === null || selectedAnnual === null || !selectedAnnualGanZhi) return {}
 
   const birthLunarMonth = getLunarMonthNumber((chart as any).lunarDate)
   const birthTimeBranchIndex = getTimeBranchIndex((chart as any).time)
 
   if (birthLunarMonth === null || birthTimeBranchIndex === null) return {}
 
-  const annualBranchCursor = (selectedDecadal * 10 + selectedAnnual) % 12
-  const annualBranch = EARTHLY_BRANCH_ORDER[annualBranchCursor]
-  const yearlyIndex = PALACE_BRANCH_INDEX[annualBranch] ?? -1
+  // 从selectedAnnualGanZhi中提取地支（最后一个字符）
+  const yearlyBranch = selectedAnnualGanZhi.slice(-1)
+  
+  // 获取流年地支在宫位系统中的索引
+  const yearlyIndex = PALACE_BRANCH_INDEX[yearlyBranch] ?? -1
 
   if (yearlyIndex < 0) return {}
 
@@ -465,7 +468,7 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, chartType =
 
 function PalaceCard({
   name, stem, branch, majorStars, minorStars, adjectiveStars,
-  boshi12Deity, longlifeDeity, isLife, isBody, isCausePalace, isSelected, onClick, chartType = 'flying', selectedDecadal = null, selectedAnnual = null, monthlySequenceLabels = [], selectedAnnualAge = null, yearGan = '', gender = 'male', birthInfo = null, palaceData = null
+  boshi12Deity, longlifeDeity, isLife, isBody, isCausePalace, isSelected, onClick, chartType = 'flying', selectedDecadal = null, selectedAnnual = null, monthlySequenceLabels = [], selectedAnnualAge = null, selectedAnnualYear = null, selectedAnnualGanZhi = null, yearGan = '', gender = 'male', birthInfo = null, palaceData = null
 }: PalaceCardProps) {
   const { language, transformationShowGods, flyingShowGods, transformationShowCausePalace } = useSettingsStore()
   
@@ -549,20 +552,23 @@ function PalaceCard({
     annualPalaceLabel = ''
   }
   
-  // 计算流年标签
+  // 计算流年标签 - 基于实际年份的地支
   let selectedAnnualLabel: string = ''
-  if (selectedAnnual !== null && selectedAnnual !== undefined && selectedAnnualAge !== null) {
-    const decadalYearNumber = selectedDecadal ?? 0
-    const decadalStartBranchIndex = (decadalYearNumber * 10) % 12
-    const decadalYearBranch = EARTHLY_BRANCH_ORDER[(decadalStartBranchIndex + selectedAnnual) % 12]
+  if (selectedAnnual !== null && selectedAnnual !== undefined && selectedAnnualGanZhi) {
+    // 从selectedAnnualGanZhi中提取地支（最后一个字符）
+    const yearlyBranchStr = selectedAnnualGanZhi.slice(-1)
+    
+    // 获取流年地支在宫位系统中的索引
+    const yearlyBranchPalaceIndex = PALACE_BRANCH_INDEX[yearlyBranchStr] ?? -1
+    const currentBranchPalaceIndex = PALACE_BRANCH_INDEX[branch] ?? -1
+    
+    if (yearlyBranchPalaceIndex !== -1 && currentBranchPalaceIndex !== -1) {
+      const relativePosition = (currentBranchPalaceIndex - yearlyBranchPalaceIndex + 12) % 12
 
-    const currentBranchIndex = PALACE_BRANCH_INDEX[branch] ?? -1
-    const decadalYearBranchIndex = PALACE_BRANCH_INDEX[decadalYearBranch] ?? -1
-    const relativePosition = (currentBranchIndex - decadalYearBranchIndex + 12) % 12
-
-    const annualLabels = ['年命', '年父', '年福', '年官', '年田', '年疾', '年遷', '年友', '年財', '年子', '年兄', '年夫']
-    if (relativePosition < annualLabels.length) {
-      selectedAnnualLabel = annualLabels[relativePosition]
+      const annualLabels = ['年命', '年父', '年福', '年官', '年田', '年疾', '年遷', '年友', '年財', '年子', '年兄', '年夫']
+      if (relativePosition < annualLabels.length) {
+        selectedAnnualLabel = annualLabels[relativePosition]
+      }
     }
   }
 
@@ -1440,7 +1446,7 @@ export function ChartDisplay() {
     }
   }
 
-  const monthlySequenceByBranch = getMonthlySequenceByBranch(chart, palaceData, selectedDecadal, selectedAnnual)
+  const monthlySequenceByBranch = getMonthlySequenceByBranch(chart, palaceData, selectedDecadal, selectedAnnual, selectedAnnualGanZhi)
 
   const renderPalace = (palace: PalaceData | null, key: string) => {
     if (!palace) return <div key={key} />

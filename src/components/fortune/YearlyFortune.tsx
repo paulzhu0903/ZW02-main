@@ -8,25 +8,27 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useChartStore, useSettingsStore, useContentCacheStore } from '@/stores'
 import { streamChat, type ChatMessage, type LLMConfig } from '@/lib/llm'
-import { extractKnowledge, buildPromptContext } from '@/knowledge'
+import { extractKnowledge, buildPromptContext, buildChartIndicators } from '@/knowledge'
 import { Button, Select } from '@/components/ui'
-import { t } from '@/lib/i18n'
+import { t, type Language } from '@/lib/i18n'
 
 /* ------------------------------------------------------------
-   年份选项
+   运势提示词 - 多语言支持，包含流年数据 JSON
    ------------------------------------------------------------ */
 
-const currentYear = new Date().getFullYear()
-const YEAR_OPTIONS = Array.from({ length: 10 }, (_, i) => ({
-  value: currentYear - 5 + i,
-  label: `${currentYear - 5 + i}年`,
-}))
+interface YearlyDataItem {
+  年份: number
+  流年命宮: string
+  天干: string
+  地支: string
+  四化: string[]
+}
 
-/* ------------------------------------------------------------
-   运势提示词
-   ------------------------------------------------------------ */
+function getForttunePrompt(language: Language, yearlyData?: YearlyDataItem[]): string {
+  const yearlyDataJson = yearlyData ? `\n\n【近三年流年数据】\n${JSON.stringify(yearlyData, null, 2)}` : ''
 
-const FORTUNE_PROMPT = `# Role
+  if (language === 'zh-CN') {
+    return `# Role
 你是一位精通流年推算的紫微斗数专家。根据提供的命盘信息进行解读。在分析流年时，你严格遵循"本命为体，大限为用，流年为应"的原则，运用"限流叠宫"和"流年四化"技法，精准捕捉该年份的吉凶趋势。
 
 # Analysis Logic
@@ -60,7 +62,54 @@ const FORTUNE_PROMPT = `# Role
 * **关键提醒**：关于健康或安全的特别嘱咐。
 
 ---
-*注：流年运势受多方因素影响，分析仅供参考，切勿执着。*`
+*注：流年运势受多方因素影响，分析仅供参考，切勿执着。*${yearlyDataJson}`
+  } else {
+    // zh-TW
+    const yearlyDataJsonTw = yearlyData ? `\n\n【近三年流年數據】\n${JSON.stringify(yearlyData.map(item => ({
+      年份: item.年份,
+      流年命宮: item.流年命宮,
+      天干: item.天干,
+      地支: item.地支,
+      四化: item.四化,
+    })), null, 2)}` : ''
+
+    return `# Role
+你是一位精通流年推算的紫微斗数專家。根據提供的命盤資訊進行解讀。在分析流年時，你嚴格遵循"本命為體，大限為用，流年為應"的原則，運用"限流疊宮"和"流年四化"技法，精準捕捉該年份的吉凶趨勢。
+
+# Analysis Logic
+1.  **疊宮分析**：推演流年命宮疊入本命/大限何宮，以此判斷今年的核心際遇（例如：流年命宮疊本命官祿，主事業變動）。
+2.  **四化引動**：重點分析流年天干引發的四化（祿權科忌）落入何宮，指出得失所在。
+3.  **時間應期**：結合月令，指出吉凶可能發生的具體時間段。
+
+# Output Format
+請嚴格按照以下結構輸出分析報告：
+
+## [年份] 歲次流年運程
+
+### 壹· 年度總象
+* **流年定調**：給這一年定一個關鍵詞（如：破局之年、蟄伏之年、開拓之年）。
+* **核心際遇**：基於"疊宮"理論，簡述今年最核心的關注點是什麼（是求財、升遷，還是由於家庭變故分心）。
+
+### 貳· 名利機緣（事業/財運）
+* **事業走勢**：流年官祿宮分析。是否有升職、跳槽或創業的契機？工作壓力源自何處？
+* **求財建議**：流年財帛宮分析。適合進取投資還是保守儲蓄？是否有意外破耗？
+
+### 叁· 情感與家宅
+* **流年姻緣**：流年夫妻宮分析。單身者是否有正緣？已婚者感情是否和睦？
+* **家宅平安**：流年田宅與父母宮分析。是否涉及房產變動、裝修或長輩健康問題。
+
+### 肆· 月令趨勢
+* **吉運月份**：指出運勢較順遂的農曆月份，適合開展重要事項。
+* **注意月份**：指出壓力較大或易出問題的農曆月份，提示需謹慎行事。
+
+### 伍· 錦囊寄語
+* **行事準則**：給出一句針對今年的具體行動建議（如：宜靜不宜動，宜守不宜攻）。
+* **關鍵提醒**：關於健康或安全的特別囑咐。
+
+---
+*注：流年運勢受多方因素影響，分析僅供參考，切勿執著。*${yearlyDataJsonTw}`
+  }
+}
 
 /* ------------------------------------------------------------
    Markdown 自定义样式组件
@@ -184,12 +233,25 @@ export function YearlyFortune() {
   const { yearlyFortune, setYearlyFortune } = useContentCacheStore()
   const currentSettings = providerSettings[provider]
 
-  const [year, setYear] = useState(currentYear)
-  const [fortune, setFortune] = useState(yearlyFortune[currentYear] || '')
+  const currentYear = new Date().getFullYear()
+
+  // 获取"近三年流年"数据
+  const yearlyDataFromAI = chart && birthInfo ? buildChartIndicators(chart, birthInfo.year)?.運限焦點.近三年流年 || [] : []
+  const yearlyYears = yearlyDataFromAI.map(item => item.年份)
+  const defaultYear = yearlyYears.length > 0 ? yearlyYears[0] : currentYear
+
+  const [year, setYear] = useState(defaultYear)
+  const [fortune, setFortune] = useState(yearlyFortune[defaultYear] || '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showPrompt, setShowPrompt] = useState(false)
 
-  // 切换年份时加载缓存
+  // 年份选项：从"近三年流年"数据生成
+  const yearOptions = yearlyDataFromAI.map(item => ({
+    value: item.年份,
+    label: `${item.年份}年`,
+  }))
+
   const handleYearChange = useCallback((newYear: number) => {
     setYear(newYear)
     setFortune(yearlyFortune[newYear] || '')
@@ -198,7 +260,7 @@ export function YearlyFortune() {
   const handleAnalyze = useCallback(async () => {
     if (!chart || !birthInfo) return
     if (!currentSettings.apiKey) {
-      setError('请先在设置中配置 API Key')
+      setError(t('fortune.configureApiLong', language))
       return
     }
 
@@ -232,7 +294,7 @@ ${yearlyContext}
 请结合本命盘和流年盘信息，给出详细的 ${year} 年运势分析。`
 
       const messages: ChatMessage[] = [
-        { role: 'system', content: FORTUNE_PROMPT },
+        { role: 'system', content: getForttunePrompt(language, yearlyDataFromAI) },
         { role: 'user', content: userMessage },
       ]
 
@@ -259,13 +321,13 @@ ${yearlyContext}
     } finally {
       setLoading(false)
     }
-  }, [chart, birthInfo, year, provider, currentSettings, enableThinking, enableWebSearch, searchApiKey, setYearlyFortune])
+  }, [chart, birthInfo, year, provider, currentSettings, enableThinking, enableWebSearch, searchApiKey, setYearlyFortune, language, yearlyDataFromAI])
 
   if (!chart) return null
 
   return (
-    <div className="animate-fade-in space-y-8 max-w-6xl mx-auto">
-      {/* 顶部：年份选择控制面板 */}
+    <div className="animate-fade-in max-w-6xl mx-auto">
+      {/* 统一容器 */}
       <div
         className="
           relative p-6 lg:p-8
@@ -283,7 +345,8 @@ ${yearlyContext}
           "
         />
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        {/* 标题和控制区 */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
           <h2
             className="
               text-xl lg:text-2xl font-semibold
@@ -295,13 +358,24 @@ ${yearlyContext}
             {t('nav.fortune', language)}
           </h2>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* 年份选择 */}
             <Select
-              options={YEAR_OPTIONS}
+              options={yearOptions}
               value={year}
               onChange={(e) => handleYearChange(Number(e.target.value))}
             />
 
+            {/* 显示Prompt(测试)按钮 */}
+            <Button
+              onClick={() => setShowPrompt(!showPrompt)}
+              size="sm"
+              variant="ghost"
+            >
+              {showPrompt ? t('fortune.hidePrompt', language) : t('fortune.showPrompt', language)}
+            </Button>
+
+            {/* 开始解读按钮 */}
             <Button
               onClick={handleAnalyze}
               disabled={loading || !currentSettings.apiKey}
@@ -313,47 +387,38 @@ ${yearlyContext}
                   <span className="w-3 h-3 border-2 border-night border-t-transparent rounded-full animate-spin" />
                   {t('fortune.analyzing', language)}
                 </span>
-              ) : currentSettings.apiKey ? t('fortune.view', language) : t('fortune.configureApi', language)}
+              ) : t('fortune.view', language)}
             </Button>
           </div>
         </div>
 
         {/* 错误提示 */}
         {error && (
-          <div className="mt-4 p-3 rounded-lg bg-misfortune/10 text-misfortune text-sm border border-misfortune/20">
+          <div className="mb-6 p-3 rounded-lg bg-misfortune/10 text-misfortune text-sm border border-misfortune/20">
             {error}
           </div>
         )}
-      </div>
 
-      {/* 下方：运势内容 */}
-      <div
-        className="
-          relative p-6 lg:p-8
-          bg-gradient-to-br from-white/[0.04] to-transparent
-          backdrop-blur-xl border border-white/[0.08] rounded-2xl
-          shadow-[0_8px_32px_rgba(0,0,0,0.3)]
-        "
-      >
-        {/* 顶部发光线 */}
-        <div
-          className="
-            absolute top-0 left-1/2 -translate-x-1/2
-            w-1/3 h-px
-            bg-gradient-to-r from-transparent via-star/50 to-transparent
-          "
-        />
+        {/* Prompt 预览（测试模式）*/}
+        {showPrompt && (
+          <div className="mb-6 p-4 rounded-lg bg-white/5 border border-star/20">
+            <div className="text-xs font-semibold text-star-light mb-3 uppercase">📋 System Prompt (JSON格式)</div>
+            <pre className="text-xs text-text-secondary overflow-auto max-h-64 whitespace-pre-wrap break-words font-mono bg-black/20 p-3 rounded">
+              {getForttunePrompt(language, yearlyDataFromAI)}
+            </pre>
+          </div>
+        )}
 
         {/* 未配置提示 */}
-        {!currentSettings.apiKey && !fortune && (
+        {!currentSettings.apiKey && !fortune && !showPrompt && (
           <div className="text-text-muted text-sm py-8 text-center">
             <div className="text-3xl mb-3 opacity-30">◎</div>
-            请先在设置中配置 AI 模型的 API Key，即可获得年度运势分析。
+            {t('fortune.configureApiLong', language)}
           </div>
         )}
 
         {/* 未分析提示 */}
-        {currentSettings.apiKey && !fortune && !loading && (
+        {currentSettings.apiKey && !fortune && !loading && !showPrompt && (
           <div className="text-text-muted text-sm py-8 text-center">
             <div className="text-3xl mb-3 opacity-30">◎</div>
             {t('fortune.selectYearHint', language)}
@@ -364,7 +429,7 @@ ${yearlyContext}
         {loading && !fortune && (
           <div className="flex items-center justify-center gap-3 text-text-muted py-12">
             <div className="w-5 h-5 border-2 border-star border-t-transparent rounded-full animate-spin" />
-            <span>正在分析 {year} 年运势...</span>
+            <span>{t('fortune.analyzingFull', language).replace('{year}', String(year))}</span>
           </div>
         )}
 
@@ -375,7 +440,6 @@ ${yearlyContext}
               prose prose-invert max-w-none
               text-text-secondary text-lg lg:text-xl leading-loose
             "
-            style={{ fontFamily: 'var(--font-brush)' }}
           >
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}

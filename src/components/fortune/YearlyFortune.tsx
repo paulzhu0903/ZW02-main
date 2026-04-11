@@ -30,6 +30,83 @@ interface MonthlyAnalysis {
   分數: number
   流月四化?: string[]
   評價: 'excellent' | 'good' | 'fair' | 'challenging'
+  宮位?: string
+  天干?: string
+  地支?: string
+}
+
+/* ============================================================
+   流月干支计算的辅助函数（与 ChartDisplay 保持一致）
+   ============================================================ */
+
+/**
+ * 五虎遁法則：根據年份天干計算正月天干
+ * @param year - 年份
+ * @returns 正月天干，如"丙"、"戊"等
+ */
+function getFirstMonthGan(year: number): string {
+  const ganList = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
+  const yearGan = ganList[(year - 1900 + 6) % 10]
+  
+  // 五虎遁法則
+  const firstMonthMap: Record<string, string> = {
+    '甲': '丙', '己': '丙',  // 甲己年起丙寅
+    '乙': '戊', '庚': '戊',  // 乙庚年起戊寅
+    '丙': '庚', '辛': '庚',  // 丙辛年起庚寅
+    '丁': '壬', '壬': '壬',  // 丁壬年起壬寅
+    '戊': '甲', '癸': '甲',  // 戊癸年起甲寅
+  }
+  
+  return firstMonthMap[yearGan] || '甲'
+}
+
+/**
+ * 計算指定月份的天干
+ * @param year - 年份
+ * @param lunarMonth - 農曆月份（1-12）
+ * @returns 月份天干，如"丙"、"丁"等
+ */
+function getMonthlyGan(year: number, lunarMonth: number): string {
+  const ganList = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
+  const firstMonthGan = getFirstMonthGan(year)
+  const firstMonthGanIndex = ganList.indexOf(firstMonthGan)
+  
+  // 正月是firstMonthGan，後續每月遞進一位天干
+  const monthGanIndex = (firstMonthGanIndex + lunarMonth - 1) % 10
+  return ganList[monthGanIndex]
+}
+
+/**
+ * 獲取農曆月份對應的地支
+ * @param lunarMonth - 農曆月份（1-12）
+ * @returns 地支，如"寅"、"卯"等
+ */
+function getMonthlyZhi(lunarMonth: number): string {
+  const zhiList = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
+  // 農曆月份對應地支：正月(寅=index 2)、二月(卯=index 3)...十一月(子=index 0)、十二月(丑=index 1)
+  return zhiList[(lunarMonth + 1) % 12]
+}
+
+/**
+ * 根據天干獲取四化（十干四化規則 - 紫微斗數基本法則）
+ * @param gan - 天干，如"甲"、"乙"等
+ * @returns 四化陣列 [祿, 權, 科, 忌]
+ */
+function getMutagenByGan(gan: string): string[] {
+  const mutagenMap: Record<string, string[]> = {
+    '甲': ['廉貞', '破軍', '武曲', '太陽'],
+    '乙': ['天機', '天梁', '紫微', '太陰'],
+    '丙': ['天同', '天機', '文昌', '廉貞'],
+    '丁': ['太陰', '天同', '天機', '巨門'],
+    '戊': ['貪狼', '太陰', '右弼', '天機'],
+    '己': ['武曲', '貪狼', '天梁', '文曲'],
+    '庚': ['太陽', '武曲', '太陰', '天同'],
+    '辛': ['巨門', '太陽', '文曲', '文昌'],
+    '壬': ['天梁', '紫微', '左輔', '武曲'],
+    '癸': ['破軍', '巨門', '太陰', '貪狼'],
+  }
+  
+  return mutagenMap[gan] || []
 }
 
 /* ============================================================
@@ -67,22 +144,25 @@ function calculateMonthlyScores(
     const monthlyMutagens: string[] = []
 
     try {
-      // 计算流月的日期
+      // 计算流月的日期和干支信息
       const date = new Date(`${year}-${String(month).padStart(2, '0')}-15`)
       const horoscope = chart.horoscope(date)
 
-      // 获取流月四化 - 使用防御性编码
-      const monthlyMutagen = (horoscope.monthly?.mutagen as string[] | string | undefined) || []
-      const monthlyMutakenArray = Array.isArray(monthlyMutagen) ? monthlyMutagen : monthlyMutagen ? [monthlyMutagen] : []
+      // 計算流月天干和地支（使用五虎遁法則，確保準確）
+      const monthlyHeavenlyStem = getMonthlyGan(year, month)
+      const monthlyEarthlyBranch = getMonthlyZhi(month)
       
-      for (const star of monthlyMutakenArray) {
+      // 獲取流月四化 - 根據月份天干使用紫微斗數十干四化規則（iztro 返回值可能不準）
+      const monthlyMutagenArray = getMutagenByGan(monthlyHeavenlyStem)
+      
+      for (const star of monthlyMutagenArray) {
         const starName = String(star)
         monthlyMutagens.push(starName)
         
         // 根据四化调整分数
-        if (starName.includes('禄')) {
+        if (starName.includes('禄') || starName.includes('祿')) {
           monthScore += 15  // 禄星加分最多
-        } else if (starName.includes('权')) {
+        } else if (starName.includes('权') || starName.includes('權')) {
           monthScore += 10  // 权星加分
         } else if (starName.includes('科')) {
           monthScore += 8   // 科星加分
@@ -97,9 +177,9 @@ function calculateMonthlyScores(
       
       for (const star of yearlyMutagenArray) {
         const starName = String(star)
-        if (starName.includes('禄')) {
+        if (starName.includes('禄') || starName.includes('祿')) {
           monthScore += 5
-        } else if (starName.includes('权')) {
+        } else if (starName.includes('权') || starName.includes('權')) {
           monthScore += 3
         } else if (starName.includes('忌')) {
           monthScore -= 8
@@ -121,11 +201,17 @@ function calculateMonthlyScores(
         evaluation = 'challenging'
       }
 
+      // 获取流月命宮
+      const monthlyPalace = (horoscope.monthly as any)?.palace
+
       monthlyScores.push({
         月份: month,
         分數: Math.round(monthScore),
         流月四化: monthlyMutagens.length > 0 ? monthlyMutagens : undefined,
         評價: evaluation,
+        宮位: monthlyPalace ? String(monthlyPalace) : undefined,
+        天干: monthlyHeavenlyStem,
+        地支: monthlyEarthlyBranch,
       })
     } catch (e) {
       console.error(`[calculateMonthlyScores] Error for month ${month}:`, e)
@@ -140,51 +226,18 @@ function calculateMonthlyScores(
   return monthlyScores
 }
 
-function getGoodAndChallengeMonths(monthlyAnalysis: MonthlyAnalysis[]): {
-  goodMonths: number[]
-  challengeMonths: number[]
-} {
-  if (!monthlyAnalysis || monthlyAnalysis.length === 0) {
-    return { goodMonths: [], challengeMonths: [] }
-  }
-
-  const sorted = [...monthlyAnalysis].sort((a, b) => b.分數 - a.分數)
-  const reverseSorted = [...monthlyAnalysis].sort((a, b) => a.分數 - b.分數)
-  
-  // 取分数最高的前3-4个月作为吉月
-  const targetGoodCount = Math.min(4, Math.max(3, Math.ceil(monthlyAnalysis.length * 0.3)))
-  const goodMonths = sorted
-    .slice(0, targetGoodCount)
-    .map(m => m.月份)
-    .sort((a, b) => a - b)
-
-  // 取分数最低的前2-3个月作为注意月
-  const targetChallengeCount = Math.min(3, Math.max(2, Math.ceil(monthlyAnalysis.length * 0.25)))
-  const challengeMonths = reverseSorted
-    .slice(0, targetChallengeCount)
-    .map(m => m.月份)
-    .sort((a, b) => a - b)
-
-  // 调试日志
-  if (typeof window !== 'undefined') {
-    console.log('[YearlyFortune] Monthly Scores:', monthlyAnalysis.map(m => ({ 月份: m.月份, 分數: m.分數 })))
-    console.log('[YearlyFortune] Good Months:', goodMonths, 'Challenge Months:', challengeMonths)
-  }
-
-  return { goodMonths, challengeMonths }
-}
-
 function getForttunePrompt(language: Language, yearlyData?: YearlyDataItem[], monthlyAnalysis?: MonthlyAnalysis[]): string {
   const yearlyDataJson = yearlyData ? `\n\n【流年数据】\n${JSON.stringify(yearlyData, null, 2)}` : ''
   
   let monthlyDataJson = ''
   if (monthlyAnalysis) {
-    const { goodMonths, challengeMonths } = getGoodAndChallengeMonths(monthlyAnalysis)
-    monthlyDataJson = `\n\n【月份运势分析】\n${JSON.stringify({ 
-      吉運月份: goodMonths, 
-      注意月份: challengeMonths, 
-      各月分數: monthlyAnalysis.map(m => ({ 月份: m.月份, 分數: m.分數 }))
-    }, null, 2)}`
+    monthlyDataJson = `\n\n【流月数据】\n${JSON.stringify(monthlyAnalysis.map(m => ({
+      月份: m.月份,
+      宮位: m.宮位,
+      天干: m.天干,
+      地支: m.地支,
+      四化: m.流月四化,
+    })), null, 2)}`
   }
 
   if (language === 'zh-CN') {
@@ -235,12 +288,13 @@ function getForttunePrompt(language: Language, yearlyData?: YearlyDataItem[], mo
 
     let monthlyDataJsonTw = ''
     if (monthlyAnalysis) {
-      const { goodMonths, challengeMonths } = getGoodAndChallengeMonths(monthlyAnalysis)
-      monthlyDataJsonTw = `\n\n【月份運勢分析】\n${JSON.stringify({ 
-        吉運月份: goodMonths, 
-        注意月份: challengeMonths, 
-        各月分數: monthlyAnalysis.map(m => ({ 月份: m.月份, 分數: m.分數 }))
-      }, null, 2)}`
+      monthlyDataJsonTw = `\n\n【流月數據】\n${JSON.stringify(monthlyAnalysis.map(m => ({
+        月份: m.月份,
+        宮位: m.宮位,
+        天干: m.天干,
+        地支: m.地支,
+        四化: m.流月四化,
+      })), null, 2)}`
     }
 
     return `# Role
@@ -440,6 +494,7 @@ export function YearlyFortune() {
   const [year, setYear] = useState(defaultYear)
   const [fortune, setFortune] = useState(yearlyFortune[defaultYear] || '')
   const [monthlyAnalysis, setMonthlyAnalysis] = useState<MonthlyAnalysis[] | null>(null)
+  const [yearlyData, setYearlyData] = useState<YearlyDataItem[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showPrompt, setShowPrompt] = useState(false)
@@ -453,6 +508,7 @@ export function YearlyFortune() {
   const handleYearChange = useCallback((newYear: number) => {
     setYear(newYear)
     setFortune(yearlyFortune[newYear] || '')
+    setYearlyData(null)  // 重置流年数据
     
     // 计算新年份的月份分析
     if (chart) {
@@ -462,12 +518,34 @@ export function YearlyFortune() {
     }
   }, [yearlyFortune, chart])
 
-  // 组件挂载和年份改变时计算月份分析
+  // 组件挂载和年份改变时计算月份分析和流年数据
   useEffect(() => {
     if (chart && year) {
       console.log(`[YearlyFortune] useEffect triggered for year ${year}`)
       const analysis = calculateMonthlyScores(chart, year)
       setMonthlyAnalysis(analysis)
+      
+      // 同时计算流年数据用于预览
+      try {
+        const horoscope = chart.horoscope(new Date(`${year}-6-15`))
+        const yearly = horoscope.yearly
+        const heavenlyStem = String(yearly.heavenlyStem || '')
+        const earthlyBranch = String(yearly.earthlyBranch || '')
+        const mutagens = (yearly.mutagen || []).map(m => String(m))
+        const flowYearlyPalaceName = yearly.palaceNames?.[0] ? String(yearly.palaceNames[0]) : ''
+        
+        const yearlyDataArray: YearlyDataItem[] = [{
+          年份: year,
+          流年命宮: flowYearlyPalaceName,
+          天干: heavenlyStem,
+          地支: earthlyBranch,
+          四化: mutagens,
+        }]
+        setYearlyData(yearlyDataArray)
+      } catch (e) {
+        console.error('[YearlyFortune] Error calculating yearly data:', e)
+      }
+      
       console.log(`[YearlyFortune] Calculated analysis:`, analysis)
     }
   }, [chart, year])
@@ -502,27 +580,14 @@ export function YearlyFortune() {
       // 构建流年盘信息
       const yearlyContext = buildYearlyContext(chart, horoscope, year)
 
-      // 准备流年数据 - 从多个来源获取
-      // 方式1: 从 horoscope.yearly 获取
-      let heavenlyStem = horoscope.yearly?.heavenlyStem ? String(horoscope.yearly.heavenlyStem) : ''
-      let earthlyBranch = horoscope.yearly?.earthlyBranch ? String(horoscope.yearly.earthlyBranch) : ''
-      let mutagens = horoscope.yearly?.mutagen ? (Array.isArray(horoscope.yearly.mutagen) ? horoscope.yearly.mutagen : [horoscope.yearly.mutagen]).map(m => String(m)) : []
+      // 准备流年数据 - 直接使用 horoscope.yearly（已在 buildYearlyContext 中验证正确性）
+      const yearly = horoscope.yearly
+      const heavenlyStem = String(yearly.heavenlyStem || '')
+      const earthlyBranch = String(yearly.earthlyBranch || '')
+      const mutagens = (yearly.mutagen || []).map(m => String(m))
 
-      // 方式2: 如果方式1失败，从 knowledge 的流年数据找
-      if (!heavenlyStem || !earthlyBranch) {
-        const yearData = knowledge.流年.find(y => y.year === year)
-        if (yearData) {
-          heavenlyStem = yearData.stem
-          earthlyBranch = yearData.branch
-          mutagens = yearData.mutagens
-        }
-      }
-
-      // 获取流年命宫
-      const yearlyBranch = earthlyBranch
-      const yearlyPalace = chart.palaces.find(p => 
-        String(p.earthlyBranch || (p as unknown as { branch?: string }).branch || '') === yearlyBranch
-      )
+      // 获取流年命宫 - 从 palaceNames[0] 直接获取
+      const flowYearlyPalaceName = yearly.palaceNames?.[0] ? String(yearly.palaceNames[0]) : ''
       
       console.log('[YearlyFortune] Year Data Debug:', {
         year,
@@ -530,18 +595,21 @@ export function YearlyFortune() {
         heavenlyStem,
         earthlyBranch,
         mutagens,
-        yearlyPalace: yearlyPalace?.name,
+        flowYearlyPalaceName,
       })
       
-      const yearlyData: YearlyDataItem[] = [{
+      const yearlyDataArray: YearlyDataItem[] = [{
         年份: year,
-        流年命宮: yearlyPalace ? String(yearlyPalace.name || '') : '',
+        流年命宮: flowYearlyPalaceName,
         天干: heavenlyStem,
         地支: earthlyBranch,
         四化: mutagens,
       }]
       
-      console.log('[YearlyFortune] Final Yearly Data:', yearlyData)
+      // 保存流年数据到 state（用于预览显示）
+      setYearlyData(yearlyDataArray)
+      
+      console.log('[YearlyFortune] Final Yearly Data:', yearlyDataArray)
 
       // 计算月份分析
       let monthlyData = monthlyAnalysis
@@ -565,7 +633,7 @@ ${yearlyContext}
 请结合本命盘、流年盘和月份分析数据，给出详细的 ${year} 年运势分析。`
 
       const messages: ChatMessage[] = [
-        { role: 'system', content: getForttunePrompt(language, yearlyData, monthlyData) },
+        { role: 'system', content: getForttunePrompt(language, yearlyDataArray, monthlyData) },
         { role: 'user', content: userMessage },
       ]
 
@@ -641,7 +709,7 @@ ${yearlyContext}
             <Button
               onClick={() => setShowPrompt(!showPrompt)}
               size="sm"
-              variant="ghost"
+              variant="secondary"
             >
               {showPrompt ? t('fortune.hidePrompt', language) : t('fortune.showPrompt', language)}
             </Button>
@@ -672,16 +740,10 @@ ${yearlyContext}
 
         {/* Prompt 预览（测试模式）*/}
         {showPrompt && (
-          <div className="mb-6 p-4 rounded-lg bg-white/5 border border-star/20">
-            <div className="text-xs font-semibold text-star-light mb-3 uppercase">📋 System Prompt (JSON格式)</div>
-            <pre className="text-xs text-text-secondary overflow-auto max-h-64 whitespace-pre-wrap break-words font-mono bg-black/20 p-3 rounded">
-              {monthlyAnalysis ? getForttunePrompt(language, [{
-                年份: year,
-                流年命宮: '',
-                天干: '',
-                地支: '',
-                四化: [],
-              }], monthlyAnalysis) : getForttunePrompt(language)}
+          <div className="mb-6 p-4 rounded-lg bg-white/[0.08] border border-gold/20">
+            <div className="text-xs font-semibold text-gold mb-3 uppercase">📋 System Prompt (JSON格式)</div>
+            <pre className="text-xs text-text-secondary overflow-auto max-h-64 whitespace-pre-wrap break-words font-mono bg-white/5 p-3 rounded">
+              {monthlyAnalysis && yearlyData ? getForttunePrompt(language, yearlyData, monthlyAnalysis) : getForttunePrompt(language)}
             </pre>
           </div>
         )}

@@ -102,14 +102,52 @@ function getTimeBranchIndex(timeText: string | undefined): number | null {
   return index >= 0 ? index : null
 }
 
+/**
+ * 五虎遁法則：根據年份天干計算正月天干
+ * @param year - 年份
+ * @returns 正月天干，如"丙"、"戊"等
+ */
+function getFirstMonthGan(year: number): string {
+  const ganList = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
+  const yearGan = ganList[(year - 1900 + 6) % 10]
+  
+  // 五虎遁法則
+  const firstMonthMap: Record<string, string> = {
+    '甲': '丙', '己': '丙',  // 甲己年起丙寅
+    '乙': '戊', '庚': '戊',  // 乙庚年起戊寅
+    '丙': '庚', '辛': '庚',  // 丙辛年起庚寅
+    '丁': '壬', '壬': '壬',  // 丁壬年起壬寅
+    '戊': '甲', '癸': '甲',  // 戊癸年起甲寅
+  }
+  
+  return firstMonthMap[yearGan] || '甲'
+}
+
+/**
+ * 計算指定月份的天干
+ * @param year - 年份
+ * @param lunarMonth - 農曆月份（1-12）
+ * @returns 月份天干，如"丙"、"丁"等
+ */
+function getMonthlyGan(year: number, lunarMonth: number): string {
+  const ganList = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
+  const firstMonthGan = getFirstMonthGan(year)
+  const firstMonthGanIndex = ganList.indexOf(firstMonthGan)
+  
+  // 正月是firstMonthGan，後續每月遞進一位天干
+  const monthGanIndex = (firstMonthGanIndex + lunarMonth - 1) % 10
+  return ganList[monthGanIndex]
+}
+
 function getMonthlySequenceByBranch(
   chart: FunctionalAstrolabe,
   palaceData: PalaceData[],
   selectedDecadal: number | null,
   selectedAnnual: number | null,
   selectedAnnualGanZhi: string | null,
+  selectedAnnualYear: number | null,
 ): Record<string, string[]> {
-  if (selectedDecadal === null || selectedAnnual === null || !selectedAnnualGanZhi) return {}
+  if (selectedDecadal === null || selectedAnnual === null || !selectedAnnualGanZhi || selectedAnnualYear === null) return {}
 
   const birthLunarMonth = getLunarMonthNumber((chart as any).lunarDate)
   const birthTimeBranchIndex = getTimeBranchIndex((chart as any).time)
@@ -137,7 +175,15 @@ function getMonthlySequenceByBranch(
       if (!monthlyMap[targetPalace.branch]) {
         monthlyMap[targetPalace.branch] = []
       }
-      monthlyMap[targetPalace.branch].push(`${monthName}月`)
+      
+      // 計算流月天干和地支
+      const monthlyGan = getMonthlyGan(selectedAnnualYear, lunarMonth)
+      // 農曆月份對應地支：正月(寅)、二月(卯)、三月(辰)...十一月(子)、十二月(丑)
+      const monthlyZhi = EARTHLY_BRANCH_ORDER[(lunarMonth + 1) % 12]
+      const monthlyGanZhi = `${monthlyGan}${monthlyZhi}`
+      
+      // 合併月份名稱和干支（格式：正月庚寅月）
+      monthlyMap[targetPalace.branch].push(`${monthName}月${monthlyGanZhi}月`)
     }
   })
 
@@ -1104,7 +1150,16 @@ function DecadalAnnualMonthlyTable({
             </td>
           )))}
 
-          {selectedAnnual !== null && renderScrollRow('流月', monthNames.map((month, i) => (
+          {selectedAnnual !== null && renderScrollRow('流月', monthNames.map((month, i) => {
+            const monthIndex = i + 1
+            // 獲取當前流年的年份
+            const currentYear = annualData[selectedAnnual]?.year
+            // 計算流月天干和地支
+            const monthlyGan = currentYear ? getMonthlyGan(currentYear, monthIndex) : ''
+            const monthlyZhi = EARTHLY_BRANCH_ORDER[(monthIndex + 1) % 12]
+            const monthlyGanZhi = monthlyGan ? `${monthlyGan}${monthlyZhi}` : ''
+            
+            return (
             <td 
               key={i} 
               className={`relative z-0 px-1 py-1.5 sm:px-1.5 sm:py-2 text-center cursor-pointer transition-colors border-r border-white/[0.12] font-medium text-[10px] sm:text-[12px] lg:text-[16px] min-w-[38px] sm:min-w-[48px] ${
@@ -1116,11 +1171,17 @@ function DecadalAnnualMonthlyTable({
                 handleSetSelectedMonthly(i)
               }}
             >
-              <div className={`rounded-[4px] px-1 py-0 sm:px-1.5 sm:py-0.5 ${selectedMonthly === i ? 'bg-gold/20' : ''}`}>
-                {month}月
+              <div className={`rounded-[4px] px-1 py-0 sm:px-1.5 sm:py-0.5 flex flex-col items-center gap-0 leading-tight ${selectedMonthly === i ? 'bg-gold/20' : ''}`}>
+                <div>{month}月</div>
+                {monthlyGanZhi && (
+                  <div className="text-[8px] sm:text-[9px] text-text-muted">
+                    {monthlyGanZhi}月
+                  </div>
+                )}
               </div>
             </td>
-          )))}
+            )
+          }))}
 
           {/* 流日表格 - 使用左右箭頭控制 */}
           {selectedMonthly !== null && (
@@ -1446,7 +1507,7 @@ export function ChartDisplay() {
     }
   }
 
-  const monthlySequenceByBranch = getMonthlySequenceByBranch(chart, palaceData, selectedDecadal, selectedAnnual, selectedAnnualGanZhi)
+  const monthlySequenceByBranch = getMonthlySequenceByBranch(chart, palaceData, selectedDecadal, selectedAnnual, selectedAnnualGanZhi, selectedAnnualYear)
 
   const renderPalace = (palace: PalaceData | null, key: string) => {
     if (!palace) return <div key={key} />

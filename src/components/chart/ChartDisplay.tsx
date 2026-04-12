@@ -786,28 +786,28 @@ function PalaceCard({
             // 主星
             ...majorStars.map((star, i) => ({ 
               key: `major-${i}`, 
-              type: 'major', 
+              type: 'major' as const, 
               star, 
               index: i 
             })),
             // 副星
             ...(chartType === 'flying' || chartType === 'transformation' || chartType === 'trireme' ? minorStars : []).map((star, i) => ({ 
               key: `minor-${i}`, 
-              type: 'minor', 
+              type: 'minor' as const, 
               star, 
               index: i 
             })),
             // 杂曜
             ...(chartType === 'flying' || chartType === 'trireme' ? adjectiveStars : []).map((name, i) => ({ 
               key: `adj-${i}`, 
-              type: 'adjective', 
+              type: 'adjective' as const, 
               name, 
               index: i 
             }))
           ]
 
           return allStars.map((item) => {
-            if (item.type === 'major' || item.type === 'minor') {
+            if ('star' in item) {
               return (
                 <StarTag 
                   key={item.key} 

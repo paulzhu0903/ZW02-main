@@ -486,22 +486,22 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, chartType =
   }
 
   return (
-    <div className="flex flex-col items-center gap-0.5" style={{ minHeight: '20px' }}>
+    <div className="flex flex-col items-center gap-0" style={{ minHeight: '20px' }}>
       <span
         className={`
-          flex flex-col items-center justify-center text-[11px] sm:text-[11px] lg:text-[11pt] px-0 py-0 rounded
+          flex flex-col items-center justify-center text-[11px] sm:text-[12px] lg:text-[13px] px-0 py-0 rounded
           transition-all duration-200
           ${hasMutagen ? getMutagenTextColor() + ' font-medium' : `bg-white/5 ${textColor} hover:bg-white/10`}
         `}
-        style={{ writingMode: 'vertical-rl', minWidth: '12px', minHeight: '12px', margin: '0' }}
+        style={{ writingMode: 'vertical-rl', minWidth: '12px', minHeight: '12px', margin: '0 0 5px 0' }}
         data-star-name={name}
       >
         {displayName}
       </span>
       {(displayBrightness || mutagen) && (
-        <div className="flex flex-col items-center justify-center text-[6px] sm:text-[7px]" style={{ gap: '0' }}>
+        <div className="flex flex-col items-center justify-center" style={{ gap: '5px' }}>
           {displayBrightness && brightnessChar && (
-            <span className="text-[11px] sm:text-[11px] lg:text-[11pt] text-text-muted flex items-center justify-center" style={{ minWidth: '12px', minHeight: '12px' }}>{brightnessChar}</span>
+            <span className="text-[11px] sm:text-[12px] lg:text-[13px] text-text-muted flex items-center justify-center" style={{ minWidth: '12px', minHeight: '12px' }}>{brightnessChar}</span>
           )}
           {mutagen && (() => {
             // 根據四化類別和盤面類型獲取顏色
@@ -604,7 +604,7 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, chartType =
             }
             
             return (
-              <span className="text-[11px] sm:text-[11px] lg:text-[11pt] px-0.5 flex items-center justify-center"
+              <span className="text-[11px] sm:text-[12px] lg:text-[13px] px-0.5 flex items-center justify-center"
                 style={styleObj}>
                 {displayMutagen}
               </span>
@@ -775,30 +775,64 @@ function PalaceCard({
         ${isLife ? 'bg-gold/[0.03]' : ''}
         ${isBody ? 'bg-star/[0.03]' : ''}
         ${chartType === 'transformation' && transformationShowCausePalace && isCausePalace ? 'bg-amber/[0.03]' : ''}
-        ${isSelected ? 'ring-1 sm:ring-2 ring-star border-star' : ''}
+        ${isSelected ? 'ring-1 sm:ring-2 ring-star border-star z-10' : ''}
       `}
     >
-      {/* 星耀水平排列 - 左到右 */}
+      {/* 星耀水平排列 - 统一容器处理所有星曜 */}
       <div className={`relative flex flex-row flex-wrap mb-0.5 flex-1 justify-start items-start gap-0 overflow-visible ${chartType === 'transformation' && transformationShowCausePalace && isCausePalace ? 'pr-1 sm:pr-2' : ''}`}>
-       
-        {/* 主星 */}
-        {majorStars.map((star, i) => (
-          <StarTag key={`major-${i}`} star={star} isMajorStar={isMajorStarName(star.name)} chartType={chartType} selectedDecadal={selectedDecadal} selectedAnnual={selectedAnnual} isCurrentDecadalPalace={isCurrentDecadalPalace} isCurrentAnnualPalace={isCurrentAnnualPalace} />
-        ))}
+        {(() => {
+          // 构建统一的星曜数据数组
+          const allStars = [
+            // 主星
+            ...majorStars.map((star, i) => ({ 
+              key: `major-${i}`, 
+              type: 'major', 
+              star, 
+              index: i 
+            })),
+            // 副星
+            ...(chartType === 'flying' || chartType === 'transformation' || chartType === 'trireme' ? minorStars : []).map((star, i) => ({ 
+              key: `minor-${i}`, 
+              type: 'minor', 
+              star, 
+              index: i 
+            })),
+            // 杂曜
+            ...(chartType === 'flying' || chartType === 'trireme' ? adjectiveStars : []).map((name, i) => ({ 
+              key: `adj-${i}`, 
+              type: 'adjective', 
+              name, 
+              index: i 
+            }))
+          ]
 
-        {/* 辅星 */}
-        {(chartType === 'flying' || chartType === 'transformation' || chartType === 'trireme') && minorStars.length > 0 && minorStars.map((star, i) => (
-          <StarTag key={`minor-${i}`} star={star} isMajorStar={isMajorStarName(star.name)} showBrightness={false} chartType={chartType} selectedDecadal={selectedDecadal} selectedAnnual={selectedAnnual} isCurrentDecadalPalace={isCurrentDecadalPalace} isCurrentAnnualPalace={isCurrentAnnualPalace} />
-        ))}
-
-        {/* 杂曜 */}
-        {(chartType === 'flying' || chartType === 'trireme') && adjectiveStars.length > 0 && adjectiveStars.map((name, i) => (
-          <div key={`adj-${i}`} className="flex flex-col items-center gap-0" style={{ minHeight: '20px' }}>
-            <span className="text-[11px] sm:text-[12px] lg:text-[12pt] px-0.5 py-0 rounded bg-white/[0.03] text-text-muted/70 flex items-center justify-center" style={{ writingMode: 'vertical-rl', minWidth: '12px', minHeight: '12px' }}>
-              {t(`star.${name}`, language) || name}
-            </span>
-          </div>
-        ))}
+          return allStars.map((item) => {
+            if (item.type === 'major' || item.type === 'minor') {
+              return (
+                <StarTag 
+                  key={item.key} 
+                  star={item.star} 
+                  isMajorStar={isMajorStarName(item.star.name)} 
+                  showBrightness={item.type === 'major'}
+                  chartType={chartType} 
+                  selectedDecadal={selectedDecadal} 
+                  selectedAnnual={selectedAnnual} 
+                  isCurrentDecadalPalace={isCurrentDecadalPalace} 
+                  isCurrentAnnualPalace={isCurrentAnnualPalace} 
+                />
+              )
+            } else {
+              // 杂曜
+              return (
+                <div key={item.key} className="flex flex-col items-center gap-0" style={{ minHeight: '20px' }}>
+                  <span className="text-[11px] sm:text-[12px] lg:text-[13px] px-0.5 py-0 rounded bg-white/[0.03] text-text-muted/70 flex items-center justify-center" style={{ writingMode: 'vertical-rl', minWidth: '12px', minHeight: '12px' }}>
+                    {t(`star.${item.name}`, language) || item.name}
+                  </span>
+                </div>
+              )
+            }
+          })
+        })()}
 
         {/* 来因标签 - 星耀区右上角 */}
         {chartType === 'transformation' && transformationShowCausePalace && isCausePalace && (
@@ -806,7 +840,7 @@ function PalaceCard({
             className="absolute top-0 right-0 h-full flex items-start justify-end pointer-events-none"
           >
             <div
-              className="px-0.5 py-0.5 rounded border border-red-500 text-red-500 text-[9px] sm:text-[10px] lg:text-[12pt] font-medium bg-white/70"
+              className="px-0.5 py-0.5 rounded border border-red-500 text-red-500 text-[11px] sm:text-[12px] lg:text-[13px] font-medium bg-white/70"
               style={{ writingMode: 'vertical-rl', lineHeight: 1 }}
             >
               {language === 'zh-TW' ? '來因' : '来因'}
@@ -817,7 +851,7 @@ function PalaceCard({
 
       {/* 十二神显示 - 由 i18n.ts 中的定义完全控制显示内容和语言 */}
       {((chartType === 'flying' && flyingShowGods) || (chartType === 'transformation' && transformationShowGods)) && (
-        <div className="flex justify-between text-[9px] sm:text-[11px] lg:text-[13px] text-text-muted mb-0.5 border-t border-white/[0.04] pt-0.5">
+        <div className="flex justify-between text-[9px] sm:text-[10px] lg:text-[11px] text-text-muted mb-0.5 border-t border-white/[0.04] pt-0.5">
           <span>{t(`longlifeDeity.${longlifeDeity}`, language) || longlifeDeity}</span>
           <span>{t(`boshi12Deity.${boshi12Deity}`, language) || boshi12Deity}</span>
         </div>
@@ -828,20 +862,20 @@ function PalaceCard({
       <div className="relative flex items-center justify-between w-full gap-0.5 py-0.5">
         {/* 左下: 干支(縱排) */}
         <div className="flex flex-col gap-0.5" style={{ writingMode: 'vertical-rl', minWidth: '14px' }}>
-          <span className="text-[11px] sm:text-[10px] lg:text-[12pt] text-text-secondary leading-none">{stem}{branch}</span>
+          <span className="text-[11px] sm:text-[12px] lg:text-[13px] text-text-secondary leading-none">{stem}{branch}</span>
         </div>
 
         {/* 中間: 由上而下顯示 年歲、流月、流年、大限 */}
         <div className="flex flex-col items-center justify-center flex-1 text-center gap-0.5">
           {(decadalYear !== null || masterAge !== null) && (
-            <div className="text-[11px] sm:text-[8px] lg:text-[9pt] text-text-muted text-center leading-none whitespace-nowrap">
+            <div className="text-[9px] sm:text-[10px] lg:text-[11px] text-text-muted text-center leading-none whitespace-nowrap">
               {decadalYear !== null && <span className="mr-0.5">{decadalYear}年</span>}
               {masterAge !== null && <span>{masterAge}歲</span>}
             </div>
           )}
 
           {monthlySequenceLabels.length > 0 && (
-            <div className="flex flex-wrap items-center justify-center gap-x-0.5 gap-y-0 text-[7px] sm:text-[9px] lg:text-[10pt] text-gray-400 leading-none">
+            <div className="flex flex-wrap items-center justify-center gap-x-0.5 gap-y-0 text-[8px] sm:text-[9px] lg:text-[10px] text-gray-400 leading-none">
               {monthlySequenceLabels.map((label) => (
                 <span key={`${branch}-${label}`} className="whitespace-nowrap">{label}</span>
               ))}
@@ -850,7 +884,7 @@ function PalaceCard({
 
           {selectedAnnualLabel && (
             <div className="flex flex-col items-center justify-center leading-none min-h-[12px] sm:min-h-[16px]">
-              <span className="text-[11px] sm:text-[9px] lg:text-[11pt] text-gray-400 text-center leading-none">
+              <span className="text-[11px] sm:text-[12px] lg:text-[13px] text-gray-400 text-center leading-none">
                 {selectedAnnualLabel}
               </span>
             </div>
@@ -858,7 +892,7 @@ function PalaceCard({
           
           {!selectedAnnualLabel && annualPalaceLabel && (
             <div className="flex flex-col items-center justify-center leading-none min-h-[12px] sm:min-h-[16px]">
-              <span className="text-[11px] sm:text-[9px] lg:text-[11pt] text-gray-400 text-center leading-none">
+              <span className="text-[11px] sm:text-[12px] lg:text-[13px] text-gray-400 text-center leading-none">
                 {annualPalaceLabel}
               </span>
             </div>
@@ -866,7 +900,7 @@ function PalaceCard({
 
           <div className="flex flex-col items-center justify-center leading-none min-h-[16px] sm:min-h-[22px]">
             <span className={`
-              px-0.5 py-0 rounded font-medium text-[11px] sm:text-[10px] lg:text-[12pt] text-center leading-tight
+              px-0.5 py-0 rounded font-medium text-[11px] sm:text-[12px] lg:text-[13px] text-center leading-tight
               ${!isLife && !isBody ? 'text-text-secondary' : ''}
             `}>
               {displayPalaceName}
@@ -876,7 +910,7 @@ function PalaceCard({
 
         {/* 右下: 原始宮位名稱(縱排) */}
         <div className="flex flex-col items-center" style={{ minWidth: '14px' }}>
-          <span className={`text-[11px] sm:text-[10px] lg:text-[12pt] px-0.5 rounded-[3px] leading-none
+          <span className={`text-[11px] sm:text-[12px] lg:text-[13px] px-0.5 rounded-[3px] leading-none
             ${isLife ? 'bg-gold/20 text-gold' : ''}
             ${isBody ? 'bg-star/20 text-star-light' : ''}
             ${!isLife && !isBody ? 'text-text-secondary' : ''}
@@ -1304,7 +1338,7 @@ function DecadalAnnualMonthlyTable({
                 <div className="whitespace-nowrap text-[7px] sm:text-[12px]">
                   {item.year}年
                 </div>
-                <div className="text-[6.5px] sm:text-[10px] text-text-muted whitespace-nowrap">
+                <div className="text-[7px] sm:text-[10px] text-text-muted whitespace-nowrap">
                   {getYearGanZhi(item.year)}{item.age}歲
                 </div>
               </div>
@@ -1333,9 +1367,9 @@ function DecadalAnnualMonthlyTable({
               }}
             >
               <div className={`rounded-[4px] px-1 py-0 sm:px-1.5 sm:py-0.5 flex flex-col items-center gap-0 leading-tight ${selectedMonthly === i ? 'bg-gold/20' : ''}`}>
-                <div className="text-[6.5px] sm:text-[12px]">{month}月</div>
+                <div className="text-[8px] sm:text-[9px] lg:text-[10px]">{month}月</div>
                 {monthlyGanZhi && (
-                  <div className="text-[6px] sm:text-[9px] text-text-muted">
+                  <div className="text-[8px] sm:text-[9px] lg:text-[10px] text-text-muted">
                     {monthlyGanZhi}月
                   </div>
                 )}
@@ -1645,7 +1679,7 @@ export function ChartDisplay() {
         starElement.style.backgroundColor = colorInfo.color
         starElement.style.color = 'white'
         starElement.style.padding = '0'
-        starElement.style.borderRadius = '4px'
+        starElement.style.borderRadius = '2px'
         starElement.style.display = 'inline-block'
         starElement.style.lineHeight = '1'
       }
@@ -1771,7 +1805,7 @@ export function ChartDisplay() {
       bg-gradient-to-br from-white/[0.04] to-transparent
       backdrop-blur-xl border border-white/[0.08] rounded-xl sm:rounded-2xl
       shadow-[0_8px_32px_rgba(0,0,0,0.3)]
-      max-w-6xl mx-auto
+      w-full
     ">
 
       {/* SVG 四化箭頭層 - 飛星盤和四化盤顯示 */}
@@ -1944,10 +1978,10 @@ export function ChartDisplay() {
                       {/* 箭頭旁邊的ABCD標籤 */}
                       {line.label && (
                         <text
-                          x={line2X2 !== null ? line2X2 + gridOffset.x : line1X2 + gridOffset.x + (isCompactMobile ? 6 : 8)}
-                          y={line2Y2 !== null ? line2Y2 + gridOffset.y - (isCompactMobile ? 8 : 10) : line1Y2 + gridOffset.y}
-                          fontSize={isCompactMobile ? '12' : '16'}
-                          fontWeight="bold"
+                          x={line2X2 !== null ? line2X2 + gridOffset.x : line1X2 + gridOffset.x + (isCompactMobile ? 4 : 8)}
+                          y={line2Y2 !== null ? line2Y2 + gridOffset.y - (isCompactMobile ? 8 : 10) : line1Y2 + gridOffset.y + (fromPalacePos.row === 0 ? (isCompactMobile ? 10 : 14) : (isCompactMobile ? -4 : -8))}
+                          fontSize={isCompactMobile ? '10' : '14'}
+                          fontWeight="medium"
                           fill={line.color}
                           opacity="0.8"
                           textAnchor={line2X2 !== null ? 'middle' : 'start'}
@@ -1987,12 +2021,12 @@ export function ChartDisplay() {
                         <>
                           {/* 標籤背景 - 跟中間區域相同的透明白色 */}
                           <rect
-                            x={fromPos.x + (toPos.x - fromPos.x) * 0.9 + gridOffset.x - (isCompactMobile ? 11 : 14)}
+                            x={fromPos.x + (toPos.x - fromPos.x) * 0.9 + gridOffset.x - (isCompactMobile ? 8 : 10)}
                             y={fromPos.y + (toPos.y - fromPos.y) * 0.9 + gridOffset.y - (isCompactMobile ? 13 : 16)}
-                            width={isCompactMobile ? '22' : '28'}
+                            width={isCompactMobile ? '16' : '20'}
                             height={isCompactMobile ? '16' : '20'}
-                            fill="rgba(255, 255, 255, 0.83)"
-                            rx={isCompactMobile ? '16' : '20'}
+                            fill="rgba(255, 255, 255, 0.9)"
+                            rx={isCompactMobile ? '8' : '10'}
                             opacity="1"
                           />
                           {/* 標籤文字 */}
@@ -2001,7 +2035,7 @@ export function ChartDisplay() {
                             y={fromPos.y + (toPos.y - fromPos.y) * 0.9 + gridOffset.y }
                             fill={line.color}
                             fontSize={isCompactMobile ? '14' : '18'}
-                            fontWeight="bold"
+                            fontWeight="medium"
                             textAnchor="middle"
                             opacity="1"
                           >
@@ -2154,7 +2188,7 @@ export function ChartDisplay() {
       )}
 
       {/* 4x4 网格 */}
-      <div ref={gridRef} className="grid grid-cols-4 gap-1 relative m-0.5 sm:m-2 md:m-4" style={{ zIndex: 2 }}>
+      <div ref={gridRef} className="grid grid-cols-4 gap-0 relative" style={{ zIndex: 2 }}>
         {/* Row 0 */}
         {grid[0].map((p, c) => renderPalace(p, `0-${c}`))}
 
@@ -2174,7 +2208,7 @@ export function ChartDisplay() {
       </div>
 
       {/* 盘面类型切换按钮 - 移到盘面下方 */}
-      <div className="mt-2 sm:mt-8 mb-2 sm:mb-3 w-full overflow-x-auto px-0.5 sm:px-0">
+      <div className="mt-4 sm:mt-10 mb-2 sm:mb-3 w-full overflow-x-auto px-0.5 sm:px-0">
         <div className="flex items-center justify-between gap-1 sm:gap-3 w-full min-w-max">
         {/* 第一部分：盤面類型按鈕（左邊） */}
         <div className="flex flex-nowrap justify-start gap-1 sm:gap-1.5 items-center shrink-0">
@@ -2198,6 +2232,9 @@ export function ChartDisplay() {
             </button>
           ))}
         </div>
+
+        {/* 三合盤時的中間間隔 - 讓收闔按鍵居中 */}
+        {chartType === 'trireme' && <div className="flex-1" />}
 
         {/* 第二部分：收合按鈕 */}
         <button

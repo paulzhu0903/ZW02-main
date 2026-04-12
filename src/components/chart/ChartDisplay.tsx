@@ -489,11 +489,11 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, chartType =
     <div className="flex flex-col items-center gap-0" style={{ minHeight: '20px' }}>
       <span
         className={`
-          flex flex-col items-center justify-center text-[8px] sm:text-[9px] lg:text-[11pt] px-0.5 py-0 rounded
+          flex flex-col items-center justify-center text-[8px] sm:text-[9px] lg:text-[11pt] px-0 py-0 rounded
           transition-all duration-200
           ${hasMutagen ? getMutagenTextColor() + ' font-medium' : `bg-white/5 ${textColor} hover:bg-white/10`}
         `}
-        style={{ writingMode: 'vertical-rl', minWidth: '16px', minHeight: '16px' }}
+        style={{ writingMode: 'vertical-rl', minWidth: '16px', minHeight: '16px', margin: '0' }}
         data-star-name={name}
       >
         {displayName}
@@ -779,7 +779,7 @@ function PalaceCard({
       `}
     >
       {/* 星耀水平排列 - 左到右 */}
-      <div className={`relative flex flex-row flex-wrap mb-2 flex-1 justify-start items-start -gap-1.5 overflow-visible ${chartType === 'transformation' && transformationShowCausePalace && isCausePalace ? 'pr-5 sm:pr-6' : ''}`}>
+      <div className={`relative flex flex-row flex-wrap mb-2 flex-1 justify-start items-start gap-0 overflow-visible ${chartType === 'transformation' && transformationShowCausePalace && isCausePalace ? 'pr-5 sm:pr-6' : ''}`}>
        
         {/* 主星 */}
         {majorStars.map((star, i) => (
@@ -965,7 +965,7 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
 
       {/* 标题 */}
       <h3 className="
-        text-[18px] sm:text-[20px] lg:text-[24px] font-semibold mb-3
+        text-[14px] sm:text-[16px] lg:text-[20px] font-semibold mb-2 sm:mb-3
         text-gray-500
       " style={{ fontFamily: 'var(--font-serif)' }}>
         {t('chart.title', language) || '紫微斗數命盤'}
@@ -973,23 +973,23 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
 
       {/* 命主姓名 */}
       {nativeName && (
-        <div className="text-[12pt] sm:text-[13pt] lg:text-[14pt] text-gray-500 mb-2 font-medium">
+        <div className="text-[10px] sm:text-[11px] lg:text-[12pt] text-gray-500 mb-1 sm:mb-2 font-medium">
           {nativeName}
         </div>
       )}
 
       {/* 出生八字信息 - 按用户指定的格式 */}
-      <div className="text-[10pt] sm:text-[11pt] lg:text-[12pt] text-gray-500 space-y-1 w-full px-1 sm:px-2 text-center">
+      <div className="text-[8px] sm:text-[9px] lg:text-[10pt] text-gray-500 space-y-0.5 sm:space-y-1 w-full px-1 sm:px-2 text-center">
         
         {/* 第一行：真太陽時 */}
-        <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5">
-          <span className="text-gray-500">{t('chart.solarTime', language)}:</span>
+        <div className="flex flex-wrap items-center justify-center gap-x-1 sm:gap-x-1.5 gap-y-0">
+          <span className="text-gray-500 whitespace-nowrap">{t('chart.solarTime', language)}:</span>
           <span className="text-gray-500 font-mono break-all">{solarDate}</span>
         </div>
         
         {/* 第二行：出生時間 */}
-        <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5">
-          <span className="text-gray-500">{t('chart.birthTime', language)}:</span>
+        <div className="flex flex-wrap items-center justify-center gap-x-1 sm:gap-x-1.5 gap-y-0">
+          <span className="text-gray-500 whitespace-nowrap">{t('chart.birthTime', language)}:</span>
           <span className="text-gray-500 font-mono break-all">
             {birthInfo?.year && birthInfo?.month && birthInfo?.day
               ? `${String(birthInfo.year).padStart(4, '0')}-${String(birthInfo.month).padStart(2, '0')}-${String(birthInfo.day).padStart(2, '0')} ${birthTime}`
@@ -999,21 +999,21 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
         </div>
         
         {/* 第三行：農曆 - 完整年月日時 */}
-        <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5">
-          <span className="text-gray-500">{t('chart.lunarDate', language)}:</span>
+        <div className="flex flex-wrap items-center justify-center gap-x-1 sm:gap-x-1.5 gap-y-0">
+          <span className="text-gray-500 whitespace-nowrap">{t('chart.lunarDate', language)}:</span>
           <span className="text-gray-500 break-words">{getLunarDateFull()}</span>
         </div>
         
         {/* 第四行：四柱 */}
-        <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5">
-          <span className="text-gray-500">{t('chart.fourPillars', language)}:</span>
+        <div className="flex flex-wrap items-center justify-center gap-x-1 sm:gap-x-1.5 gap-y-0">
+          <span className="text-gray-500 whitespace-nowrap">{t('chart.fourPillars', language)}:</span>
           <span className="text-gray-500 break-words">
             {yearPillar} {monthPillar} {dayPillar} {hourPillar}
           </span>
         </div>
         
         {/* 第五行：五行局 + 性别 */}
-        <div className="flex flex-wrap items-center justify-center gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2">
           <span className="text-gray-500">{chart.fiveElementsClass}</span>
           <span className="text-gray-500">
             {yinYangLabel}{genderText}
@@ -1022,31 +1022,31 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
         
         {/* 第六行：納音 */}
         {nayin && (
-          <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5">
-            <span className="text-gray-500">{t('chart.nayin', language)}:</span>
+          <div className="flex flex-wrap items-center justify-center gap-x-1 sm:gap-x-1.5 gap-y-0">
+            <span className="text-gray-500 whitespace-nowrap">{t('chart.nayin', language)}:</span>
             <span className="text-gray-500 break-words">{nayin}</span>
           </div>
         )}
         
         {/* 第七行：命主 + 身主 */}
-        <div className="flex items-center justify-center gap-4 text-[9pt] sm:text-[10pt] lg:text-[11pt]">
-          <div>
+        <div className="flex items-center justify-center gap-2 sm:gap-4 text-[7px] sm:text-[8px] lg:text-[9pt]">
+          <div className="whitespace-nowrap">
             <span className="text-gray-500">{t('chart.soul', language)}:</span>
-            <span className="text-gray-500 ml-1">{getLocalizedStarName(chart.soul, language)}</span>
+            <span className="text-gray-500 ml-0.5">{getLocalizedStarName(chart.soul, language)}</span>
           </div>
-          <div>
+          <div className="whitespace-nowrap">
             <span className="text-gray-500">{t('chart.body', language)}:</span>
-            <span className="text-gray-500 ml-1">{getLocalizedStarName(chart.body, language)}</span>
+            <span className="text-gray-500 ml-0.5">{getLocalizedStarName(chart.body, language)}</span>
           </div>
         </div>
         
         {/* 第八行：生肖 + 星座 */}
-        <div className="flex items-center justify-center gap-4 text-[9pt] sm:text-[10pt] lg:text-[11pt]">
-          <div>
+        <div className="flex items-center justify-center gap-2 sm:gap-4 text-[7px] sm:text-[8px] lg:text-[9pt]">
+          <div className="whitespace-nowrap">
             <span className="text-gray-500">{t('chart.zodiac', language)}:</span>
-            <span className="text-gray-500 ml-1">{getLocalizedZodiacName(chart.zodiac, language)}</span>
+            <span className="text-gray-500 ml-0.5">{getLocalizedZodiacName(chart.zodiac, language)}</span>
           </div>
-          <div>
+          <div className="whitespace-nowrap">
             <span className="text-gray-500">{t('chart.astroSign', language)}:</span>
             <span className="text-gray-500 ml-1">{getLocalizedAstroSign(chart.sign, language)}</span>
           </div>
@@ -1652,7 +1652,7 @@ export function ChartDisplay() {
         // 應用樣式
         starElement.style.backgroundColor = colorInfo.color
         starElement.style.color = 'white'
-        starElement.style.padding = '2px 1px'
+        starElement.style.padding = '0'
         starElement.style.borderRadius = '4px'
         starElement.style.display = 'inline-block'
         starElement.style.lineHeight = '1'

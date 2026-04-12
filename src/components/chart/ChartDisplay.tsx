@@ -333,27 +333,27 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, chartType =
 
   const displayMutagen = getMutagenDisplay(mutagen)
   
-  // 根據 mutagen 獲取樣式
-  const mutagenStyle = (() => {
+  // 根據 mutagen 獲取文字顏色（不含背景）
+  const getMutagenTextColor = (): string => {
     if (!mutagen) return ''
     
-    // 映射所有可能的 mutagen 值到樣式
-    const styleMap: Record<string, string> = {
-      '禄': 'bg-gradient-to-r from-fortune/20 to-fortune/10 text-fortune',
-      '祿': 'bg-gradient-to-r from-fortune/20 to-fortune/10 text-fortune',
-      '权': 'bg-gradient-to-r from-gold/20 to-gold/10 text-gold',
-      '權': 'bg-gradient-to-r from-gold/20 to-gold/10 text-gold',
-      '科': 'bg-gradient-to-r from-star/20 to-star/10 text-star-light',
-      '忌': 'bg-gradient-to-r from-misfortune/20 to-misfortune/10 text-misfortune',
-      '化禄': 'bg-gradient-to-r from-fortune/20 to-fortune/10 text-fortune',
-      '化祿': 'bg-gradient-to-r from-fortune/20 to-fortune/10 text-fortune',
-      '化权': 'bg-gradient-to-r from-gold/20 to-gold/10 text-gold',
-      '化權': 'bg-gradient-to-r from-gold/20 to-gold/10 text-gold',
-      '化科': 'bg-gradient-to-r from-star/20 to-star/10 text-star-light',
-      '化忌': 'bg-gradient-to-r from-misfortune/20 to-misfortune/10 text-misfortune',
+    // 只映射文字顏色，無背景色
+    const colorMap: Record<string, string> = {
+      '禄': 'text-fortune',
+      '祿': 'text-fortune',
+      '权': 'text-gold',
+      '權': 'text-gold',
+      '科': 'text-star-light',
+      '忌': 'text-misfortune',
+      '化禄': 'text-fortune',
+      '化祿': 'text-fortune',
+      '化权': 'text-gold',
+      '化權': 'text-gold',
+      '化科': 'text-star-light',
+      '化忌': 'text-misfortune',
     }
-    return styleMap[mutagen] || ''
-  })()
+    return colorMap[mutagen] || ''
+  }
 
   // t()函数会自动将中文星星名称映射到英文参数名并翻译
   const displayName = t(`star.${name}`, language)
@@ -486,22 +486,22 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, chartType =
   }
 
   return (
-    <div className="flex flex-col items-center gap-px" style={{ minHeight: '28px' }}>
+    <div className="flex flex-col items-center gap-0" style={{ minHeight: '20px' }}>
       <span
         className={`
-          flex flex-col items-center justify-center text-[11pt] sm:text-[12pt] lg:text-[14pt] px-0.5 sm:px-1 py-0 rounded
+          flex flex-col items-center justify-center text-[8px] sm:text-[9px] lg:text-[11pt] px-0.5 py-0 rounded
           transition-all duration-200
-          ${hasMutagen ? mutagenStyle + ' font-medium rounded-[4px]' : `bg-white/5 ${textColor} hover:bg-white/10`}
+          ${hasMutagen ? getMutagenTextColor() + ' font-medium' : `bg-white/5 ${textColor} hover:bg-white/10`}
         `}
-        style={{ writingMode: 'vertical-rl', minWidth: '20px', minHeight: '20px' }}
+        style={{ writingMode: 'vertical-rl', minWidth: '16px', minHeight: '16px' }}
         data-star-name={name}
       >
         {displayName}
       </span>
       {(displayBrightness || mutagen) && (
-        <div className="flex flex-col items-center justify-center text-[8pt] sm:text-[9pt]" style={{ gap: '-1px' }}>
+        <div className="flex flex-col items-center justify-center text-[6px] sm:text-[7px]" style={{ gap: '0' }}>
           {displayBrightness && brightnessChar && (
-            <span className="text-[11pt] sm:text-[12pt] lg:text-[14pt] text-text-muted flex items-center justify-center" style={{ minWidth: '20px', minHeight: '20px' }}>{brightnessChar}</span>
+            <span className="text-[8px] sm:text-[9px] lg:text-[11pt] text-text-muted flex items-center justify-center" style={{ minWidth: '16px', minHeight: '16px' }}>{brightnessChar}</span>
           )}
           {mutagen && (() => {
             // 根據四化類別和盤面類型獲取顏色
@@ -573,8 +573,8 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, chartType =
             let borderRadiusStyle = '50%'
             let styleObj: React.CSSProperties = {
               borderRadius: borderRadiusStyle,
-              width: '20px',
-              height: '20px',
+              width: '16px',
+              height: '16px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -584,25 +584,27 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, chartType =
             }
             
             if (chartType === 'flying' || chartType === 'trireme') {
-              // 飛星盤和三合盤：四化色背景圓角矩形 3px
+              // 飛星盤和三合盤：四化文字變顏色，無背景色
               styleObj = {
                 ...styleObj,
-                borderRadius: '3px',
-                backgroundColor: colors.bgHex,
-                color: 'white'
+                borderRadius: 'unset',
+                backgroundColor: 'transparent',
+                color: colors.bgHex
               }
             } else if (chartType === 'transformation') {
-              // 四化盤：紅色邊框圓形
+              // 四化盤：紅色邊框圓形（細邊框、更小）
               styleObj = {
                 ...styleObj,
                 borderRadius: '50%',
-                border: '2px solid #FF3B30',
+                width: '14px',
+                height: '14px',
+                border: '1px solid #FF3B30',
                 color: '#FF3B30'
               }
             }
             
             return (
-              <span className="text-[11pt] sm:text-[12pt] lg:text-[14pt] px-0.5 flex items-center justify-center"
+              <span className="text-[8px] sm:text-[9px] lg:text-[11pt] px-0.5 flex items-center justify-center"
                 style={styleObj}>
                 {displayMutagen}
               </span>
@@ -765,7 +767,7 @@ function PalaceCard({
     <div
       onClick={onClick}
       className={`
-        group relative p-1.5 sm:p-2 lg:p-3 h-full min-h-[110px] sm:min-h-[130px] lg:min-h-[170px] flex flex-col
+        group relative p-2 sm:p-3 lg:p-4 h-full min-h-[130px] sm:min-h-[160px] lg:min-h-[200px] flex flex-col
         bg-white/[0.03] backdrop-blur-sm
         border border-gray-300 sm:border-2 rounded-xl
         transition-all duration-300 cursor-pointer
@@ -777,7 +779,7 @@ function PalaceCard({
       `}
     >
       {/* 星耀水平排列 - 左到右 */}
-      <div className={`relative flex flex-row flex-wrap mb-2 flex-1 justify-start items-start -gap-1 overflow-visible ${chartType === 'transformation' && transformationShowCausePalace && isCausePalace ? 'pr-5 sm:pr-6' : ''}`}>
+      <div className={`relative flex flex-row flex-wrap mb-2 flex-1 justify-start items-start -gap-1.5 overflow-visible ${chartType === 'transformation' && transformationShowCausePalace && isCausePalace ? 'pr-5 sm:pr-6' : ''}`}>
        
         {/* 主星 */}
         {majorStars.map((star, i) => (
@@ -791,8 +793,8 @@ function PalaceCard({
 
         {/* 杂曜 */}
         {(chartType === 'flying' || chartType === 'trireme') && adjectiveStars.length > 0 && adjectiveStars.map((name, i) => (
-          <div key={`adj-${i}`} className="flex flex-col items-center gap-px" style={{ minHeight: '28px' }}>
-            <span className="text-[11pt] sm:text-[12pt] lg:text-[14pt] px-0.5 sm:px-1 py-0 rounded bg-white/[0.03] text-text-muted/70 flex items-center justify-center" style={{ writingMode: 'vertical-rl', minWidth: '20px', minHeight: '20px' }}>
+          <div key={`adj-${i}`} className="flex flex-col items-center gap-px" style={{ minHeight: '20px' }}>
+            <span className="text-[9px] sm:text-[10px] lg:text-[12pt] px-0.5 py-0 rounded bg-white/[0.03] text-text-muted/70 flex items-center justify-center" style={{ writingMode: 'vertical-rl', minWidth: '16px', minHeight: '16px' }}>
               {t(`star.${name}`, language) || name}
             </span>
           </div>
@@ -804,7 +806,7 @@ function PalaceCard({
             className="absolute top-0 right-0 h-full flex items-start justify-end pointer-events-none"
           >
             <div
-              className="px-0.5 sm:px-1 py-0.5 rounded border border-red-500 text-red-500 text-[11pt] sm:text-[12pt] lg:text-[14pt] font-medium bg-white/70"
+              className="px-0.5 py-0.5 rounded border border-red-500 text-red-500 text-[9px] sm:text-[10px] lg:text-[12pt] font-medium bg-white/70"
               style={{ writingMode: 'vertical-rl', lineHeight: 1 }}
             >
               {language === 'zh-TW' ? '來因' : '来因'}
@@ -815,7 +817,7 @@ function PalaceCard({
 
       {/* 十二神显示 - 由 i18n.ts 中的定义完全控制显示内容和语言 */}
       {((chartType === 'flying' && flyingShowGods) || (chartType === 'transformation' && transformationShowGods)) && (
-        <div className="flex justify-between text-[12px] sm:text-[14px] lg:text-[16px] text-text-muted mb-1.5 border-t border-white/[0.04] pt-1">
+        <div className="flex justify-between text-[9px] sm:text-[11px] lg:text-[13px] text-text-muted mb-1 border-t border-white/[0.04] pt-0.5">
           <span>{t(`longlifeDeity.${longlifeDeity}`, language) || longlifeDeity}</span>
           <span>{t(`boshi12Deity.${boshi12Deity}`, language) || boshi12Deity}</span>
         </div>
@@ -823,23 +825,23 @@ function PalaceCard({
 
 
       {/* 底部布局: 左下(干支) + 中間(大限名稱+時間) + 右下(原始宮位名稱) */}
-      <div className="relative flex items-center justify-between w-full gap-1">
+      <div className="relative flex items-center justify-between w-full gap-0.5">
         {/* 左下: 干支(縱排) */}
-        <div className="flex flex-col gap-1" style={{ writingMode: 'vertical-rl', minWidth: '18px' }}>
-          <span className="text-[11pt] sm:text-[12pt] lg:text-[14pt] text-text-secondary">{stem}{branch}</span>
+        <div className="flex flex-col gap-0.5" style={{ writingMode: 'vertical-rl', minWidth: '14px' }}>
+          <span className="text-[9px] sm:text-[10px] lg:text-[12pt] text-text-secondary leading-none">{stem}{branch}</span>
         </div>
 
         {/* 中間: 由上而下顯示 年歲、流月、流年、大限 */}
-        <div className="flex flex-col items-center justify-center flex-1 text-center gap-0">
+        <div className="flex flex-col items-center justify-center flex-1 text-center gap-0.5">
           {(decadalYear !== null || masterAge !== null) && (
-            <div className="text-[8.5pt] sm:text-[9pt] lg:text-[10pt] text-text-muted text-center leading-none">
-              {decadalYear !== null && <span className="mr-1">{decadalYear}年</span>}
+            <div className="text-[7px] sm:text-[8px] lg:text-[9pt] text-text-muted text-center leading-none whitespace-nowrap">
+              {decadalYear !== null && <span className="mr-0.5">{decadalYear}年</span>}
               {masterAge !== null && <span>{masterAge}歲</span>}
             </div>
           )}
 
           {monthlySequenceLabels.length > 0 && (
-            <div className="flex flex-wrap items-center justify-center gap-x-1 gap-y-0 text-[9pt] sm:text-[10pt] lg:text-[11pt] text-gray-400 leading-none">
+            <div className="flex flex-wrap items-center justify-center gap-x-0.5 gap-y-0 text-[7px] sm:text-[9px] lg:text-[10pt] text-gray-400 leading-none">
               {monthlySequenceLabels.map((label) => (
                 <span key={`${branch}-${label}`} className="whitespace-nowrap">{label}</span>
               ))}
@@ -847,24 +849,24 @@ function PalaceCard({
           )}
 
           {selectedAnnualLabel && (
-            <div className="flex flex-col items-center justify-center leading-none min-h-[16px] sm:min-h-[18px]">
-              <span className="text-[10pt] sm:text-[11pt] lg:text-[12pt] text-gray-400 text-center leading-none">
+            <div className="flex flex-col items-center justify-center leading-none min-h-[12px] sm:min-h-[16px]">
+              <span className="text-[8px] sm:text-[9px] lg:text-[11pt] text-gray-400 text-center leading-none">
                 {selectedAnnualLabel}
               </span>
             </div>
           )}
           
           {!selectedAnnualLabel && annualPalaceLabel && (
-            <div className="flex flex-col items-center justify-center leading-none min-h-[16px] sm:min-h-[18px]">
-              <span className="text-[10pt] sm:text-[11pt] lg:text-[12pt] text-gray-400 text-center leading-none">
+            <div className="flex flex-col items-center justify-center leading-none min-h-[12px] sm:min-h-[16px]">
+              <span className="text-[8px] sm:text-[9px] lg:text-[11pt] text-gray-400 text-center leading-none">
                 {annualPalaceLabel}
               </span>
             </div>
           )}
 
-          <div className="flex flex-col items-center justify-center leading-none min-h-[24px] sm:min-h-[28px]">
+          <div className="flex flex-col items-center justify-center leading-none min-h-[16px] sm:min-h-[22px]">
             <span className={`
-              px-1 py-0 rounded font-medium text-[11pt] sm:text-[12pt] lg:text-[14pt] text-center
+              px-0.5 py-0 rounded font-medium text-[9px] sm:text-[10px] lg:text-[12pt] text-center leading-tight
               ${!isLife && !isBody ? 'text-text-secondary' : ''}
             `}>
               {displayPalaceName}
@@ -873,8 +875,8 @@ function PalaceCard({
         </div>
 
         {/* 右下: 原始宮位名稱(縱排) */}
-        <div className="flex flex-col items-center" style={{ minWidth: '18px' }}>
-          <span className={`text-[11pt] sm:text-[12pt] lg:text-[14pt] px-1 rounded-[4px]
+        <div className="flex flex-col items-center" style={{ minWidth: '14px' }}>
+          <span className={`text-[9px] sm:text-[10px] lg:text-[12pt] px-0.5 rounded-[3px] leading-none
             ${isLife ? 'bg-gold/20 text-gold' : ''}
             ${isBody ? 'bg-star/20 text-star-light' : ''}
             ${!isLife && !isBody ? 'text-text-secondary' : ''}
@@ -1743,7 +1745,7 @@ export function ChartDisplay() {
     if (!palace) return <div key={key} />
     
     return (
-      <div data-palace-branch={palace.branch} data-palace-name={palace.name}>
+      <div key={key} data-palace-branch={palace.branch} data-palace-name={palace.name}>
         <PalaceCard
           key={key}
           {...palace}
@@ -2160,7 +2162,7 @@ export function ChartDisplay() {
       )}
 
       {/* 4x4 网格 */}
-      <div ref={gridRef} className="grid grid-cols-4 gap-0.5 sm:gap-1 lg:gap-2 relative m-1 sm:m-4 md:m-[30px]" style={{ zIndex: 2 }}>
+      <div ref={gridRef} className="grid grid-cols-4 gap-1 sm:gap-2 lg:gap-3 relative m-2 sm:m-6 md:m-10" style={{ zIndex: 2 }}>
         {/* Row 0 */}
         {grid[0].map((p, c) => renderPalace(p, `0-${c}`))}
 

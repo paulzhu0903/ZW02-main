@@ -226,7 +226,7 @@ export function AIInterpretation() {
   return (
     <div
       className="
-        relative p-6 lg:p-8
+        relative p-3 sm:p-4 lg:p-6
         bg-gradient-to-br from-white/[0.04] to-transparent
         backdrop-blur-xl border border-white/[0.08] rounded-2xl
         shadow-[0_8px_32px_rgba(0,0,0,0.3)]
@@ -242,10 +242,10 @@ export function AIInterpretation() {
       />
 
       {/* 头部 */}
-      <div className="flex items-center justify-between mb-6 gap-3">
+      <div className="flex items-center justify-between mb-4 sm:mb-6 gap-2 sm:gap-3">
         <h2
           className="
-            text-xl lg:text-2xl font-semibold
+            text-base sm:text-lg lg:text-2xl font-semibold
             bg-gradient-to-r from-gold via-gold-light to-gold
             bg-clip-text text-transparent
           "
@@ -253,13 +253,13 @@ export function AIInterpretation() {
         >
           {t('ai.title', language)}
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {currentSettings.apiKey && (
             <button
               type="button"
               onClick={handleTogglePrompt}
               title={t('ai.promptHintNoApi', language)}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors"
+              className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors whitespace-nowrap"
             >
               {showPrompt ? t('ai.hidePrompt', language) : t('ai.showPrompt', language)}
             </button>
@@ -282,19 +282,19 @@ export function AIInterpretation() {
 
       {/* 错误提示 */}
       {error && (
-        <div className="p-3 rounded-lg bg-misfortune/10 text-misfortune text-sm mb-4 border border-misfortune/20">
+        <div className="p-2 sm:p-3 rounded-lg bg-misfortune/10 text-misfortune text-xs sm:text-sm mb-3 sm:mb-4 border border-misfortune/20">
           {error}
         </div>
       )}
 
       {showPrompt && promptPreview && (
         <div className="mb-4 rounded-xl border border-white/10 bg-night/40 overflow-hidden">
-          <div className="px-3 py-2 text-xs font-semibold text-star-light border-b border-white/10">
+          <div className="px-3 py-2 text-[10px] sm:text-xs font-semibold text-star-light border-b border-white/10">
             {t('ai.promptPreview', language)}
           </div>
           <pre
-            className="p-3 text-text-secondary whitespace-pre-wrap break-words max-h-80 overflow-auto leading-relaxed"
-            style={{ fontFamily: 'var(--font-sans)', fontSize: '12px' }}
+            className="p-2 sm:p-3 text-text-secondary whitespace-pre-wrap break-words max-h-80 overflow-auto leading-relaxed text-[10px] sm:text-xs"
+            style={{ fontFamily: 'var(--font-sans)' }}
           >
             {promptPreview}
           </pre>
@@ -303,15 +303,15 @@ export function AIInterpretation() {
 
       {/* 未配置提示 */}
       {!currentSettings.apiKey && !displayText && (
-        <div className="text-text-muted text-sm py-8 text-center space-y-3">
-          <div className="text-3xl mb-3 opacity-30">☆</div>
-          <p>{t('ai.configureApiLong', language)}</p>
-          <p className="text-xs text-gold/80">{t('ai.promptHintNoApi', language)}</p>
+        <div className="text-text-muted text-xs sm:text-sm py-6 sm:py-8 text-center space-y-2 sm:space-y-3">
+          <div className="text-2xl sm:text-3xl mb-2 sm:mb-3 opacity-30">☆</div>
+          <p className="px-2">{t('ai.configureApiLong', language)}</p>
+          <p className="text-[10px] sm:text-xs text-gold/80 px-2">{t('ai.promptHintNoApi', language)}</p>
           <div className="pt-2 flex justify-center">
             <button
               type="button"
               onClick={handleTogglePrompt}
-              className="px-4 py-2 rounded-xl text-sm font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors"
+              className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors"
             >
               {showPrompt ? t('ai.hidePrompt', language) : t('ai.showPrompt', language)}
             </button>
@@ -324,9 +324,9 @@ export function AIInterpretation() {
         <div
           className="
             prose prose-invert max-w-none
-            text-text-secondary text-base leading-5
+            text-text-secondary text-xs sm:text-sm lg:text-base leading-5 sm:leading-6
           "
-          style={{ fontFamily: 'var(--font-sans)', fontSize: '12px' }}
+          style={{ fontFamily: 'var(--font-sans)' }}
         >
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
@@ -344,8 +344,8 @@ export function AIInterpretation() {
 
       {/* 加载占位 */}
       {loading && !displayText && (
-        <div className="flex items-center justify-center gap-3 text-text-muted py-12">
-          <div className="w-5 h-5 border-2 border-star border-t-transparent rounded-full animate-spin" />
+        <div className="flex items-center justify-center gap-3 text-text-muted py-8 sm:py-12 text-sm sm:text-base">
+          <div className="w-4 sm:w-5 h-4 sm:h-5 border-2 border-star border-t-transparent rounded-full animate-spin" />
           <span>{t('ai.analyzingChart', language)}</span>
         </div>
       )}

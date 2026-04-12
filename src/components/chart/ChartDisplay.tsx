@@ -486,14 +486,14 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, chartType =
   }
 
   return (
-    <div className="flex flex-col items-center gap-0" style={{ minHeight: '20px' }}>
+    <div className="flex flex-col items-center gap-0.5" style={{ minHeight: '20px' }}>
       <span
         className={`
-          flex flex-col items-center justify-center text-[8px] sm:text-[9px] lg:text-[11pt] px-0 py-0 rounded
+          flex flex-col items-center justify-center text-[11px] sm:text-[11px] lg:text-[11pt] px-0 py-0 rounded
           transition-all duration-200
           ${hasMutagen ? getMutagenTextColor() + ' font-medium' : `bg-white/5 ${textColor} hover:bg-white/10`}
         `}
-        style={{ writingMode: 'vertical-rl', minWidth: '16px', minHeight: '16px', margin: '0' }}
+        style={{ writingMode: 'vertical-rl', minWidth: '12px', minHeight: '12px', margin: '0' }}
         data-star-name={name}
       >
         {displayName}
@@ -501,7 +501,7 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, chartType =
       {(displayBrightness || mutagen) && (
         <div className="flex flex-col items-center justify-center text-[6px] sm:text-[7px]" style={{ gap: '0' }}>
           {displayBrightness && brightnessChar && (
-            <span className="text-[8px] sm:text-[9px] lg:text-[11pt] text-text-muted flex items-center justify-center" style={{ minWidth: '16px', minHeight: '16px' }}>{brightnessChar}</span>
+            <span className="text-[11px] sm:text-[11px] lg:text-[11pt] text-text-muted flex items-center justify-center" style={{ minWidth: '12px', minHeight: '12px' }}>{brightnessChar}</span>
           )}
           {mutagen && (() => {
             // 根據四化類別和盤面類型獲取顏色
@@ -573,8 +573,8 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, chartType =
             let borderRadiusStyle = '50%'
             let styleObj: React.CSSProperties = {
               borderRadius: borderRadiusStyle,
-              width: '16px',
-              height: '16px',
+              width: '14px',
+              height: '14px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -596,15 +596,15 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, chartType =
               styleObj = {
                 ...styleObj,
                 borderRadius: '50%',
-                width: '14px',
-                height: '14px',
+                width: '12px',
+                height: '12px',
                 border: '1px solid #FF3B30',
                 color: '#FF3B30'
               }
             }
             
             return (
-              <span className="text-[8px] sm:text-[9px] lg:text-[11pt] px-0.5 flex items-center justify-center"
+              <span className="text-[11px] sm:text-[11px] lg:text-[11pt] px-0.5 flex items-center justify-center"
                 style={styleObj}>
                 {displayMutagen}
               </span>
@@ -767,9 +767,9 @@ function PalaceCard({
     <div
       onClick={onClick}
       className={`
-        group relative p-2 sm:p-3 lg:p-4 h-full min-h-[130px] sm:min-h-[160px] lg:min-h-[200px] flex flex-col
+        group relative px-1 py-1 sm:py-2 lg:py-3 h-full min-h-[130px] sm:min-h-[160px] lg:min-h-[200px] flex flex-col
         bg-white/[0.03] backdrop-blur-sm
-        border border-gray-300 sm:border-2 rounded-xl
+        border border-gray-300 sm:border-2 rounded-lg
         transition-all duration-300 cursor-pointer
         hover:bg-white/[0.06] hover:border-gray-400
         ${isLife ? 'bg-gold/[0.03]' : ''}
@@ -779,7 +779,7 @@ function PalaceCard({
       `}
     >
       {/* 星耀水平排列 - 左到右 */}
-      <div className={`relative flex flex-row flex-wrap mb-2 flex-1 justify-start items-start gap-0 overflow-visible ${chartType === 'transformation' && transformationShowCausePalace && isCausePalace ? 'pr-5 sm:pr-6' : ''}`}>
+      <div className={`relative flex flex-row flex-wrap mb-0.5 flex-1 justify-start items-start gap-0 overflow-visible ${chartType === 'transformation' && transformationShowCausePalace && isCausePalace ? 'pr-1 sm:pr-2' : ''}`}>
        
         {/* 主星 */}
         {majorStars.map((star, i) => (
@@ -793,8 +793,8 @@ function PalaceCard({
 
         {/* 杂曜 */}
         {(chartType === 'flying' || chartType === 'trireme') && adjectiveStars.length > 0 && adjectiveStars.map((name, i) => (
-          <div key={`adj-${i}`} className="flex flex-col items-center gap-px" style={{ minHeight: '20px' }}>
-            <span className="text-[9px] sm:text-[10px] lg:text-[12pt] px-0.5 py-0 rounded bg-white/[0.03] text-text-muted/70 flex items-center justify-center" style={{ writingMode: 'vertical-rl', minWidth: '16px', minHeight: '16px' }}>
+          <div key={`adj-${i}`} className="flex flex-col items-center gap-0" style={{ minHeight: '20px' }}>
+            <span className="text-[11px] sm:text-[12px] lg:text-[12pt] px-0.5 py-0 rounded bg-white/[0.03] text-text-muted/70 flex items-center justify-center" style={{ writingMode: 'vertical-rl', minWidth: '12px', minHeight: '12px' }}>
               {t(`star.${name}`, language) || name}
             </span>
           </div>
@@ -817,7 +817,7 @@ function PalaceCard({
 
       {/* 十二神显示 - 由 i18n.ts 中的定义完全控制显示内容和语言 */}
       {((chartType === 'flying' && flyingShowGods) || (chartType === 'transformation' && transformationShowGods)) && (
-        <div className="flex justify-between text-[9px] sm:text-[11px] lg:text-[13px] text-text-muted mb-1 border-t border-white/[0.04] pt-0.5">
+        <div className="flex justify-between text-[9px] sm:text-[11px] lg:text-[13px] text-text-muted mb-0.5 border-t border-white/[0.04] pt-0.5">
           <span>{t(`longlifeDeity.${longlifeDeity}`, language) || longlifeDeity}</span>
           <span>{t(`boshi12Deity.${boshi12Deity}`, language) || boshi12Deity}</span>
         </div>
@@ -825,16 +825,16 @@ function PalaceCard({
 
 
       {/* 底部布局: 左下(干支) + 中間(大限名稱+時間) + 右下(原始宮位名稱) */}
-      <div className="relative flex items-center justify-between w-full gap-0.5">
+      <div className="relative flex items-center justify-between w-full gap-0.5 py-0.5">
         {/* 左下: 干支(縱排) */}
         <div className="flex flex-col gap-0.5" style={{ writingMode: 'vertical-rl', minWidth: '14px' }}>
-          <span className="text-[9px] sm:text-[10px] lg:text-[12pt] text-text-secondary leading-none">{stem}{branch}</span>
+          <span className="text-[11px] sm:text-[10px] lg:text-[12pt] text-text-secondary leading-none">{stem}{branch}</span>
         </div>
 
         {/* 中間: 由上而下顯示 年歲、流月、流年、大限 */}
         <div className="flex flex-col items-center justify-center flex-1 text-center gap-0.5">
           {(decadalYear !== null || masterAge !== null) && (
-            <div className="text-[7px] sm:text-[8px] lg:text-[9pt] text-text-muted text-center leading-none whitespace-nowrap">
+            <div className="text-[11px] sm:text-[8px] lg:text-[9pt] text-text-muted text-center leading-none whitespace-nowrap">
               {decadalYear !== null && <span className="mr-0.5">{decadalYear}年</span>}
               {masterAge !== null && <span>{masterAge}歲</span>}
             </div>
@@ -850,7 +850,7 @@ function PalaceCard({
 
           {selectedAnnualLabel && (
             <div className="flex flex-col items-center justify-center leading-none min-h-[12px] sm:min-h-[16px]">
-              <span className="text-[8px] sm:text-[9px] lg:text-[11pt] text-gray-400 text-center leading-none">
+              <span className="text-[11px] sm:text-[9px] lg:text-[11pt] text-gray-400 text-center leading-none">
                 {selectedAnnualLabel}
               </span>
             </div>
@@ -858,7 +858,7 @@ function PalaceCard({
           
           {!selectedAnnualLabel && annualPalaceLabel && (
             <div className="flex flex-col items-center justify-center leading-none min-h-[12px] sm:min-h-[16px]">
-              <span className="text-[8px] sm:text-[9px] lg:text-[11pt] text-gray-400 text-center leading-none">
+              <span className="text-[11px] sm:text-[9px] lg:text-[11pt] text-gray-400 text-center leading-none">
                 {annualPalaceLabel}
               </span>
             </div>
@@ -866,7 +866,7 @@ function PalaceCard({
 
           <div className="flex flex-col items-center justify-center leading-none min-h-[16px] sm:min-h-[22px]">
             <span className={`
-              px-0.5 py-0 rounded font-medium text-[9px] sm:text-[10px] lg:text-[12pt] text-center leading-tight
+              px-0.5 py-0 rounded font-medium text-[11px] sm:text-[10px] lg:text-[12pt] text-center leading-tight
               ${!isLife && !isBody ? 'text-text-secondary' : ''}
             `}>
               {displayPalaceName}
@@ -876,7 +876,7 @@ function PalaceCard({
 
         {/* 右下: 原始宮位名稱(縱排) */}
         <div className="flex flex-col items-center" style={{ minWidth: '14px' }}>
-          <span className={`text-[9px] sm:text-[10px] lg:text-[12pt] px-0.5 rounded-[3px] leading-none
+          <span className={`text-[11px] sm:text-[10px] lg:text-[12pt] px-0.5 rounded-[3px] leading-none
             ${isLife ? 'bg-gold/20 text-gold' : ''}
             ${isBody ? 'bg-star/20 text-star-light' : ''}
             ${!isLife && !isBody ? 'text-text-secondary' : ''}
@@ -1167,7 +1167,7 @@ function DecadalAnnualMonthlyTable({
   const [selectedDaily, setSelectedDaily] = useState<number | null>(0)
   const [dailyScrollOffset, setDailyScrollOffset] = useState(0)
   const [needsScrollSpacer, setNeedsScrollSpacer] = useState(false)
-  const [annualYearsToShow, setAnnualYearsToShow] = useState(10)
+  const [annualYearsToShow, setAnnualYearsToShow] = useState(10) // 显示10个流年年份
   const tableWrapRef = useRef<HTMLDivElement>(null)
   
   // 當選擇新月份時，重置流日窗口位置
@@ -1213,18 +1213,10 @@ function DecadalAnnualMonthlyTable({
       const root = tableWrapRef.current
       if (!root) return
 
-      // 計算應顯示的流年數量（最小5個，最大10個）
-      const scrollAreas = Array.from(root.querySelectorAll<HTMLElement>('[data-scroll-area="true"]'))
-      if (scrollAreas.length > 0) {
-        const scrollArea = scrollAreas[0]
-        const containerWidth = scrollArea.clientWidth
-        // 每個年份單元約44px（手機）到72px（平板/桌面）+ gap和border
-        const estimatedCellWidth = window.innerWidth < 640 ? 52 : 80 // 包含gap和邊框
-        let yearsToShow = Math.floor(containerWidth / estimatedCellWidth)
-        yearsToShow = Math.max(5, Math.min(10, yearsToShow)) // 最小5, 最大10
-        setAnnualYearsToShow(yearsToShow)
-      }
+      // 所有设备都显示10个流年
+      setAnnualYearsToShow(10)
 
+      const scrollAreas = Array.from(root.querySelectorAll<HTMLElement>('[data-scroll-area="true"]'))
       const hasOverflow = scrollAreas.some((el) => el.scrollWidth > el.clientWidth + 1)
       setNeedsScrollSpacer(hasOverflow)
     }
@@ -2162,7 +2154,7 @@ export function ChartDisplay() {
       )}
 
       {/* 4x4 网格 */}
-      <div ref={gridRef} className="grid grid-cols-4 gap-1 sm:gap-2 lg:gap-3 relative m-2 sm:m-6 md:m-10" style={{ zIndex: 2 }}>
+      <div ref={gridRef} className="grid grid-cols-4 gap-1 relative m-0.5 sm:m-2 md:m-4" style={{ zIndex: 2 }}>
         {/* Row 0 */}
         {grid[0].map((p, c) => renderPalace(p, `0-${c}`))}
 

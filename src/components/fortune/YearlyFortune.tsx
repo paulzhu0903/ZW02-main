@@ -10,7 +10,7 @@ import type FunctionalAstrolabe from 'iztro/lib/astro/FunctionalAstrolabe'
 import { useChartStore, useSettingsStore, useContentCacheStore } from '@/stores'
 import { streamChat, type ChatMessage, type LLMConfig } from '@/lib/llm'
 import { extractKnowledge, buildPromptContext } from '@/knowledge'
-import { Button, Select } from '@/components/ui'
+import { Button, Input } from '@/components/ui'
 import { t, type Language } from '@/lib/i18n'
 
 /* ------------------------------------------------------------
@@ -18,6 +18,11 @@ import { t, type Language } from '@/lib/i18n'
    ------------------------------------------------------------ */
 
 interface YearlyDataItem {
+  基本資料: {
+    出生年: number
+    年干: string
+    年支: string
+  }
   年份: number
   流年命宮: string
   天干: string
@@ -107,6 +112,39 @@ function getMutagenByGan(gan: string): string[] {
   }
   
   return mutagenMap[gan] || []
+}
+
+/**
+ * 根据年份获取天干地支
+ * @param year - 年份
+ * @returns 干支字符串，如"甲寅"
+ */
+function getYearGanZhi(year: number): string {
+  const ganList = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
+  const zhiList = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
+  
+  const gan = ganList[(year - 1900 + 6) % 10]
+  const zhi = zhiList[(year - 1900) % 12]
+  
+  return gan + zhi
+}
+
+/**
+ * 提取干支中的天干
+ * @param ganZhi - 干支字符串
+ * @returns 天干（如"甲"）
+ */
+function extractGan(ganZhi: string): string {
+  return ganZhi.charAt(0) || ''
+}
+
+/**
+ * 提取干支中的地支
+ * @param ganZhi - 干支字符串
+ * @returns 地支（如"寅"）
+ */
+function extractZhi(ganZhi: string): string {
+  return ganZhi.charAt(1) || ''
 }
 
 /* ============================================================
@@ -279,6 +317,7 @@ function getForttunePrompt(language: Language, yearlyData?: YearlyDataItem[], mo
   } else {
     // zh-TW
     const yearlyDataJsonTw = yearlyData ? `\n\n【流年數據】\n${JSON.stringify(yearlyData.map(item => ({
+      基本資料: item.基本資料,
       年份: item.年份,
       流年命宮: item.流年命宮,
       天干: item.天干,
@@ -407,19 +446,31 @@ function buildYearlyContext(
   lines.push('## 流年基础')
   lines.push(`- 流年：${year}年（${yearly.heavenlyStem}${yearly.earthlyBranch}年）`)
   lines.push(`- 流年四化：${yearly.mutagen.join('、')}`)
-  lines.push(`- 流年命宫位置：${yearly.palaceNames[0]}`)
+  
+  // 获取流年命宫位置 - 使用 yearly.index
+  let yearlyPalaceName = ''
+  if (yearly.index !== undefined && yearly.index >= 0 && chart.palaces[yearly.index]) {
+    yearlyPalaceName = String(chart.palaces[yearly.index].name || '')
+  }
+  lines.push(`- 流年命宫位置：${yearlyPalaceName}`)
   lines.push('')
 
   // 大限信息
   lines.push('## 当前大限')
   lines.push(`- 大限天干：${decadal.heavenlyStem}`)
   lines.push(`- 大限四化：${decadal.mutagen.join('、')}`)
-  lines.push(`- 大限命宫位置：${decadal.palaceNames[0]}`)
+  
+  // 获取大限命宫位置 - 使用 decadal.index
+  let decadalPalaceName = ''
+  if (decadal.index !== undefined && decadal.index >= 0 && chart.palaces[decadal.index]) {
+    decadalPalaceName = String(chart.palaces[decadal.index].name || '')
+  }
+  lines.push(`- 大限命宫位置：${decadalPalaceName}`)
   lines.push('')
 
   // 流年各宫分析（重点宫位）
   lines.push('## 流年重点宫位星曜')
-  const importantPalaces = ['命宫', '财帛宫', '官禄宫', '夫妻宫', '疾厄宫', '迁移宫']
+  const importantPalaces = ['命宫', '父母宫', '福德宫', '田宅宫', '官禄宫', '交友宫', '迁移宫', '疾厄宫', '财帛宫', '子女宫', '兄弟宫', '夫妻宫']
 
   for (const palaceName of importantPalaces) {
     const palace = chart.palaces.find(p => String(p.name) === palaceName)
@@ -454,74 +505,73 @@ function buildYearlyContext(
 export function YearlyFortune() {
   const { chart, birthInfo } = useChartStore()
   const { provider, providerSettings, enableThinking, enableWebSearch, searchApiKey, language } = useSettingsStore()
-  const { yearlyFortune, setYearlyFortune } = useContentCacheStore()
+  const { yearlyFortune, setYearlyFortune, showYearlyFortunePrompt, setShowYearlyFortunePrompt } = useContentCacheStore()
   const currentSettings = providerSettings[provider]
 
   const currentYear = new Date().getFullYear()
 
-  // 生成基于当前大限的10年流年选项
+  // 生成年份选项 - 从出生年开始到当前年之后20年
   const generateYearOptions = useCallback(() => {
-    if (!chart || !birthInfo) return []
+    if (!birthInfo) return []
 
-    const knowledge = extractKnowledge(chart, birthInfo.year)
-    const currentAge = currentYear - birthInfo.year + 1
+    const startYear = birthInfo.year
+    const endYear = currentYear + 20  // 包含未来20年
     
-    // 找到当前所在的大限
-    const currentDecadal = knowledge.大限.find((item) => {
-      const [start, end] = item.ageRange.split('-').map(Number)
-      return currentAge >= start && currentAge <= end
-    })
-
-    if (!currentDecadal) return []
-
-    // 从大限信息提取年龄范围
-    const [startAge] = currentDecadal.ageRange.split('-').map(Number)
-
-    // 生成大限内的10年流年数据
     const years = []
-    for (let i = 0; i < 10; i++) {
-      const age = startAge + i
-      const year = birthInfo.year + age - 1
-      years.push(year)
+    for (let y = startYear; y <= endYear; y++) {
+      years.push(y)
     }
 
-    return years
-  }, [chart, birthInfo, currentYear])
+    return years.sort((a, b) => b - a)  // 倒序排列，最新的在前
+  }, [birthInfo, currentYear])
 
   const yearOptions = generateYearOptions()
-  const defaultYear = yearOptions.length > 0 ? yearOptions[0] : currentYear
+  const defaultYear = yearOptions.includes(currentYear) ? currentYear : (yearOptions.length > 0 ? yearOptions[0] : currentYear)
 
-  const [year, setYear] = useState(defaultYear)
+  const [year, setYear] = useState<number>(defaultYear)
   const [fortune, setFortune] = useState(yearlyFortune[defaultYear] || '')
   const [monthlyAnalysis, setMonthlyAnalysis] = useState<MonthlyAnalysis[] | null>(null)
   const [yearlyData, setYearlyData] = useState<YearlyDataItem[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [showPrompt, setShowPrompt] = useState(false)
 
-  // 年份选项备选标签
-  const yearOptionsForSelect = yearOptions.map(y => ({
-    value: y,
-    label: `${y}年`,
-  }))
-
-  const handleYearChange = useCallback((newYear: number) => {
-    setYear(newYear)
-    setFortune(yearlyFortune[newYear] || '')
-    setYearlyData(null)  // 重置流年数据
-    
-    // 计算新年份的月份分析
-    if (chart) {
-      const analysis = calculateMonthlyScores(chart, newYear)
-      setMonthlyAnalysis(analysis)
-      console.log(`[YearlyFortune] Changed to year ${newYear}, calculation done`)
-    }
-  }, [yearlyFortune, chart])
-
-  // 组件挂载和年份改变时计算月份分析和流年数据
+  // 当出生信息变化时，重置年份为当前年份
   useEffect(() => {
-    if (chart && year) {
+    if (defaultYear > 0 && defaultYear !== year) {
+      setYear(defaultYear)
+      setFortune(yearlyFortune[defaultYear] || '')
+    }
+  }, [defaultYear])
+
+  const handleYearInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value
+    if (input === '') {
+      return
+    }
+    
+    const inputYear = parseInt(input, 10)
+    
+    // 验证年份是否在有效范围内
+    if (!isNaN(inputYear) && birthInfo && inputYear >= birthInfo.year && inputYear <= currentYear + 20) {
+      setYear(inputYear)
+    }
+  }, [birthInfo, currentYear])
+
+  // 组件挂载和年份改变时计算月份分析和流年数据，并从缓存恢复运势
+  useEffect(() => {
+    if (chart && year && birthInfo) {
       console.log(`[YearlyFortune] useEffect triggered for year ${year}`)
+      
+      // 从缓存恢复该年份的运势内容（如果有的话）
+      if (yearlyFortune[year]) {
+        setFortune(yearlyFortune[year])
+        console.log(`[YearlyFortune] Restored fortune from cache for year ${year}`)
+      } else {
+        // 只有当新年份时且缓存中没有时才清空
+        setFortune('')
+      }
+      
+      // 计算月份分析
       const analysis = calculateMonthlyScores(chart, year)
       setMonthlyAnalysis(analysis)
       
@@ -532,9 +582,23 @@ export function YearlyFortune() {
         const heavenlyStem = String(yearly.heavenlyStem || '')
         const earthlyBranch = String(yearly.earthlyBranch || '')
         const mutagens = (yearly.mutagen || []).map(m => String(m))
-        const flowYearlyPalaceName = yearly.palaceNames?.[0] ? String(yearly.palaceNames[0]) : ''
+        
+        // 使用 yearly.index 获取流年命宫（正确的宫位索引）
+        let flowYearlyPalaceName = ''
+        if (yearly.index !== undefined && yearly.index >= 0 && chart.palaces[yearly.index]) {
+          flowYearlyPalaceName = String(chart.palaces[yearly.index].name || '')
+        }
+        
+        const birthYearGanZhi = getYearGanZhi(birthInfo.year)
+        const birthYearGan = extractGan(birthYearGanZhi)
+        const birthYearZhi = extractZhi(birthYearGanZhi)
         
         const yearlyDataArray: YearlyDataItem[] = [{
+          基本資料: {
+            出生年: birthInfo.year,
+            年干: birthYearGan,
+            年支: birthYearZhi,
+          },
           年份: year,
           流年命宮: flowYearlyPalaceName,
           天干: heavenlyStem,
@@ -548,7 +612,7 @@ export function YearlyFortune() {
       
       console.log(`[YearlyFortune] Calculated analysis:`, analysis)
     }
-  }, [chart, year])
+  }, [chart, year, yearlyFortune, birthInfo])
 
   const handleAnalyze = useCallback(async () => {
     if (!chart || !birthInfo) return
@@ -586,8 +650,16 @@ export function YearlyFortune() {
       const earthlyBranch = String(yearly.earthlyBranch || '')
       const mutagens = (yearly.mutagen || []).map(m => String(m))
 
-      // 获取流年命宫 - 从 palaceNames[0] 直接获取
-      const flowYearlyPalaceName = yearly.palaceNames?.[0] ? String(yearly.palaceNames[0]) : ''
+      // 获取流年命宫 - 使用 yearly.index 正确定位宫位
+      let flowYearlyPalaceName = ''
+      if (yearly.index !== undefined && yearly.index >= 0 && chart.palaces[yearly.index]) {
+        flowYearlyPalaceName = String(chart.palaces[yearly.index].name || '')
+      }
+      
+      // 获取出生年的干支
+      const birthYearGanZhi = getYearGanZhi(birthInfo.year)
+      const birthYearGan = extractGan(birthYearGanZhi)
+      const birthYearZhi = extractZhi(birthYearGanZhi)
       
       console.log('[YearlyFortune] Year Data Debug:', {
         year,
@@ -596,9 +668,16 @@ export function YearlyFortune() {
         earthlyBranch,
         mutagens,
         flowYearlyPalaceName,
+        birthYear: birthInfo.year,
+        birthYearGanZhi,
       })
       
       const yearlyDataArray: YearlyDataItem[] = [{
+        基本資料: {
+          出生年: birthInfo.year,
+          年干: birthYearGan,
+          年支: birthYearZhi,
+        },
         年份: year,
         流年命宮: flowYearlyPalaceName,
         天干: heavenlyStem,
@@ -698,20 +777,28 @@ ${yearlyContext}
           </h2>
 
           <div className="flex items-center gap-3 flex-wrap">
-            {/* 年份选择 */}
-            <Select
-              options={yearOptionsForSelect}
-              value={year}
-              onChange={(e) => handleYearChange(Number(e.target.value))}
-            />
+            {/* 年份选择 - 输入框 */}
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                value={year}
+                onChange={handleYearInput}
+                placeholder={String(currentYear)}
+                min={birthInfo?.year || 1900}
+                max={currentYear + 20}
+                className="w-20 text-center"
+                style={{ fontSize: '13px' }}
+              />
+              <span className="text-text-muted text-sm">年</span>
+            </div>
 
             {/* 显示Prompt(测试)按钮 */}
             <Button
-              onClick={() => setShowPrompt(!showPrompt)}
+              onClick={() => setShowYearlyFortunePrompt(!showYearlyFortunePrompt)}
               size="sm"
               variant="secondary"
             >
-              {showPrompt ? t('fortune.hidePrompt', language) : t('fortune.showPrompt', language)}
+              {showYearlyFortunePrompt ? t('fortune.hidePrompt', language) : t('fortune.showPrompt', language)}
             </Button>
 
             {/* 开始解读按钮 */}
@@ -739,7 +826,7 @@ ${yearlyContext}
         )}
 
         {/* Prompt 预览（测试模式）*/}
-        {showPrompt && (
+        {showYearlyFortunePrompt && (
           <div className="mb-6 p-4 rounded-lg bg-white/[0.08] border border-gold/20">
             <div className="text-xs font-semibold text-gold mb-3 uppercase">📋 System Prompt (JSON格式)</div>
             <pre className="text-xs text-text-secondary overflow-auto max-h-64 whitespace-pre-wrap break-words font-mono bg-white/5 p-3 rounded">
@@ -749,7 +836,7 @@ ${yearlyContext}
         )}
 
         {/* 未配置提示 */}
-        {!currentSettings.apiKey && !fortune && !showPrompt && (
+        {!currentSettings.apiKey && !fortune && !showYearlyFortunePrompt && (
           <div className="text-text-muted text-sm py-8 text-center">
             <div className="text-3xl mb-3 opacity-30">◎</div>
             {t('fortune.configureApiLong', language)}
@@ -757,7 +844,7 @@ ${yearlyContext}
         )}
 
         {/* 未分析提示 */}
-        {currentSettings.apiKey && !fortune && !loading && !showPrompt && (
+        {currentSettings.apiKey && !fortune && !loading && !showYearlyFortunePrompt && (
           <div className="text-text-muted text-sm py-8 text-center">
             <div className="text-3xl mb-3 opacity-30">◎</div>
             {t('fortune.selectYearHint', language)}

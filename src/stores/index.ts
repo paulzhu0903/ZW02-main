@@ -48,27 +48,32 @@ interface KLineCache {
 }
 
 interface ContentCacheState {
-  // AI 命盘解读
+  // AI 命盤解讀
   aiInterpretation: string | null
   setAiInterpretation: (content: string) => void
 
-  // 年度运势解读 (按年份缓存)
+  // 年度運勢解讀 (按年份緩存)
   yearlyFortune: Record<number, string>
   setYearlyFortune: (year: number, content: string) => void
 
-  // K 线数据
+  // 年度運勢 Prompt 顯示狀態
+  showYearlyFortunePrompt: boolean
+  setShowYearlyFortunePrompt: (show: boolean) => void
+
+  // K 線數據
   klineCache: KLineCache | null
   setKlineCache: (cache: KLineCache) => void
   updateKlineReasons: (reasons: { age: number; reason: string }[]) => void
   setKlineGenerating: (isGenerating: boolean) => void
 
-  // 清除所有缓存
+  // 清除所有緩存
   clearAll: () => void
 }
 
 export const useContentCacheStore = create<ContentCacheState>()((set) => ({
   aiInterpretation: null,
   yearlyFortune: {},
+  showYearlyFortunePrompt: false,
   klineCache: null,
 
   setAiInterpretation: (content) => set({ aiInterpretation: content }),
@@ -76,6 +81,8 @@ export const useContentCacheStore = create<ContentCacheState>()((set) => ({
   setYearlyFortune: (year, content) => set((state) => ({
     yearlyFortune: { ...state.yearlyFortune, [year]: content },
   })),
+
+  setShowYearlyFortunePrompt: (show) => set({ showYearlyFortunePrompt: show }),
 
   setKlineCache: (cache) => set({ klineCache: cache }),
 
@@ -104,6 +111,7 @@ export const useContentCacheStore = create<ContentCacheState>()((set) => ({
   clearAll: () => set({
     aiInterpretation: null,
     yearlyFortune: {},
+    showYearlyFortunePrompt: false,
     klineCache: null,
   }),
 }))
@@ -137,6 +145,7 @@ interface SettingsState {
   language: 'zh-CN' | 'zh-TW'   // 介面語言: 简体中文 | 繁體中文
   defaultChartType: 'flying' | 'trireme' | 'transformation'  // 預設盤面: 飛星 | 三合 | 四化
   starPlacementMethod: 'yearBranch' | 'lunarMonth' | 'standardArrangement'  // 安星法
+  monthlyArrangementMethod: 'yuanYuePositioning' | 'douJun'  // 排流月: 正月定位法 | 斗君法
 
   // 四化盤面設定
   transformationShowGods: boolean
@@ -167,6 +176,7 @@ interface SettingsState {
   setLanguage: (language: 'zh-CN' | 'zh-TW') => void
   setDefaultChartType: (type: 'flying' | 'trireme' | 'transformation') => void
   setStarPlacementMethod: (method: 'yearBranch' | 'lunarMonth' | 'standardArrangement') => void
+  setMonthlyArrangementMethod: (method: 'yuanYuePositioning' | 'douJun') => void
 
   // 四化盤面相關的setter
   setTransformationShowGods: (value: boolean) => void
@@ -210,6 +220,7 @@ export const useSettingsStore = create<SettingsState>()(
       language: 'zh-TW',
       defaultChartType: 'flying',
       starPlacementMethod: 'yearBranch',
+      monthlyArrangementMethod: 'douJun',
 
       // 四化盤面設定
       transformationShowGods: false,
@@ -250,6 +261,7 @@ export const useSettingsStore = create<SettingsState>()(
       setLanguage: (language) => set({ language }),
       setDefaultChartType: (type) => set({ defaultChartType: type }),
       setStarPlacementMethod: (method) => set({ starPlacementMethod: method }),
+      setMonthlyArrangementMethod: (method) => set({ monthlyArrangementMethod: method }),
 
       // 四化盤面相關的setter
       setTransformationShowGods: (value) => set({ transformationShowGods: value }),

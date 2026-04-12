@@ -12,6 +12,8 @@ export interface StarData {
   mutagen?: string
   isSelfMutagen?: boolean  // 離心自化（本宮自化）
   isCounterMutagen?: boolean  // 向心自化（對宮化入）
+  mutagenCategory?: 'birth' | 'decadal' | 'annual'  // 四化類別：生年 | 大限 | 流年
+  palaceStem?: string  // 宮位天干（用於判斷該星是否屬於該天干的四化）
 }
 
 export interface PalaceData {
@@ -56,6 +58,10 @@ export interface StarTagProps {
   showBrightness?: boolean
   isMajorStar?: boolean
   chartType?: 'flying' | 'trireme' | 'transformation'
+  selectedDecadal?: number | null
+  selectedAnnual?: number | null
+  isCurrentDecadalPalace?: boolean
+  isCurrentAnnualPalace?: boolean
 }
 
 export interface PalaceCardProps extends PalaceData {
@@ -67,6 +73,7 @@ export interface PalaceCardProps extends PalaceData {
   monthlySequenceLabels?: string[]
   selectedAnnualAge?: number | null
   selectedAnnualGanZhi?: string | null
+  selectedAnnualLabel?: string
   yearGan?: string
   gender?: 'male' | 'female'
   birthInfo?: any

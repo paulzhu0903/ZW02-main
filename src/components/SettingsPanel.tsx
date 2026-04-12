@@ -40,6 +40,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     language,
     defaultChartType,
     starPlacementMethod,
+    monthlyArrangementMethod,
     // 四化盤面設定
     transformationShowGods,
     transformationShowDailyMutagen,
@@ -68,6 +69,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     setLanguage,
     setDefaultChartType,
     setStarPlacementMethod,
+    setMonthlyArrangementMethod,
     // 四化盤面相關的setter
     setTransformationShowGods,
     setTransformationShowDailyMutagen,
@@ -322,6 +324,51 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                 </div>
                 <span className="text-sm text-text-secondary group-hover:text-text transition-colors">
                   {t('settings.transformationChart', language)}
+                </span>
+              </label>
+            </div>
+          </div>
+
+          {/* 排流月 */}
+          <div>
+            <h3 className="text-sm font-medium text-text-secondary mb-2">② {t('settings.monthlyArrangement', language)}</h3>
+            <div className="space-y-2">
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div
+                  className={`
+                    w-10 h-6 rounded-full relative transition-colors
+                    ${monthlyArrangementMethod === 'yuanYuePositioning' ? 'bg-star' : 'bg-white/10'}
+                  `}
+                  onClick={() => setMonthlyArrangementMethod('yuanYuePositioning')}
+                >
+                  <div
+                    className={`
+                      absolute top-1 w-4 h-4 rounded-full bg-white transition-transform
+                      ${monthlyArrangementMethod === 'yuanYuePositioning' ? 'left-5' : 'left-1'}
+                    `}
+                  />
+                </div>
+                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">
+                  {t('settings.yuanYuePositioning', language)}
+                </span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div
+                  className={`
+                    w-10 h-6 rounded-full relative transition-colors
+                    ${monthlyArrangementMethod === 'douJun' ? 'bg-star' : 'bg-white/10'}
+                  `}
+                  onClick={() => setMonthlyArrangementMethod('douJun')}
+                >
+                  <div
+                    className={`
+                      absolute top-1 w-4 h-4 rounded-full bg-white transition-transform
+                      ${monthlyArrangementMethod === 'douJun' ? 'left-5' : 'left-1'}
+                    `}
+                  />
+                </div>
+                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">
+                  {t('settings.douJun', language)}
                 </span>
               </label>
             </div>

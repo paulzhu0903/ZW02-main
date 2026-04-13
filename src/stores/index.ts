@@ -168,6 +168,10 @@ interface SettingsState {
   flyingUseColorMultiArrow: boolean
   flyingShowTripleQuaternaryLine: boolean
 
+  // 三合盤面設定
+  triremeShowStarBrightness: boolean
+  triremeMutagenSquareSize: 9 | 10 | 11
+
   setProvider: (provider: ModelProvider) => void
   updateCurrentProvider: (settings: Partial<ProviderSettings>) => void
   setEnableThinking: (enable: boolean) => void
@@ -198,6 +202,10 @@ interface SettingsState {
   setFlyingShowCentralEightCharacters: (value: boolean) => void
   setFlyingUseColorMultiArrow: (value: boolean) => void
   setFlyingShowTripleQuaternaryLine: (value: boolean) => void
+
+  // 三合盤面相關的setter
+  setTriremeShowStarBrightness: (value: boolean) => void
+  setTriremeMutagenSquareSize: (value: 9 | 10 | 11) => void
 
   // 便捷访问当前厂商配置
   getCurrentSettings: () => ProviderSettings
@@ -243,6 +251,10 @@ export const useSettingsStore = create<SettingsState>()(
       flyingUseColorMultiArrow: true,
       flyingShowTripleQuaternaryLine: true,
 
+      // 三合盤面設定
+      triremeShowStarBrightness: true,
+      triremeMutagenSquareSize: 11,
+
       setProvider: (provider) => set({ provider }),
 
       updateCurrentProvider: (settings) => set((state) => ({
@@ -283,6 +295,10 @@ export const useSettingsStore = create<SettingsState>()(
       setFlyingShowCentralEightCharacters: (value) => set({ flyingShowCentralEightCharacters: value }),
       setFlyingUseColorMultiArrow: (value) => set({ flyingUseColorMultiArrow: value }),
       setFlyingShowTripleQuaternaryLine: (value) => set({ flyingShowTripleQuaternaryLine: value }),
+
+      // 三合盤面相關的setter
+      setTriremeShowStarBrightness: (value) => set({ triremeShowStarBrightness: value }),
+      setTriremeMutagenSquareSize: (value) => set({ triremeMutagenSquareSize: value }),
 
       getCurrentSettings: () => {
         const state = get()

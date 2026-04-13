@@ -62,6 +62,8 @@ export interface StarTagProps {
   selectedAnnual?: number | null
   isCurrentDecadalPalace?: boolean
   isCurrentAnnualPalace?: boolean
+  decadalLifePalaceStem?: string | null
+  annualLifePalaceStem?: string | null
 }
 
 export interface PalaceCardProps extends PalaceData {
@@ -74,10 +76,13 @@ export interface PalaceCardProps extends PalaceData {
   selectedAnnualAge?: number | null
   selectedAnnualGanZhi?: string | null
   selectedAnnualLabel?: string
+  selectedDecadalLabel?: string
   yearGan?: string
   gender?: 'male' | 'female'
   birthInfo?: any
   palaceData?: PalaceData[] | null
+  decadalLifePalaceStem?: string | null
+  annualLifePalaceStem?: string | null
 }
 
 export interface DecadalAnnualMonthlyTableProps {

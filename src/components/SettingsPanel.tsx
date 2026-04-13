@@ -60,6 +60,9 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     flyingShowCentralEightCharacters,
     flyingUseColorMultiArrow,
     flyingShowTripleQuaternaryLine,
+    // 三合盤面設定
+    triremeShowStarBrightness,
+    triremeMutagenSquareSize,
     // 方法
     setProvider,
     updateCurrentProvider,
@@ -89,6 +92,9 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     setFlyingShowCentralEightCharacters,
     setFlyingUseColorMultiArrow,
     setFlyingShowTripleQuaternaryLine,
+    // 三合盤面相關的setter
+    setTriremeShowStarBrightness,
+    setTriremeMutagenSquareSize,
   } = useSettingsStore()
 
   // 当前厂商的配置
@@ -604,11 +610,38 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               </label>
             </div>
           </div>
+
+          {/* 三合盤面設定 */}
+          <div>
+            <h3 className="text-sm font-medium text-text-secondary mb-2">⑥ {t('settings.trireme', language)}</h3>
+            <div className="space-y-2">
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div
+                  className={`w-10 h-6 rounded-full relative transition-colors ${triremeShowStarBrightness ? 'bg-star' : 'bg-white/10'}`}
+                  onClick={() => setTriremeShowStarBrightness(!triremeShowStarBrightness)}
+                >
+                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${triremeShowStarBrightness ? 'left-5' : 'left-1'}`} />
+                </div>
+                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">{t('settings.showStarBrightness', language)}</span>
+              </label>
+
+              <Select
+                label={t('settings.mutagenSquareSize', language)}
+                value={triremeMutagenSquareSize}
+                onChange={(e) => setTriremeMutagenSquareSize(Number(e.target.value) as 9 | 10 | 11)}
+                options={[
+                  { value: 9, label: t('settings.squareSizeSmall', language) },
+                  { value: 10, label: t('settings.squareSizeMedium', language) },
+                  { value: 11, label: t('settings.squareSizeLarge', language) },
+                ]}
+              />
+            </div>
+          </div>
         </div>
 
         {/* AI 提供廠商 */}
         <div className="border-t border-white/10 pt-3 space-y-3">
-          <h3 className="text-sm font-medium text-text-secondary mb-2">⑥ {t('settings.aiProvider', language)}</h3>
+          <h3 className="text-sm font-medium text-text-secondary mb-2">⑦ {t('settings.aiProvider', language)}</h3>
           
           {/* 供應商選擇 */}
           <Select

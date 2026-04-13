@@ -71,7 +71,6 @@ export interface CentrifugalMutagenInfo {
   發生宮位: string
   星曜: string
   四化: string
-  代號: 'A' | 'B' | 'C' | 'D' | '?'
 }
 
 export interface CounterMutagenInfo {
@@ -79,7 +78,6 @@ export interface CounterMutagenInfo {
   目標對宮: string
   星曜: string
   四化: string
-  代號: 'A' | 'B' | 'C' | 'D' | '?'
 }
 
 export interface ChartIndicatorPalaceSummary {
@@ -102,7 +100,6 @@ export interface ChartIndicators {
     命宮: string
     來因宮: string
     生年四化?: Array<{
-      代號: 'A' | 'B' | 'C' | 'D' | '?'
       星曜: string
       四化: string
       宮位: string
@@ -216,13 +213,6 @@ function getStarPolarityInfo(starName: unknown): { 陰陽: string; 男女星: st
   }
 }
 
-function formatGenderMarker(starName: unknown): string {
-  const name = normalizeStarName(starName)
-  const { 陰陽, 男女星 } = getStarPolarityInfo(name)
-  if (!男女星 && !陰陽) return ''
-  return `${name}(${[男女星, 陰陽].filter(Boolean).join('/')})`
-}
-
 function getMutagenList(mutagen: unknown): string[] {
   if (!mutagen) return []
   
@@ -289,7 +279,6 @@ function collectPalaceMutagenHighlights(
             發生宮位: palaceName,
             星曜: targetStarNorm,
             四化: mutagenKey,
-            代號: MUTAGEN_LABEL_MAP[mutagenKey] || '?',
           })
         }
       })
@@ -319,7 +308,6 @@ function collectPalaceMutagenHighlights(
               目標對宮: palaceName,
               星曜: targetStarNorm,
               四化: mutagenKey,
-              代號: MUTAGEN_LABEL_MAP[mutagenKey] || '?',
             })
           }
         })
@@ -346,7 +334,7 @@ function summarizeIndicatorPalace(
     地支: getPalaceBranch(palace),
     我宮他宮: getPalaceRole(palace.name),
     主星: majorStars.map(formatStarLabel),
-    男女星: majorStars.map(star => formatGenderMarker(star.name)).filter(Boolean),
+    男女星: majorStars.map(star => normalizeStarName(star.name)).filter(Boolean),
     離心自化: self,
     向心自化: counter,
     大限: decadal?.range ? `${decadal.range[0]}-${decadal.range[1]}` : '',
@@ -482,12 +470,11 @@ export function buildChartIndicators(
       const polarity = getStarPolarityInfo(normalizedStar)
 
       return {
-        代號: MUTAGEN_LABEL_MAP[item.sihua.name] || '?',
         星曜: normalizedStar,
         四化: item.sihua.name,
         宮位: normalizedPalace,
         我宮他宮: getPalaceRole(normalizedPalace),
-        男女星: [polarity.男女星, polarity.陰陽].filter(Boolean).join('/'),
+        男女星: polarity.男女星,
       }
     })
 
@@ -839,7 +826,7 @@ export function buildPromptContext(context: KnowledgeContext, language: Language
       : t('ai.context.noMajorStars', language)
 
     const genderMarkers = palace.majorStars
-      .map(s => formatGenderMarker(s.name))
+      .map(s => normalizeStarName(s.name))
       .filter(Boolean)
       .join('、')
 

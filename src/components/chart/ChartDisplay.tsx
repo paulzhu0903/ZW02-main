@@ -19,9 +19,6 @@ import {
   PALACE_POSITIONS, 
   PALACE_BRANCH_INDEX,
   PALACE_ORDER,
-  PALACE_NAME_MAP_ZH,
-  DECADAL_PALACE_MAP,
-  ANNUAL_PALACE_MAP,
   PALACE_NAME_TO_ENGLISH_MAP,
   STAR_NAME_MAP,
   MUTAGEN_COLORS,
@@ -291,13 +288,19 @@ function getLocalizedAstroSign(sign: string | undefined, language: 'zh-TW' | 'zh
    星曜标签组件 - 带亮度和四化
    ------------------------------------------------------------ */
 
-function StarTag({ star, showBrightness = true, isMajorStar = false, chartType = 'flying', selectedDecadal = null, selectedAnnual = null, isCurrentDecadalPalace = false, isCurrentAnnualPalace = false }: StarTagProps) {
-  // 四化盤面不顯示亮度
-  const displayBrightness = chartType === 'transformation' ? false : showBrightness
-  const { language } = useSettingsStore()
+function StarTag({ star, showBrightness = true, isMajorStar = false, chartType = 'flying', selectedDecadal = null, selectedAnnual = null, isCurrentDecadalPalace = false, isCurrentAnnualPalace = false, decadalLifePalaceStem = null, annualLifePalaceStem = null }: StarTagProps) {
+  const { language, triremeShowStarBrightness, triremeMutagenSquareSize } = useSettingsStore()
+  // 四化盤面不顯示亮度；三合盤可由設定開關控制
+  const displayBrightness = chartType === 'transformation'
+    ? false
+    : chartType === 'trireme'
+      ? (triremeShowStarBrightness && showBrightness)
+      : showBrightness
   const { name, brightness, mutagen } = star
   const hasMutagen = !!mutagen
   const brightnessChar = getBrightnessDisplay(brightness, language)
+  const triremeSquareSize = triremeMutagenSquareSize
+  const triremeSquareFontSize = Math.max(7, triremeSquareSize - 2)
 
   // 获取本地化的四化字符
   const getMutagenDisplay = (mutagen: string | undefined): string => {
@@ -332,6 +335,25 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, chartType =
   }
 
   const displayMutagen = getMutagenDisplay(mutagen)
+
+  const getShortMutagenDisplay = (mutagenText: string | undefined): string => {
+    if (!mutagenText) return ''
+    const map: Record<string, string> = {
+      '禄': t('mutagen.lucun', language),
+      '祿': t('mutagen.lucun', language),
+      '化禄': t('mutagen.lucun', language),
+      '化祿': t('mutagen.lucun', language),
+      '权': t('mutagen.quan', language),
+      '權': t('mutagen.quan', language),
+      '化权': t('mutagen.quan', language),
+      '化權': t('mutagen.quan', language),
+      '科': t('mutagen.ke', language),
+      '化科': t('mutagen.ke', language),
+      '忌': t('mutagen.ji', language),
+      '化忌': t('mutagen.ji', language),
+    }
+    return map[mutagenText] || mutagenText
+  }
   
   // 根據 mutagen 獲取文字顏色（不含背景）
   const getMutagenTextColor = (): string => {
@@ -421,6 +443,55 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, chartType =
     '天魁': 'tiankui',
   }
 
+  const normalizeStarName = (starName: string): string => chineseToEnglishStarMap[starName] || starName
+
+  const getDecadalMutagenForCurrentStar = (): string | null => {
+    if (chartType !== 'trireme' || !decadalLifePalaceStem || selectedDecadal === null) return null
+
+    const starNameNormalized = normalizeStarName(name)
+    const sihuaMapSimple = SIHUA_BY_GAN[decadalLifePalaceStem] || {}
+    const sihuaMapTraditional = SIHUA_BY_GAN_TRADITIONAL[decadalLifePalaceStem] || {}
+
+    const findMutagenKey = (sihuaMap: Record<string, string>): string | null => {
+      for (const [mutagenKey, starName] of Object.entries(sihuaMap)) {
+        if (normalizeStarName(starName) === starNameNormalized) {
+          return mutagenKey
+        }
+      }
+      return null
+    }
+
+    const key = findMutagenKey(sihuaMapSimple) || findMutagenKey(sihuaMapTraditional)
+    if (!key) return null
+    return getShortMutagenDisplay(key)
+  }
+
+  const getAnnualMutagenForCurrentStar = (): string | null => {
+    if (chartType !== 'trireme' || !annualLifePalaceStem || selectedAnnual === null) return null
+
+    const starNameNormalized = normalizeStarName(name)
+    const sihuaMapSimple = SIHUA_BY_GAN[annualLifePalaceStem] || {}
+    const sihuaMapTraditional = SIHUA_BY_GAN_TRADITIONAL[annualLifePalaceStem] || {}
+
+    const findMutagenKey = (sihuaMap: Record<string, string>): string | null => {
+      for (const [mutagenKey, starName] of Object.entries(sihuaMap)) {
+        if (normalizeStarName(starName) === starNameNormalized) {
+          return mutagenKey
+        }
+      }
+      return null
+    }
+
+    const key = findMutagenKey(sihuaMapSimple) || findMutagenKey(sihuaMapTraditional)
+    if (!key) return null
+    return getShortMutagenDisplay(key)
+  }
+
+  const triremeBirthMutagen = chartType === 'trireme' ? getShortMutagenDisplay(mutagen) : ''
+  const triremeDecadalMutagen = getDecadalMutagenForCurrentStar()
+  const triremeAnnualMutagen = getAnnualMutagenForCurrentStar()
+  const hasTriremeMutagenSquares = chartType === 'trireme' && (!!triremeBirthMutagen || !!triremeDecadalMutagen || !!triremeAnnualMutagen)
+
   // 四化盤中重要的18顆星：14個主星 + 左輔、右弼、文昌、文曲
   // 使用英文参数名定义男星和女星
   // 男星: 太阳、天机、天梁、天同、贪狼、文昌、左辅
@@ -493,21 +564,55 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, chartType =
           transition-all duration-200
           ${hasMutagen ? getMutagenTextColor() + ' font-medium' : `bg-white/5 ${textColor} hover:bg-white/10`}
         `}
-        style={{ writingMode: 'vertical-rl', minWidth: '12px', minHeight: '12px', margin: '0 0 5px 0' }}
+        style={{ writingMode: 'vertical-rl', minWidth: '12px', minHeight: '12px', margin: '0 0 1px 0' }}
         data-star-name={name}
       >
         {displayName}
       </span>
-      {(displayBrightness || mutagen) && (
-        <div className="flex flex-col items-center justify-center" style={{ gap: '5px' }}>
+      {(displayBrightness || mutagen || hasTriremeMutagenSquares) && (
+        <div className="flex flex-col items-center justify-center" style={{ gap: '1px' }}>
           {displayBrightness && brightnessChar && (
             <span className="text-[11px] sm:text-[12px] lg:text-[13px] text-text-muted flex items-center justify-center" style={{ minWidth: '12px', minHeight: '12px' }}>{brightnessChar}</span>
           )}
-          {mutagen && (() => {
+          {(hasTriremeMutagenSquares || mutagen) && (() => {
+            if (chartType === 'trireme' && hasTriremeMutagenSquares) {
+              const renderTriremeSquare = (text: string, bgColor: string, layerKey: string) => (
+                <span
+                  key={layerKey}
+                  className="flex items-center justify-center"
+                  style={{
+                    borderRadius: '0',
+                    backgroundColor: bgColor,
+                    color: 'white',
+                    width: `${triremeSquareSize}px`,
+                    height: `${triremeSquareSize}px`,
+                    lineHeight: '1',
+                    padding: '0',
+                    transform: 'none',
+                    fontSize: `${triremeSquareFontSize}px`,
+                    fontWeight: 600,
+                    visibility: text ? 'visible' : 'hidden',
+                  }}
+                >
+                  {text || '\u00A0'}
+                </span>
+              )
+
+              return (
+                <div className="flex flex-col items-center justify-center" style={{ gap: '1px' }}>
+                  {renderTriremeSquare(triremeBirthMutagen, '#FF3B30', 'birth')}
+                  {renderTriremeSquare(triremeDecadalMutagen || '', '#34C759', 'decadal')}
+                  {renderTriremeSquare(triremeAnnualMutagen || '', '#5AC8FA', 'annual')}
+                </div>
+              )
+            }
+
+            if (!mutagen) return null
+
             // 根據四化類別和盤面類型獲取顏色
             const getMutagenColors = (mutagen: string, isCurrentDecadalPalace?: boolean, isCurrentAnnualPalace?: boolean) => {
               // 先檢查是否是大限命宮或流年命宮 - 這些宮位的所有四化都應該顯示相應的顏色
-              if ((chartType === 'flying' || chartType === 'trireme')) {
+              if (chartType === 'flying') {
                 // 大限命宮的所有四化顯示綠色
                 if (isCurrentDecadalPalace && selectedDecadal !== null) {
                   return { bgHex: '#34C759' }  // 大限四化：綠色
@@ -543,7 +648,7 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, chartType =
                                         Object.values(sihuaMap).includes(starNameMap[name] || '')
                     
                     if (isSihuaStar) {
-                      return { bgHex: '#FF3B30' }  // 生年四化：紅色
+                      return { bgHex: '#FF3B30', isBirthYearSihua: true }  // 生年四化：紅色
                     }
                   }
                 }
@@ -573,8 +678,8 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, chartType =
             let borderRadiusStyle = '50%'
             let styleObj: React.CSSProperties = {
               borderRadius: borderRadiusStyle,
-              width: '14px',
-              height: '14px',
+              width: '12px',
+              height: '12px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -583,8 +688,8 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, chartType =
               transform: 'translateY(-1px)'
             }
             
-            if (chartType === 'flying' || chartType === 'trireme') {
-              // 飛星盤和三合盤：四化文字變顏色，無背景色
+            if (chartType === 'flying') {
+              // 飛星盤：四化文字變顏色，無背景色
               styleObj = {
                 ...styleObj,
                 borderRadius: 'unset',
@@ -623,7 +728,7 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, chartType =
 
 function PalaceCard({
   name, stem, branch, majorStars, minorStars, adjectiveStars,
-  boshi12Deity, longlifeDeity, isLife, isBody, isCausePalace, isSelected, onClick, chartType = 'flying', selectedDecadal = null, selectedAnnual = null, monthlySequenceLabels = [], selectedAnnualAge = null, selectedAnnualGanZhi = null, selectedAnnualLabel = '', yearGan = '', gender = 'male', birthInfo = null, palaceData = null
+  boshi12Deity, longlifeDeity, isLife, isBody, isCausePalace, isSelected, onClick, chartType = 'flying', selectedDecadal = null, selectedAnnual = null, monthlySequenceLabels = [], selectedAnnualAge = null, selectedAnnualGanZhi = null, selectedAnnualLabel = '', selectedDecadalLabel = '', yearGan = '', gender = 'male', birthInfo = null, palaceData = null, decadalLifePalaceStem = null, annualLifePalaceStem = null
 }: PalaceCardProps) {
   const { language, transformationShowGods, flyingShowGods, transformationShowCausePalace } = useSettingsStore()
   
@@ -719,57 +824,17 @@ function PalaceCard({
     ? t(`palace.${englishPalaceName}`, language) || name
     : name
 
-  // 处理原始宫位名称 - 去掉"宮"字，除了"命宮"
-  const displayOriginalPalaceName = originalPalaceName === '命宮' ? '命宮' : originalPalaceName.replace('宮', '')
-
-  // 计算大限宫位名称（根据宫位转移）
-  let displayPalaceName: string
-  let annualPalaceLabel: string = ''
+  // 宮位名稱固定為原始序列，不因大限/流年切換而改名
+  const displayPalaceName = originalPalaceName
+  const annualPalaceLabel = ''
   
-  if (selectedDecadal !== null && selectedDecadal !== undefined && englishPalaceName) {
-    if (selectedDecadal === 0) {
-      // 第一大限在本命宫位
-      const decadalName = DECADAL_PALACE_MAP[englishPalaceName]
-      displayPalaceName = decadalName || originalPalaceName
-      // 根据是否选择了流年来显示年命标签
-      if (selectedAnnual !== null && selectedAnnual !== undefined && selectedAnnualAge !== null) {
-        annualPalaceLabel = ANNUAL_PALACE_MAP[englishPalaceName] || ''
-      } else {
-        annualPalaceLabel = ''
-      }
-    } else {
-      // 第二大限及以后，计算转移后的宫位
-      const originIndex = PALACE_ORDER.indexOf(englishPalaceName)
-      if (originIndex !== -1) {
-        const newIndex = getDecadalPalaceIndex(originIndex, selectedDecadal, gender, yearGan)
-        const newPalaceKey = PALACE_ORDER[newIndex]
-        const decadalName = DECADAL_PALACE_MAP[newPalaceKey]
-        displayPalaceName = decadalName || PALACE_NAME_MAP_ZH[newPalaceKey] || originalPalaceName
-        // 根据是否选择了流年来显示年命标签
-        if (selectedAnnual !== null && selectedAnnual !== undefined && selectedAnnualAge !== null) {
-          annualPalaceLabel = ANNUAL_PALACE_MAP[newPalaceKey] || ''
-        } else {
-          annualPalaceLabel = ''
-        }
-      } else {
-        displayPalaceName = originalPalaceName
-        annualPalaceLabel = ''
-      }
-    }
-  } else {
-    displayPalaceName = originalPalaceName
-    annualPalaceLabel = ''
-  }
-  
-
-
   return (
     <div
       onClick={onClick}
       className={`
-        group relative px-1 py-1 sm:py-2 lg:py-3 h-full min-h-[130px] sm:min-h-[160px] lg:min-h-[200px] flex flex-col
+        group relative px-0.5 py-0.5 sm:py-2 lg:py-3 h-full min-h-[120px] sm:min-h-[140px] lg:min-h-[200px] flex flex-col
         bg-white/[0.03] backdrop-blur-sm
-        border border-gray-300 sm:border-2 rounded-lg
+        border border-gray-300 sm:border-1 rounded-sm
         transition-all duration-300 cursor-pointer
         hover:bg-white/[0.06] hover:border-gray-400
         ${isLife ? 'bg-gold/[0.03]' : ''}
@@ -779,7 +844,7 @@ function PalaceCard({
       `}
     >
       {/* 星耀水平排列 - 统一容器处理所有星曜 */}
-      <div className={`relative flex flex-row flex-wrap mb-0.5 flex-1 justify-start items-start gap-0 overflow-visible ${chartType === 'transformation' && transformationShowCausePalace && isCausePalace ? 'pr-1 sm:pr-2' : ''}`}>
+      <div className={`relative flex flex-row flex-wrap mb-0 flex-1 justify-start items-start gap-0 overflow-visible ${chartType === 'transformation' && transformationShowCausePalace && isCausePalace ? 'pr-1 sm:pr-2' : ''}`}>
         {(() => {
           // 构建统一的星曜数据数组
           const allStars = [
@@ -819,6 +884,8 @@ function PalaceCard({
                   selectedAnnual={selectedAnnual} 
                   isCurrentDecadalPalace={isCurrentDecadalPalace} 
                   isCurrentAnnualPalace={isCurrentAnnualPalace} 
+                  decadalLifePalaceStem={decadalLifePalaceStem}
+                  annualLifePalaceStem={annualLifePalaceStem}
                 />
               )
             } else {
@@ -858,14 +925,14 @@ function PalaceCard({
       )}
 
 
-      {/* 底部布局: 左下(干支) + 中間(大限名稱+時間) + 右下(原始宮位名稱) */}
+      {/* 底部布局: 左下(干支) + 中間(西元+虛歲/流月) + 右下(流年/大限/宮位名) */}
       <div className="relative flex items-center justify-between w-full gap-0.5 py-0.5">
         {/* 左下: 干支(縱排) */}
         <div className="flex flex-col gap-0.5" style={{ writingMode: 'vertical-rl', minWidth: '14px' }}>
           <span className="text-[11px] sm:text-[12px] lg:text-[13px] text-text-secondary leading-none">{stem}{branch}</span>
         </div>
 
-        {/* 中間: 由上而下顯示 年歲、流月、流年、大限 */}
+        {/* 中間: 由上而下顯示 西元+虛歲、流月 */}
         <div className="flex flex-col items-center justify-center flex-1 text-center gap-0.5">
           {(decadalYear !== null || masterAge !== null) && (
             <div className="text-[9px] sm:text-[10px] lg:text-[11px] text-text-muted text-center leading-none whitespace-nowrap">
@@ -881,41 +948,30 @@ function PalaceCard({
               ))}
             </div>
           )}
-
-          {selectedAnnualLabel && (
-            <div className="flex flex-col items-center justify-center leading-none min-h-[12px] sm:min-h-[16px]">
-              <span className="text-[11px] sm:text-[12px] lg:text-[13px] text-gray-400 text-center leading-none">
-                {selectedAnnualLabel}
-              </span>
-            </div>
-          )}
-          
-          {!selectedAnnualLabel && annualPalaceLabel && (
-            <div className="flex flex-col items-center justify-center leading-none min-h-[12px] sm:min-h-[16px]">
-              <span className="text-[11px] sm:text-[12px] lg:text-[13px] text-gray-400 text-center leading-none">
-                {annualPalaceLabel}
-              </span>
-            </div>
-          )}
-
-          <div className="flex flex-col items-center justify-center leading-none min-h-[16px] sm:min-h-[22px]">
-            <span className={`
-              px-0.5 py-0 rounded font-medium text-[11px] sm:text-[12px] lg:text-[13px] text-center leading-tight
-              ${!isLife && !isBody ? 'text-text-secondary' : ''}
-            `}>
-              {displayPalaceName}
-            </span>
-          </div>
         </div>
 
-        {/* 右下: 原始宮位名稱(縱排) */}
-        <div className="flex flex-col items-center" style={{ minWidth: '14px' }}>
-          <span className={`text-[11px] sm:text-[12px] lg:text-[13px] px-0.5 rounded-[3px] leading-none
-            ${isLife ? 'bg-gold/20 text-gold' : ''}
-            ${isBody ? 'bg-star/20 text-star-light' : ''}
-            ${!isLife && !isBody ? 'text-text-secondary' : ''}
-          `} style={{ writingMode: 'vertical-rl' }}>
-            {displayOriginalPalaceName}
+        {/* 右下: 流年 + 大限 + 宮位名 */}
+        <div className="flex flex-col items-end justify-end gap-0.5" style={{ minWidth: '34px', marginRight: '2px' }}>
+          {selectedAnnualLabel && (
+            <span className="text-[11px] sm:text-[12px] lg:text-[13px] font-medium text-right leading-none inline-block" style={{ color: '#5AC8FA', minWidth: 36, maxWidth: 36 }}>
+              {selectedAnnualLabel}
+            </span>
+          )}
+
+          {!selectedAnnualLabel && annualPalaceLabel && (selectedAnnual === null || selectedAnnual === undefined) && (
+            <span className="text-[11px] sm:text-[12px] lg:text-[13px] text-gray-400 text-center leading-none">
+              {annualPalaceLabel}
+            </span>
+          )}
+
+          {selectedDecadalLabel && (
+            <span className="text-[11px] sm:text-[12px] lg:text-[13px] font-medium text-right leading-none inline-block" style={{ color: '#34C759', minWidth: 36, maxWidth: 36 }}>
+              {selectedDecadalLabel}
+            </span>
+          )}
+
+          <span className="px-0.5 py-0 rounded text-[11px] sm:text-[12px] lg:text-[13px] font-medium text-right leading-none inline-block" style={{ color: '#FF3B30', minWidth: 36, maxWidth: 36 }}>
+            {displayPalaceName}
           </span>
         </div>
       </div>
@@ -989,7 +1045,7 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
       relative h-full min-h-[260px] sm:min-h-[320px] lg:min-h-[400px] p-2 sm:p-3 lg:p-4
       flex flex-col items-center justify-start
       bg-gradient-to-br from-white/[0.04] to-white/[0.02]
-      backdrop-blur-md border border-gray-300 sm:border-2 rounded-xl
+       backdrop-blur-md border border-gray-300 sm:border-1 rounded-sm
       overflow-y-auto
     ">
       {/* 背景装饰 */}
@@ -1697,6 +1753,17 @@ export function ChartDisplay() {
   // 標記來因宮
   palaceData = markCausePalace(palaceData, yearGan)
 
+  // 由大限序號定位「大限命宮」天干，供三合盤額外四化顯示使用
+  const decadalLifePalaceStem = (() => {
+    if (selectedDecadal === null) return null
+
+    const sortedDecadalPalaces = palaceData
+      .filter(p => p.decadal?.range)
+      .sort((a, b) => a.decadal.range[0] - b.decadal.range[0])
+
+    return sortedDecadalPalaces[selectedDecadal]?.stem || null
+  })()
+
   const grid: (PalaceData | null)[][] = Array(4).fill(null).map(() => Array(4).fill(null))
 
   palaceData.forEach((p) => {
@@ -1733,7 +1800,37 @@ export function ChartDisplay() {
     }
   }
 
+  // 由流年地支定位「年命宮」天干，供三合盤額外四化顯示使用
+  const annualLifePalaceStem = (() => {
+    if (!selectedAnnualGanZhi || selectedAnnual === null) return null
+    const yearlyBranch = selectedAnnualGanZhi.slice(-1)
+    return palaceData.find(p => p.branch === yearlyBranch)?.stem || null
+  })()
+
   const monthlySequenceByBranch = getMonthlySequenceByBranch(chart, palaceData, selectedDecadal, selectedAnnual, selectedAnnualGanZhi, selectedAnnualYear, monthlyArrangementMethod)
+
+  // 計算大限標籤映射 - 根據選中大限找出大命宮位
+  let decadalLabelsByPalaceName: Record<string, string> = {}
+  if (selectedDecadal !== null) {
+    const decadalLabels = ['大命', '大父', '大福', '大田', '大官', '大友', '大遷', '大疾', '大財', '大子', '大夫', '大兄']
+    const sortedDecadalPalaces = palaceData
+      .filter((p: any) => p.decadal?.range)
+      .sort((a: any, b: any) => a.decadal.range[0] - b.decadal.range[0])
+    const decadalLifePalace = sortedDecadalPalaces[selectedDecadal]
+    if (decadalLifePalace) {
+      const lifeEnglishName = PALACE_NAME_TO_ENGLISH_MAP[decadalLifePalace.name]
+      if (lifeEnglishName) {
+        const lifeIndex = PALACE_ORDER.indexOf(lifeEnglishName)
+        if (lifeIndex !== -1) {
+          for (let i = 0; i < PALACE_ORDER.length; i++) {
+            const palaceEnglishName = PALACE_ORDER[i]
+            const labelIndex = (i - lifeIndex + PALACE_ORDER.length) % PALACE_ORDER.length
+            decadalLabelsByPalaceName[palaceEnglishName] = decadalLabels[labelIndex]
+          }
+        }
+      }
+    }
+  }
 
   // 計算流年標籤映射 - 根據流年地支找出年命宮位
   let annualLabelsByPalaceName: Record<string, string> = {}
@@ -1750,17 +1847,11 @@ export function ChartDisplay() {
         // 在 PALACE_ORDER 中找出年命宮的位置
         const lifeIndex = PALACE_ORDER.indexOf(lifeEnglishName)
         if (lifeIndex !== -1) {
-          // 從年命宮開始，為所有宮位分配標籤
+          // 從年命宮開始，為所有宮位分配標籤（以英文 key 存儲，避免中文字形差異）
           for (let i = 0; i < PALACE_ORDER.length; i++) {
             const palaceEnglishName = PALACE_ORDER[i]
             const labelIndex = (i - lifeIndex + PALACE_ORDER.length) % PALACE_ORDER.length
-            const label = annualLabels[labelIndex]
-            
-            // 找出該英文名稱對應的中文名稱
-            const chineseName = PALACE_NAME_MAP_ZH[palaceEnglishName]
-            if (chineseName) {
-              annualLabelsByPalaceName[chineseName] = label
-            }
+            annualLabelsByPalaceName[palaceEnglishName] = annualLabels[labelIndex]
           }
         }
       }
@@ -1784,16 +1875,19 @@ export function ChartDisplay() {
           selectedAnnualAge={selectedAnnualAge}
           selectedAnnualGanZhi={selectedAnnualGanZhi}
           selectedAnnualLabel={(() => {
-            // 嘗試同時匹配「宮」和「宫」兩種寫法
-            return annualLabelsByPalaceName[palace.name] 
-              || annualLabelsByPalaceName[palace.name + '宫'] 
-              || annualLabelsByPalaceName[palace.name + '宮']
-              || ''
+            const englishKey = PALACE_NAME_TO_ENGLISH_MAP[palace.name] || ''
+            return annualLabelsByPalaceName[englishKey] || ''
+          })()}
+          selectedDecadalLabel={(() => {
+            const englishKey = PALACE_NAME_TO_ENGLISH_MAP[palace.name] || ''
+            return decadalLabelsByPalaceName[englishKey] || ''
           })()}
           yearGan={yearGan}
           gender={gender}
           birthInfo={birthInfo}
           palaceData={palaceData}
+          decadalLifePalaceStem={decadalLifePalaceStem}
+          annualLifePalaceStem={annualLifePalaceStem}
         />
       </div>
     )

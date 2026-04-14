@@ -76,6 +76,7 @@ export function AIInterpretation() {
   const [error, setError] = useState<string | null>(null)
   const [showPrompt, setShowPrompt] = useState(false)
   const [promptPreview, setPromptPreview] = useState('')
+  const [copied, setCopied] = useState(false)
 
   // 组件挂载时，如果有缓存则直接显示
   useEffect(() => {
@@ -221,6 +222,28 @@ export function AIInterpretation() {
     setShowPrompt(prev => !prev)
   }, [showPrompt, buildPromptPreview])
 
+  const handleCopyPrompt = useCallback(() => {
+    if (!promptPreview) {
+      const promptData = buildPromptPreview()
+      if (promptData) {
+        setPromptPreview(promptData.promptText)
+        navigator.clipboard.writeText(promptData.promptText).then(() => {
+          setCopied(true)
+          setTimeout(() => setCopied(false), 2000)
+        }).catch(() => {
+          setError(language === 'zh-TW' ? '複製失敗' : '复制失败')
+        })
+      }
+    } else {
+      navigator.clipboard.writeText(promptPreview).then(() => {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      }).catch(() => {
+        setError(language === 'zh-TW' ? '複製失敗' : '复制失败')
+      })
+    }
+  }, [promptPreview, buildPromptPreview, language])
+
   if (!chart) return null
 
   return (
@@ -262,6 +285,15 @@ export function AIInterpretation() {
               className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors whitespace-nowrap"
             >
               {showPrompt ? t('ai.hidePrompt', language) : t('ai.showPrompt', language)}
+            </button>
+          )}
+          {currentSettings.apiKey && (
+            <button
+              type="button"
+              onClick={handleCopyPrompt}
+              className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors whitespace-nowrap"
+            >
+              {copied ? t('fortune.copied', language) : t('fortune.copyPrompt', language)}
             </button>
           )}
           <Button

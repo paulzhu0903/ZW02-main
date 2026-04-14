@@ -33,6 +33,8 @@ const translations: Record<Language, Record<string, any>> = {
     'fortune.cancelAnalyze': '✕ 返回修改',
     'fortune.showPrompt': '顯示 Prompt',
     'fortune.hidePrompt': '隱藏 Prompt',
+    'fortune.copyPrompt': '複製提示詞',
+    'fortune.copied': '已複製',
     'fortune.failedAnalyze': '分析失敗，請重試',
 
     // AI Interpretation
@@ -428,6 +430,8 @@ const translations: Record<Language, Record<string, any>> = {
     'fortune.cancelAnalyze': '✕ 返回修改',
     'fortune.showPrompt': '显示 Prompt',
     'fortune.hidePrompt': '隐藏 Prompt',
+    'fortune.copyPrompt': '复制提示词',
+    'fortune.copied': '已复制',
     'fortune.failedAnalyze': '分析失败，请重试',
 
     // AI Interpretation

@@ -534,6 +534,7 @@ export function YearlyFortune() {
   const [yearlyData, setYearlyData] = useState<YearlyDataItem[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
   // 当出生信息变化时，重置年份为当前年份
   useEffect(() => {
@@ -741,6 +742,16 @@ ${yearlyContext}
     }
   }, [chart, birthInfo, year, provider, currentSettings, enableThinking, enableWebSearch, searchApiKey, setYearlyFortune, language, monthlyAnalysis])
 
+  const handleCopyPrompt = useCallback(() => {
+    const prompt = monthlyAnalysis && yearlyData ? getForttunePrompt(language, yearlyData, monthlyAnalysis) : getForttunePrompt(language)
+    navigator.clipboard.writeText(prompt).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }).catch(() => {
+      setError(language === 'zh-TW' ? '複製失敗' : '复制失败')
+    })
+  }, [monthlyAnalysis, yearlyData, language])
+
   if (!chart) return null
 
   return (
@@ -776,7 +787,7 @@ ${yearlyContext}
             {t('nav.fortune', language)}
           </h2>
 
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
             {/* 年份选择 - 输入框 */}
             <div className="flex items-center gap-2">
               <Input
@@ -789,17 +800,27 @@ ${yearlyContext}
                 className="w-20 text-center"
                 style={{ fontSize: '13px' }}
               />
-              <span className="text-text-muted text-sm">年</span>
+              <span className="text-text-muted text-xs sm:text-xs">年</span>
             </div>
 
-            {/* 显示Prompt(测试)按钮 */}
-            <Button
+            {/* 显示Prompt按钮 */}
+            <button
+              type="button"
               onClick={() => setShowYearlyFortunePrompt(!showYearlyFortunePrompt)}
-              size="sm"
-              variant="secondary"
+              className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors whitespace-nowrap"
             >
               {showYearlyFortunePrompt ? t('fortune.hidePrompt', language) : t('fortune.showPrompt', language)}
-            </Button>
+            </button>
+
+            {/* 複製提示詞按鈕 */}
+            <button
+              type="button"
+              onClick={handleCopyPrompt}
+              disabled={!monthlyAnalysis || !yearlyData}
+              className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {copied ? t('fortune.copied', language) : t('fortune.copyPrompt', language)}
+            </button>
 
             {/* 开始解读按钮 */}
             <Button

@@ -253,7 +253,7 @@ export const useSettingsStore = create<SettingsState>()(
 
       // 三合盤面設定
       triremeShowStarBrightness: true,
-      triremeMutagenSquareSize: 11,
+      triremeMutagenSquareSize: 12,
 
       setProvider: (provider) => set({ provider }),
 

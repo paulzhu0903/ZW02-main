@@ -75,7 +75,7 @@ export function getPalaceEdgePointTowardCenterWithDOM(palace: string, gridElemen
   const pos = PALACE_POSITIONS[palace]
   if (!pos || !gridElement) return null
 
-  // 直接從 DOM 中獲取中央區域的實際位置（更可靠）
+  // 直接從 DOM 中獲取中央區域的實際位置
   const centerElement = gridElement.querySelector('[data-centerinfo]') as HTMLElement
   let centerLeft: number, centerRight: number, centerTop: number, centerBottom: number
   
@@ -131,7 +131,7 @@ export function getPalaceEdgePointTowardCenterWithDOM(palace: string, gridElemen
     const percent = row / 3
     y = centerTop + (centerBottom - centerTop) * percent
   } else {
-    // 不應該出現
+   
     return null
   }
   

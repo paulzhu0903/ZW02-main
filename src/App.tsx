@@ -78,7 +78,7 @@ export default function App() {
       <header
         className="
           hidden md:block sticky top-0 z-40
-          py-4 px-6 lg:px-12
+          py-2 px-2 lg:px-12
           bg-night/80 backdrop-blur-xl
           border-b border-white/[0.06]
         "
@@ -226,7 +226,7 @@ export default function App() {
       <nav
         className="
           md:hidden fixed bottom-0 left-0 right-0 z-40
-          px-3 py-2.5
+          px-1 py-1
           bg-night/90 backdrop-blur-xl
           border-t border-white/[0.06]
         "
@@ -234,7 +234,7 @@ export default function App() {
         <div className="flex items-center justify-between gap-1 max-w-md mx-auto">
           <button
             onClick={() => setIsDbModalOpen(true)}
-            className="relative flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-1.5 rounded-lg text-text-muted transition-all duration-200 hover:text-text"
+            className="relative flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-0 rounded-lg text-text-muted transition-all duration-200 hover:text-text"
           >
             <span className="text-[10pt]">◆</span>
             <span className="text-[8pt] leading-none">{t('nav.cases', language)}</span>
@@ -245,7 +245,7 @@ export default function App() {
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={`
-                relative flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-1.5 rounded-lg
+                relative flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-0 rounded-lg
                 transition-all duration-200
                 ${activeTab === tab.key
                   ? 'text-gold'
@@ -294,8 +294,8 @@ export default function App() {
         </div>
       </nav>
 
-      {/* 主内容 */}
-      <main className="flex-1 px-3 sm:px-4 lg:px-12 pt-4 sm:pt-6 lg:pt-8 pb-24 md:pb-8">
+      {/* 主頁内容 */}
+      <main className="flex-1 px-2 sm:px-4 lg:px-6 pt-2 sm:pt-4 lg:pt-6 pb-24 md:pb-8">
         <div className="max-w-[1600px] mx-auto">
           {/* 命盘解读标签 */}
           {activeTab === 'chart' && (
@@ -407,8 +407,6 @@ export default function App() {
         }}
       />
 
-      {/* 底部 - 仅桌面端显示 */}
-      {/* Footer removed */}
     </div>
   )
 }

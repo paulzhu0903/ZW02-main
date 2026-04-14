@@ -170,7 +170,7 @@ interface SettingsState {
 
   // 三合盤面設定
   triremeShowStarBrightness: boolean
-  triremeMutagenSquareSize: 9 | 10 | 11
+  triremeMutagenSquareSize: 10 | 11 | 12
 
   setProvider: (provider: ModelProvider) => void
   updateCurrentProvider: (settings: Partial<ProviderSettings>) => void
@@ -205,7 +205,7 @@ interface SettingsState {
 
   // 三合盤面相關的setter
   setTriremeShowStarBrightness: (value: boolean) => void
-  setTriremeMutagenSquareSize: (value: 9 | 10 | 11) => void
+  setTriremeMutagenSquareSize: (value: 10 | 11 | 12) => void
 
   // 便捷访问当前厂商配置
   getCurrentSettings: () => ProviderSettings

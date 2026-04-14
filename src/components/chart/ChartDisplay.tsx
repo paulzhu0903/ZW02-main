@@ -281,13 +281,6 @@ function getLocalizedAstroSign(sign: string | undefined, language: 'zh-TW' | 'zh
    星曜标签组件 - 带亮度和四化
    ------------------------------------------------------------ */
 
-
-
-
-/* ------------------------------------------------------------
-   星曜标签组件 - 带亮度和四化
-   ------------------------------------------------------------ */
-
 function StarTag({ star, showBrightness = true, isMajorStar = false, chartType = 'flying', selectedDecadal = null, selectedAnnual = null, isCurrentDecadalPalace = false, isCurrentAnnualPalace = false, decadalLifePalaceStem = null, annualLifePalaceStem = null }: StarTagProps) {
   const { language, triremeShowStarBrightness, triremeMutagenSquareSize } = useSettingsStore()
   // 四化盤面不顯示亮度；三合盤可由設定開關控制
@@ -802,12 +795,12 @@ function PalaceCard({
       // 第一大限，只有命宫是大限命宫
       isCurrentDecadalPalace = englishPalaceName === 'ming'
     } else {
-      // 第二大限及以后，需要计算转移后的宫位
+      // 第二大限及以後，需要計算轉移後的宮位
       const originIndex = PALACE_ORDER.indexOf(englishPalaceName)
       if (originIndex !== -1) {
         const newIndex = getDecadalPalaceIndex(originIndex, selectedDecadal, gender, yearGan)
         const newPalaceKey = PALACE_ORDER[newIndex]
-        // 检查转移后的宫位是否是"命宫"
+        // 檢查轉移後的宮位是否是"命宫"
         isCurrentDecadalPalace = newPalaceKey === 'ming'  // 大限命宫
       }
     }
@@ -845,61 +838,51 @@ function PalaceCard({
     >
       {/* 星耀水平排列 - 统一容器处理所有星曜 */}
       <div className={`relative flex flex-row flex-wrap mb-0 flex-1 justify-start items-start gap-0 overflow-visible ${chartType === 'transformation' && transformationShowCausePalace && isCausePalace ? 'pr-1 sm:pr-2' : ''}`}>
-        {(() => {
-          // 构建统一的星曜数据数组
-          const allStars = [
-            // 主星
-            ...majorStars.map((star, i) => ({ 
-              key: `major-${i}`, 
-              type: 'major' as const, 
-              star, 
-              index: i 
-            })),
-            // 副星
-            ...(chartType === 'flying' || chartType === 'transformation' || chartType === 'trireme' ? minorStars : []).map((star, i) => ({ 
-              key: `minor-${i}`, 
-              type: 'minor' as const, 
-              star, 
-              index: i 
-            })),
-            // 杂曜
-            ...(chartType === 'flying' || chartType === 'trireme' ? adjectiveStars : []).map((name, i) => ({ 
-              key: `adj-${i}`, 
-              type: 'adjective' as const, 
-              name, 
-              index: i 
-            }))
-          ]
-
-          return allStars.map((item) => {
-            if ('star' in item) {
-              return (
-                <StarTag 
-                  key={item.key} 
-                  star={item.star} 
-                  isMajorStar={isMajorStarName(item.star.name)} 
-                  showBrightness={item.type === 'major'}
-                  chartType={chartType} 
-                  selectedDecadal={selectedDecadal} 
-                  selectedAnnual={selectedAnnual} 
-                  isCurrentDecadalPalace={isCurrentDecadalPalace} 
-                  isCurrentAnnualPalace={isCurrentAnnualPalace} 
-                  decadalLifePalaceStem={decadalLifePalaceStem}
-                  annualLifePalaceStem={annualLifePalaceStem}
-                />
-              )
-            } else {
-              // 杂曜
-              return (
-                <div key={item.key} className="flex flex-col items-center gap-0" style={{ minHeight: '20px' }}>
-                  <span className="text-[11px] sm:text-[12px] lg:text-[13px] px-0.5 py-0 rounded bg-white/[0.03] text-text-muted/70 flex items-center justify-center" style={{ writingMode: 'vertical-rl', minWidth: '12px', minHeight: '12px' }}>
-                    {t(`star.${item.name}`, language) || item.name}
-                  </span>
-                </div>
-              )
-            }
-          })
-        })()}
+        {/* 統一主星、輔星、雜曜字體大小與排列 */}
+        <div className="flex flex-row flex-wrap items-start gap-x-0 gap-y-0 w-full">
+          {/* 主星 */}
+          {majorStars.map((star, i) => (
+            <div key={`major-${i}`} className="flex flex-col items-center" style={{ minHeight: '20px' }}>
+              <StarTag 
+                star={star} 
+                isMajorStar={isMajorStarName(star.name)} 
+                showBrightness={true}
+                chartType={chartType} 
+                selectedDecadal={selectedDecadal} 
+                selectedAnnual={selectedAnnual} 
+                isCurrentDecadalPalace={isCurrentDecadalPalace} 
+                isCurrentAnnualPalace={isCurrentAnnualPalace} 
+                decadalLifePalaceStem={decadalLifePalaceStem}
+                annualLifePalaceStem={annualLifePalaceStem}
+              />
+            </div>
+          ))}
+          {/* 輔星 */}
+          {(chartType === 'flying' || chartType === 'transformation' || chartType === 'trireme') && minorStars.map((star, i) => (
+            <div key={`minor-${i}`} className="flex flex-col items-center" style={{ minHeight: '20px' }}>
+              <StarTag 
+                star={star} 
+                isMajorStar={isMajorStarName(star.name)} 
+                showBrightness={false}
+                chartType={chartType} 
+                selectedDecadal={selectedDecadal} 
+                selectedAnnual={selectedAnnual} 
+                isCurrentDecadalPalace={isCurrentDecadalPalace} 
+                isCurrentAnnualPalace={isCurrentAnnualPalace} 
+                decadalLifePalaceStem={decadalLifePalaceStem}
+                annualLifePalaceStem={annualLifePalaceStem}
+              />
+            </div>
+          ))}
+          {/* 雜曜 */}
+          {(chartType === 'flying' || chartType === 'trireme') && adjectiveStars.map((name, i) => (
+            <div key={`adj-${i}`} className="flex flex-col items-center" style={{ minHeight: '20px' }}>
+              <span className="text-[11px] sm:text-[12px] lg:text-[13px] px-0.5 py-0 rounded bg-white/[0.03] text-text-muted/70 flex items-center justify-center" style={{ writingMode: 'vertical-rl', minWidth: '12px', minHeight: '12px' }}>
+                {t(`star.${name}`, language) || name}
+              </span>
+            </div>
+          ))}
+        </div>
 
         {/* 来因标签 - 星耀区右上角 */}
         {chartType === 'transformation' && transformationShowCausePalace && isCausePalace && (
@@ -936,24 +919,27 @@ function PalaceCard({
         <div className="flex flex-col items-center justify-center flex-1 text-center gap-0.5">
           {(decadalYear !== null || masterAge !== null) && (
             <div className="text-[9px] sm:text-[10px] lg:text-[11px] text-text-muted text-center leading-none whitespace-nowrap">
-              {decadalYear !== null && <span className="mr-0.5">{decadalYear}年</span>}
+              {decadalYear !== null && <span className="mr-0.5">{decadalYear}</span>}
               {masterAge !== null && <span>{masterAge}歲</span>}
             </div>
           )}
 
           {monthlySequenceLabels.length > 0 && (
             <div className="flex flex-wrap items-center justify-center gap-x-0.5 gap-y-0 text-[8px] sm:text-[9px] lg:text-[10px] text-gray-400 leading-none">
-              {monthlySequenceLabels.map((label) => (
-                <span key={`${branch}-${label}`} className="whitespace-nowrap">{label}</span>
-              ))}
+              {monthlySequenceLabels.map((label) => {
+                // 只去掉最後一個 "月" 字，並將十一、十二顯示為冬、臘
+                let cleanLabel = label.replace(/月$/, '')
+                cleanLabel = cleanLabel.replace('十一', '冬').replace('十二', '臘')
+                return <span key={`${branch}-${label}`} className="whitespace-nowrap">{cleanLabel}</span>
+              })}
             </div>
           )}
         </div>
 
         {/* 右下: 流年 + 大限 + 宮位名 */}
-        <div className="flex flex-col items-end justify-end gap-0.5" style={{ minWidth: '34px', marginRight: '2px' }}>
+        <div className="flex flex-col items-end justify-end gap-0.5 pr-2" style={{ minWidth: '34px', marginRight: 0, boxSizing: 'border-box' }}>
           {selectedAnnualLabel && (
-            <span className="text-[11px] sm:text-[12px] lg:text-[13px] font-medium text-right leading-none inline-block" style={{ color: '#5AC8FA', minWidth: 36, maxWidth: 36 }}>
+            <span className="text-[11px] sm:text-[12px] lg:text-[13px] font-medium text-right leading-none inline-block" style={{ color: '#5AC8FA', minWidth: 34, maxWidth: 36 }}>
               {selectedAnnualLabel}
             </span>
           )}
@@ -965,12 +951,12 @@ function PalaceCard({
           )}
 
           {selectedDecadalLabel && (
-            <span className="text-[11px] sm:text-[12px] lg:text-[13px] font-medium text-right leading-none inline-block" style={{ color: '#34C759', minWidth: 36, maxWidth: 36 }}>
+            <span className="text-[11px] sm:text-[12px] lg:text-[13px] font-medium text-right leading-none inline-block" style={{ color: '#34C759', minWidth: 34, maxWidth: 36 }}>
               {selectedDecadalLabel}
             </span>
           )}
 
-          <span className="px-0.5 py-0 rounded text-[11px] sm:text-[12px] lg:text-[13px] font-medium text-right leading-none inline-block" style={{ color: '#FF3B30', minWidth: 36, maxWidth: 36 }}>
+          <span className="text-[11px] sm:text-[12px] lg:text-[13px] font-medium text-right leading-none inline-block" style={{ color: '#FF3B30', minWidth: 34, maxWidth: 36 }}>
             {displayPalaceName}
           </span>
         </div>
@@ -1044,9 +1030,11 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
     <div className="
       relative h-full min-h-[260px] sm:min-h-[320px] lg:min-h-[400px] p-2 sm:p-3 lg:p-4
       flex flex-col items-center justify-start
-      bg-gradient-to-br from-white/[0.04] to-white/[0.02]
-       backdrop-blur-md border border-gray-300 sm:border-1 rounded-sm
-      overflow-y-auto
+      bg-gradient-to-br from-white/[0.04] to-transparent
+      shadow-inner shadow-white/30
+      border border-white/10
+      w-full
+      rounded-xl sm:rounded-2xl
     ">
       {/* 背景装饰 */}
       <div className="absolute inset-0 opacity-[0.02]">
@@ -1069,7 +1057,7 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
       )}
 
       {/* 出生八字信息 - 按用户指定的格式 */}
-      <div className="text-[8px] sm:text-[9px] lg:text-[10pt] text-gray-500 space-y-0.5 sm:space-y-1 w-full px-1 sm:px-2 text-center">
+      <div className="text-[10px] sm:text-[11px] lg:text-[12pt] text-gray-500 space-y-0.5 sm:space-y-1 w-full px-1 sm:px-2 text-center">
         
         {/* 第一行：真太陽時 */}
         <div className="flex flex-wrap items-center justify-center gap-x-1 sm:gap-x-1.5 gap-y-0">
@@ -1119,7 +1107,7 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
         )}
         
         {/* 第七行：命主 + 身主 */}
-        <div className="flex items-center justify-center gap-2 sm:gap-4 text-[7px] sm:text-[8px] lg:text-[9pt]">
+        <div className="text-[10px] sm:text-[11px] lg:text-[12pt] text-gray-500 flex items-center justify-center gap-2 sm:gap-4 text-[7px] sm:text-[8px] lg:text-[9pt]">
           <div className="whitespace-nowrap">
             <span className="text-gray-500">{t('chart.soul', language)}:</span>
             <span className="text-gray-500 ml-0.5">{getLocalizedStarName(chart.soul, language)}</span>
@@ -1131,7 +1119,7 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
         </div>
         
         {/* 第八行：生肖 + 星座 */}
-        <div className="flex items-center justify-center gap-2 sm:gap-4 text-[7px] sm:text-[8px] lg:text-[9pt]">
+        <div className="flex items-center justify-center gap-2 sm:gap-4 text-[10px] sm:text-[11px] lg:text-[12pt]">
           <div className="whitespace-nowrap">
             <span className="text-gray-500">{t('chart.zodiac', language)}:</span>
             <span className="text-gray-500 ml-0.5">{getLocalizedZodiacName(chart.zodiac, language)}</span>
@@ -1146,7 +1134,7 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
 
       {/* 图例 - 放在下方 */}
       <div className="w-full mt-4 pt-3 border-t border-white/[0.1]">
-        <div className="flex flex-wrap items-center justify-center gap-2 text-[8pt] sm:text-[9pt]">
+        <div className="flex flex-wrap items-center justify-center gap-2 text-[7pt] sm:text-[8pt]">
           <div className="flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-gold" />
             <span className="text-gray-500">{t('palace.life', language)}</span>
@@ -1269,7 +1257,7 @@ function DecadalAnnualMonthlyTable({
   
   // 天干地支列表
   const shichen = ['子時', '丑時', '寅時', '卯時', '辰時', '巳時', '午時', '未時', '申時', '酉時', '戌時', '亥時']
-  const monthNames = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二']
+  const monthNames = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '冬', '臘']
   
   // 提取大限信息
   const decadalData = palaceData
@@ -1366,7 +1354,7 @@ function DecadalAnnualMonthlyTable({
                 handleSetSelectedMonthly(0)
               }}
             >
-              <div className={`flex flex-col items-center gap-px leading-tight rounded-[4px] px-0.5 py-0 sm:px-1.5 sm:py-0.5 ${selectedDecadal === i ? 'bg-star/20' : ''}`}>
+              <div className={`flex flex-col items-center gap-px leading-tight rounded-[2px] px-0.5 py-0 sm:px-1.5 sm:py-0.5 ${selectedDecadal === i ? 'bg-star/20' : ''}`}>
                 <div className="whitespace-nowrap">
                   {item.ageStart}~{item.ageEnd}
                 </div>
@@ -1390,11 +1378,11 @@ function DecadalAnnualMonthlyTable({
                 handleSetSelectedMonthly(0)
               }}
             >
-              <div className={`flex flex-col items-center gap-0 leading-tight rounded-[4px] px-1 py-0.5 sm:px-1.5 sm:py-1 ${selectedAnnual === i ? 'bg-fortune/20' : ''}`}>
+              <div className={`flex flex-col items-center gap-0 leading-tight rounded-[2px] px-1 py-0.5 sm:px-1.5 sm:py-1 ${selectedAnnual === i ? 'bg-fortune/20' : ''}`}>
                 <div className="whitespace-nowrap text-[7px] sm:text-[12px]">
                   {item.year}年
                 </div>
-                <div className="text-[7px] sm:text-[10px] text-text-muted whitespace-nowrap">
+                <div className="text-[6.5px] sm:text-[10px] text-text-muted whitespace-nowrap">
                   {getYearGanZhi(item.year)}{item.age}歲
                 </div>
               </div>
@@ -1409,7 +1397,11 @@ function DecadalAnnualMonthlyTable({
             const monthlyGan = currentYear ? getMonthlyGan(currentYear, monthIndex) : ''
             const monthlyZhi = EARTHLY_BRANCH_ORDER[(monthIndex + 1) % 12]
             const monthlyGanZhi = monthlyGan ? `${monthlyGan}${monthlyZhi}` : ''
-            
+
+            let displayMonth = month
+            if (month === '冬') displayMonth = '冬'
+            if (month === '臘') displayMonth = '臘'
+
             return (
             <td 
               key={i} 
@@ -1423,10 +1415,10 @@ function DecadalAnnualMonthlyTable({
               }}
             >
               <div className={`rounded-[4px] px-1 py-0 sm:px-1.5 sm:py-0.5 flex flex-col items-center gap-0 leading-tight ${selectedMonthly === i ? 'bg-gold/20' : ''}`}>
-                <div className="text-[8px] sm:text-[9px] lg:text-[10px]">{month}月</div>
+                <div className="text-[8px] sm:text-[9px] lg:text-[10px]">{displayMonth}月</div>
                 {monthlyGanZhi && (
                   <div className="text-[8px] sm:text-[9px] lg:text-[10px] text-text-muted">
-                    {monthlyGanZhi}月
+                    {monthlyGanZhi}
                   </div>
                 )}
               </div>
@@ -1680,7 +1672,7 @@ export function ChartDisplay() {
       return
     }
     
-    // 計算 palaceData
+    // 獲取 palaceData
     let palaceDataComputed = parsePalaces(chart)
     palaceDataComputed = markSelfMutagens(palaceDataComputed)
     
@@ -2301,7 +2293,7 @@ export function ChartDisplay() {
         {grid[3].map((p, c) => renderPalace(p, `3-${c}`))}
       </div>
 
-      {/* 盘面类型切换按钮 - 移到盘面下方 */}
+      {/* 盤面类型切换按钮 - 移到盘面下方 */}
       <div className="mt-4 sm:mt-10 mb-2 sm:mb-3 w-full overflow-x-auto px-0.5 sm:px-0">
         <div className="flex items-center justify-between gap-1 sm:gap-3 w-full min-w-max">
         {/* 第一部分：盤面類型按鈕（左邊） */}
@@ -2327,7 +2319,7 @@ export function ChartDisplay() {
           ))}
         </div>
 
-        {/* 三合盤時的中間間隔 - 讓收闔按鍵居中 */}
+        {/* 三合盤時的中間間隔 - 讓收闔按鈕居中 */}
         {chartType === 'trireme' && <div className="flex-1" />}
 
         {/* 第二部分：收合按鈕 */}

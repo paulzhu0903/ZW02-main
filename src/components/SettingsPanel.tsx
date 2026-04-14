@@ -628,11 +628,11 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               <Select
                 label={t('settings.mutagenSquareSize', language)}
                 value={triremeMutagenSquareSize}
-                onChange={(e) => setTriremeMutagenSquareSize(Number(e.target.value) as 9 | 10 | 11)}
+                onChange={(e) => setTriremeMutagenSquareSize(Number(e.target.value) as 10 | 11 | 12)}
                 options={[
-                  { value: 9, label: t('settings.squareSizeSmall', language) },
-                  { value: 10, label: t('settings.squareSizeMedium', language) },
-                  { value: 11, label: t('settings.squareSizeLarge', language) },
+                  { value: 10, label: t('settings.squareSizeSmall', language) },
+                  { value: 11, label: t('settings.squareSizeMedium', language) },
+                  { value: 12, label: t('settings.squareSizeLarge', language) },
                 ]}
               />
             </div>

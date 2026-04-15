@@ -119,7 +119,7 @@ export interface ChartIndicators {
     主星: string[]
     男女星: string[]
   }>
-  核心宮位: Record<string, ChartIndicatorPalaceSummary | null>
+  
   運限焦點: {
     當前年份: number
     目前虛歲: number | null
@@ -498,8 +498,9 @@ export function buildChartIndicators(
         地支: item.branch,
         四化: item.mutagens,
       })),
-  },
-}
+    },
+  
+  }
 }
 
 /* ------------------------------------------------------------

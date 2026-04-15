@@ -451,15 +451,15 @@ export function buildChartIndicators(
     })
 
   return {
-  基本資料: {
-    出生年: birthYear,
-    年干: yearGan,
-    五行局: String((chart as unknown as { fiveElementsClass?: string} ).fiveElementsClass || ''),
-    命主: String((chart as unknown as { soul?: string} ).soul || ''),
-    命宮: normalizePalaceName(lifePalace?.name || ''),
-    來因宮: normalizePalaceName(causePalace?.name || ''),
-    生年四化: natalMutagens,
-  },
+    基本資料: {
+      出生年: birthYear,
+      年干: yearGan,
+      五行局: String((chart as unknown as { fiveElementsClass?: string} ).fiveElementsClass || ''),
+      命主: String((chart as unknown as { soul?: string} ).soul || ''),
+      命宮: normalizePalaceName(lifePalace?.name || ''),
+      來因宮: normalizePalaceName(causePalace?.name || ''),
+      生年四化: natalMutagens,
+    },
 
   北派四化重點: {
     離心自化: selfHighlights,

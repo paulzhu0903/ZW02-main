@@ -86,18 +86,14 @@ export function buildUserPrompt(params: UserPromptParams): string {
   const jsonLabel = t('ai.prompt.keyIndicators', language)
   const jsonHint = t('ai.prompt.indicatorsHint', language)
   const contextLabel = t('ai.prompt.supplementContext', language)
-  const sopHint = t('ai.prompt.analyzeOrder', language)
 
   // 是否包含補充上下文和大限信息
   const includeContext = false
-
   return `${prefix}
 
 ## ${jsonLabel}
 ${jsonHint}
 ${indicatorsJson}
-
-${includeContext ? `## ${contextLabel} ${contextStr}` : ''}
-
-**【論盤順序】** ${sopHint}`
+${includeContext ? `## ${contextLabel} ${contextStr}` : ''}`
 }
+

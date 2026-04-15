@@ -229,10 +229,10 @@ export function MatchAnalysis() {
   const currentSettings = providerSettings[provider]
 
   const [person1, setPerson1] = useState<BirthInfo>({
-    year: 1990, month: 1, day: 1, hour: 12, gender: 'male',
+    year: 1970, month: 9, day: 3, hour:13, gender: 'male',
   })
   const [person2, setPerson2] = useState<BirthInfo>({
-    year: 1992, month: 6, day: 15, hour: 14, gender: 'female',
+    year: 1970, month: 3, day: 6, hour:20, gender: 'female',
   })
   const [result, setResult] = useState('')
   const [loading, setLoading] = useState(false)
@@ -411,14 +411,14 @@ ${isTraditional ? '請分析兩人的契合度和相處建議。' : '请分析�
           </div>
         )}
 
-        {/* 分析结果 - 书法字体 + Markdown 渲染 */}
+        {/* 分析结果 - Markdown 渲染 */}
         {result && (
           <div
             className="
               prose prose-invert max-w-none
               text-text-secondary text-lg lg:text-xl leading-loose
             "
-            style={{ fontFamily: 'var(--font-brush)' }}
+            style={{ fontFamily: 'var(--font-sans)' }}
           >
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}

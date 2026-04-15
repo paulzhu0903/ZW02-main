@@ -282,7 +282,7 @@ export function AIInterpretation() {
               type="button"
               onClick={handleTogglePrompt}
               title={t('ai.promptHintNoApi', language)}
-              className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors whitespace-nowrap"
+              className="h-8 sm:h-10 min-w-[5rem] px-2 sm:px-3 rounded-lg text-[10px] sm:text-xs font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors whitespace-nowrap flex items-center justify-center"
             >
               {showPrompt ? t('ai.hidePrompt', language) : t('ai.showPrompt', language)}
             </button>
@@ -291,7 +291,7 @@ export function AIInterpretation() {
             <button
               type="button"
               onClick={handleCopyPrompt}
-              className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors whitespace-nowrap"
+              className="h-8 sm:h-10 min-w-[5rem] px-2 sm:px-3 rounded-lg text-[10px] sm:text-xs font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors whitespace-nowrap flex items-center justify-center"
             >
               {copied ? t('fortune.copied', language) : t('fortune.copyPrompt', language)}
             </button>
@@ -301,6 +301,7 @@ export function AIInterpretation() {
             disabled={loading}
             size="sm"
             variant="gold"
+            className="h-8 sm:h-10 min-w-[5rem] px-2 sm:px-3 text-[10px] sm:text-xs"
           >
             {loading ? (
               <span className="flex items-center gap-2">

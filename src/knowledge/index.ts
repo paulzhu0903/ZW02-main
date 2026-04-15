@@ -360,34 +360,6 @@ export function buildChartIndicators(
   const lifePalace = palaces.find(palace => normalizePalaceName(palace.name) === '命宫')
   const causePalace = palaces.find(palace => getPalaceBranch(palace) === causeBranch)
 
-  const corePalaceMap: Array<[string, string]> = [
-    ['命宮', '命宫'],
-    ['兄弟宮', '兄弟'],
-    ['夫妻宮', '夫妻'],
-    ['子女宮', '子女'],
-    ['財帛宮', '财帛'],
-    ['疾厄宮', '疾厄'],
-    ['遷移宮', '迁移'],
-    ['交友宮', '交友'],
-    ['官祿宮', '官禄'],
-    ['田宅宮', '田宅'],
-    ['福德宮', '福德'],
-    ['父母宮', '父母'],
-  ]
-
-  const corePalaces: Record<string, ChartIndicatorPalaceSummary | null> = {}
-  for (const [label, palaceName] of corePalaceMap) {
-    const palace = palaces.find(item => normalizePalaceName(item.name) === palaceName)
-    if (!palace) {
-      corePalaces[label] = null
-      continue
-    }
-
-    const oppositeBranch = OPPOSITE_BRANCH_MAP[getPalaceBranch(palace)]
-    const oppositePalace = oppositeBranch ? palaceByBranch.get(oppositeBranch) : undefined
-    corePalaces[label] = summarizeIndicatorPalace(palace, oppositePalace)
-  }
-
   const currentYear = new Date().getFullYear()
   const currentAge = birthYear ? currentYear - birthYear + 1 : null
   const currentDecadal = currentAge
@@ -479,54 +451,55 @@ export function buildChartIndicators(
     })
 
   return {
-    基本資料: {
-      出生年: birthYear,
-      年干: yearGan,
-      五行局: String((chart as unknown as { fiveElementsClass?: string }).fiveElementsClass || ''),
-      命主: String((chart as unknown as { soul?: string }).soul || ''),
-      命宮: normalizePalaceName(lifePalace?.name || ''),
-      來因宮: normalizePalaceName(causePalace?.name || ''),
-      生年四化: natalMutagens,
-    },
+  基本資料: {
+    出生年: birthYear,
+    年干: yearGan,
+    五行局: String((chart as unknown as { fiveElementsClass?: string} ).fiveElementsClass || ''),
+    命主: String((chart as unknown as { soul?: string} ).soul || ''),
+    命宮: normalizePalaceName(lifePalace?.name || ''),
+    來因宮: normalizePalaceName(causePalace?.name || ''),
+    生年四化: natalMutagens,
+  },
 
-    北派四化重點: {
-      離心自化: selfHighlights,
-      向心自化: counterHighlights,
-    },
+  北派四化重點: {
+    離心自化: selfHighlights,
+    向心自化: counterHighlights,
+  },
 
-    論命座標系: palaceCoordinates.map(item => ({
-      宮位: item.宮位,
-      宮干: item.宮干,
-      地支: item.地支,
-      我宮他宮: item.宮位屬性,
-      主星: item.主星,
-      男女星: item.男女星標記,
-      ...(item.離心自化.length > 0 ? { 離心自化: item.離心自化 } : {}),
-      ...(item.向心自化.length > 0 ? { 向心自化: item.向心自化 } : {}),
-      ...(item.是否來因宮 ? { 來因宮: true as const } : {}),
-      ...(item.是否命宮 ? { 命宮: true as const } : {}),
-      ...(item.是否身宮 ? { 身宮: true as const } : {}),
-    })),
-    核心宮位: corePalaces,
-    運限焦點: {
-      當前年份: currentYear,
-      目前虛歲: currentAge,
-      當前大限: currentDecadal ? {
-        宮位: currentDecadal.palaceName,
-        天干: currentDecadal.stem,
-        四化: currentDecadal.mutagens,
-      } : null,
-      近三年流年: knowledge.流年
-        .filter(item => item.year >= currentYear - 1 && item.year <= currentYear + 1)
-        .map(item => ({
-          年份: item.year,
-          流年命宮: item.palaceName,
-          天干: item.stem,
-          地支: item.branch,
-          四化: item.mutagens,
-        })),
-    },
-  }
+  論命座標系: palaceCoordinates.map(item => ({
+    宮位: item.宮位,
+    宮干: item.宮干,
+    地支: item.地支,
+    我宮他宮: item.宮位屬性,
+    主星: item.主星,
+    男女星: item.男女星標記,
+    ...(item.離心自化.length > 0 ? { 離心自化: item.離心自化 } : {}),
+    ...(item.向心自化.length > 0 ? { 向心自化: item.向心自化 } : {}),
+    ...(item.是否來因宮 ? { 來因宮: true as const } : {}),
+    ...(item.是否命宮 ? { 命宮: true as const } : {}),
+    ...(item.是否身宮 ? { 身宮: true as const } : {}),
+  })),
+
+  運限焦點: {
+    當前年份: currentYear,
+    目前虛歲: currentAge,
+    當前大限: currentDecadal ? {
+      宮位: currentDecadal.palaceName,
+      天干: currentDecadal.stem,
+      四化: currentDecadal.mutagens,
+    } : null,
+
+    近三年流年: knowledge.流年
+      .filter(item => item.year >= currentYear - 1 && item.year <= currentYear + 1)
+      .map(item => ({
+        年份: item.year,
+        流年命宮: item.palaceName,
+        天干: item.stem,
+        地支: item.branch,
+        四化: item.mutagens,
+      })),
+  },
+}
 }
 
 /* ------------------------------------------------------------
@@ -795,15 +768,6 @@ export function buildPromptContext(context: KnowledgeContext, language: Language
     lines.push('')
   }
 
-  // 身宫信息
-  if (context.身宫位置) {
-    lines.push('## 身宫位置', `- 身宫在${context.身宫位置}`)
-    context.身宫主星.forEach(star => 
-      lines.push(`- ${star.name}：${star.description}`)
-    )
-    lines.push('')
-  }
-
   // 完整十二宫信息
   lines.push('## 北派四化座標', '（以宮干、地支、生年四化、離心/向心自化、我宮/他宮為主）', '')
 
@@ -873,10 +837,6 @@ export function buildPromptContext(context: KnowledgeContext, language: Language
 
   return lines.join('\n')
 }
-
-/* ------------------------------------------------------------
-   导出知识库模块
-   ------------------------------------------------------------ */
 
 export * from './stars/majorStars'
 export * from './palaces'

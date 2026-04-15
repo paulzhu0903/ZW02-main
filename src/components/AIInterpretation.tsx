@@ -351,7 +351,7 @@ export function AIInterpretation() {
         </div>
       )}
 
-      {/* 解读内容 - 书法字体 + Markdown 渲染 */}
+      {/* 解读内容+ Markdown 渲染 */}
       {displayText && (
         <div
           className="

@@ -577,7 +577,7 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, forceTextCo
                 return (
                   <span
                     key={layerKey}
-                    className="flex items-center justify-center"
+                    className="flex items-center justify-center lg:!w-[16px] lg:!min-w-[16px] lg:!h-[16px] lg:!text-[14px]"
                     style={{
                       borderRadius: '0',
                       backgroundColor: bgColor,
@@ -677,11 +677,15 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, forceTextCo
             let borderRadiusStyle = '50%'
             let styleObj: React.CSSProperties = {
               borderRadius: borderRadiusStyle,
+              width: '16px',
+              minWidth: '16px',
+              height: '16px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               lineHeight: '1',
               padding: '0',
+              boxSizing: 'border-box',
             }
             
             if (chartType === 'flying') {
@@ -697,8 +701,6 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, forceTextCo
               styleObj = {
                 ...styleObj,
                 borderRadius: '50%',
-                width: '16px',
-                height: '16px',
                 border: '1px solid #FF3B30',
                 color: '#FF3B30'
               }

@@ -554,46 +554,48 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, forceTextCo
   }
 
   return (
-    <div className="flex flex-col items-center gap-0" style={{ minHeight: '20px' }}>
+    <div className="flex flex-col items-center gap-0" style={{ minHeight: '20px', width: '16px', minWidth: '16px' }}>
       <span
         className={`
-          flex flex-col items-center justify-center text-[11px] sm:text-[12px] lg:text-[13px] font-medium px-0 py-0 rounded
+          flex flex-col items-center justify-center text-[11px] sm:text-[12px] lg:text-[15px] font-medium px-0 py-0 rounded
           transition-all duration-200
           ${hasMutagen ? getMutagenTextColor() : `bg-white/5 ${textColor} hover:bg-white/10`}
         `}
-        style={{ writingMode: 'vertical-rl', minWidth: '12px', minHeight: '12px', margin: '0 0 1px 0' }}
+        style={{ writingMode: 'vertical-rl', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '16px', minWidth: '16px', minHeight: '12px', margin: '0 0 5px 0' }}
         data-star-name={name}
       >
         {displayName}
       </span>
       {(displayBrightness || mutagen || hasTriremeMutagenSquares) && (
-        <div className="flex flex-col items-center justify-center" style={{ gap: '1px' }}>
+        <div className="flex flex-col items-center justify-center" style={{ gap: '1px', width: '16px', minWidth: '16px' }}>
           {displayBrightness && brightnessChar && (
-            <span className="text-[11px] sm:text-[12px] lg:text-[13px] font-medium text-text-muted flex items-center justify-center" style={{ minWidth: '12px', minHeight: '12px' }}>{brightnessChar}</span>
+            <span className="text-[11px] sm:text-[12px] lg:text-[15px] font-medium text-text-muted flex items-center justify-center" style={{ width: '16px', minWidth: '16px', minHeight: '12px' }}>{brightnessChar}</span>
           )}
           {(hasTriremeMutagenSquares || mutagen) && (() => {
             if (chartType === 'trireme' && hasTriremeMutagenSquares) {
-              const renderTriremeSquare = (text: string, bgColor: string, layerKey: string) => (
-                <span
-                  key={layerKey}
-                  className="flex items-center justify-center"
-                  style={{
-                    borderRadius: '0',
-                    backgroundColor: bgColor,
-                    color: 'white',
-                    width: `${triremeSquareSize}px`,
-                    height: `${triremeSquareSize}px`,
-                    lineHeight: '1',
-                    padding: '0',
-                    transform: 'none',
-                    fontSize: `${triremeSquareFontSize}px`,
-                    fontWeight: 600,
-                    visibility: text ? 'visible' : 'hidden',
-                  }}
-                >
-                  {text || '\u00A0'}
-                </span>
-              )
+              const renderTriremeSquare = (text: string, bgColor: string, layerKey: string) => {
+                return (
+                  <span
+                    key={layerKey}
+                    className="flex items-center justify-center"
+                    style={{
+                      borderRadius: '0',
+                      backgroundColor: bgColor,
+                      color: 'white',
+                      width: `${triremeSquareSize}px`,
+                      height: `${triremeSquareSize}px`,
+                      lineHeight: '1',
+                      padding: '0',
+                      transform: 'none',
+                      fontSize: `${triremeSquareFontSize}px`,
+                      fontWeight: 600,
+                      visibility: text ? 'visible' : 'hidden',
+                    }}
+                  >
+                    {text || '\u00A0'}
+                  </span>
+                )
+              }
 
               return (
                 <div className="flex flex-col items-center justify-center" style={{ gap: '1px' }}>
@@ -675,14 +677,11 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, forceTextCo
             let borderRadiusStyle = '50%'
             let styleObj: React.CSSProperties = {
               borderRadius: borderRadiusStyle,
-              width: '12px',
-              height: '12px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              lineHeight: '0.8',
+              lineHeight: '1',
               padding: '0',
-              transform: 'translateY(-1px)'
             }
             
             if (chartType === 'flying') {
@@ -694,19 +693,19 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, forceTextCo
                 color: colors.bgHex
               }
             } else if (chartType === 'transformation') {
-              // 四化盤：紅色邊框圓形（細邊框、更小）
+              // 四化盤：紅色邊框圓形
               styleObj = {
                 ...styleObj,
                 borderRadius: '50%',
-                width: '12px',
-                height: '12px',
+                width: '16px',
+                height: '16px',
                 border: '1px solid #FF3B30',
                 color: '#FF3B30'
               }
             }
             
             return (
-              <span className="text-[11px] sm:text-[12px] lg:text-[13px] px-0.5 flex items-center justify-center"
+              <span className="text-[11px] sm:text-[12px] lg:text-[15px] flex items-center justify-center"
                 style={styleObj}>
                 {displayMutagen}
               </span>
@@ -901,7 +900,7 @@ function PalaceCard({
             className="absolute top-0 right-0 h-full flex items-start justify-end pointer-events-none"
           >
             <div
-              className="px-0.5 py-0.5 rounded border border-red-500 text-red-500 text-[11px] sm:text-[12px] lg:text-[13px] font-medium bg-white/70"
+              className="px-0.5 py-0.5 rounded border border-red-500 text-red-500 text-[11px] sm:text-[12px] lg:text-[15px] font-medium bg-white/70"
               style={{ writingMode: 'vertical-rl', lineHeight: 1 }}
             >
               {language === 'zh-TW' ? '來因' : '来因'}
@@ -912,7 +911,7 @@ function PalaceCard({
 
       {/* 十二神显示 - 由 i18n.ts 中的定义完全控制显示内容和语言 */}
       {((chartType === 'flying' && flyingShowGods) || (chartType === 'transformation' && transformationShowGods)) && (
-        <div className="flex justify-between text-[9px] sm:text-[10px] lg:text-[11px] text-text-muted mb-0.5 border-t border-white/[0.04] pt-0.5">
+        <div className="flex justify-between text-[9px] sm:text-[10px] lg:text-[13px] text-text-muted mb-0.5 border-t border-white/[0.04] pt-0.5">
           <span>{t(`longlifeDeity.${longlifeDeity}`, language) || longlifeDeity}</span>
           <span>{t(`boshi12Deity.${boshi12Deity}`, language) || boshi12Deity}</span>
         </div>
@@ -923,20 +922,20 @@ function PalaceCard({
       <div className="relative flex items-center justify-between w-full gap-0.5 py-0.5">
         {/* 左下: 干支(縱排) */}
         <div className="flex flex-col gap-0.5" style={{ writingMode: 'vertical-rl', minWidth: '14px' }}>
-          <span className="text-[11px] sm:text-[12px] lg:text-[13px] text-text-secondary leading-none">{stem}{branch}</span>
+          <span className="text-[11px] sm:text-[12px] lg:text-[15px] text-text-secondary leading-none">{stem}{branch}</span>
         </div>
 
         {/* 中間: 由上而下顯示 西元+虛歲、流月 */}
         <div className="flex flex-col items-center justify-center flex-1 text-center gap-0.5">
           {(decadalYear !== null || masterAge !== null) && (
-            <div className="text-[9px] sm:text-[10px] lg:text-[11px] text-text-muted text-center leading-none whitespace-nowrap">
+            <div className="text-[9px] sm:text-[10px] lg:text-[13px] text-text-muted text-center leading-none whitespace-nowrap">
               {decadalYear !== null && <span className="mr-0.5">{decadalYear}</span>}
               {masterAge !== null && <span>{masterAge}歲</span>}
             </div>
           )}
 
           {monthlySequenceLabels.length > 0 && (
-            <div className="flex flex-wrap items-center justify-center gap-x-0.5 gap-y-0 text-[8px] sm:text-[9px] lg:text-[10px] text-gray-400 leading-none">
+            <div className="flex flex-wrap items-center justify-center gap-x-0.5 gap-y-0 text-[8px] sm:text-[9px] lg:text-[13px] text-gray-400 leading-none">
               {monthlySequenceLabels.map((label) => {
                 // 只去掉最後一個 "月" 字，並將十一、十二顯示為冬、臘
                 let cleanLabel = label.replace(/月$/, '')
@@ -950,24 +949,24 @@ function PalaceCard({
         {/* 右下: 流年 + 大限 + 宮位名 */}
         <div className="flex flex-col items-end justify-end gap-0.5 pr-1" style={{ minWidth: '24px', marginRight: 0, boxSizing: 'border-box' }}>
           {selectedAnnualLabel && (
-            <span className="text-[11px] sm:text-[12px] lg:text-[13px] font-medium text-center leading-none inline-block" style={{ color: '#00aeff', minWidth: 24, maxWidth: 36 }}>
+            <span className="text-[11px] sm:text-[12px] lg:text-[15px] font-medium text-center leading-none inline-block" style={{ color: '#00aeff', minWidth: 24, maxWidth: 36 }}>
               {selectedAnnualLabel}
             </span>
           )}
 
           {!selectedAnnualLabel && annualPalaceLabel && (selectedAnnual === null || selectedAnnual === undefined) && (
-            <span className="text-[11px] sm:text-[12px] lg:text-[13px] text-gray-400 text-center leading-none">
+            <span className="text-[11px] sm:text-[12px] lg:text-[15px] text-gray-400 text-center leading-none">
               {annualPalaceLabel}
             </span>
           )}
 
           {selectedDecadalLabel && (
-            <span className="text-[11px] sm:text-[12px] lg:text-[13px] font-medium text-center leading-none inline-block" style={{ color: '#34C759', minWidth: 24, maxWidth: 36 }}>
+            <span className="text-[11px] sm:text-[12px] lg:text-[15px] font-medium text-center leading-none inline-block" style={{ color: '#34C759', minWidth: 24, maxWidth: 36 }}>
               {selectedDecadalLabel}
             </span>
           )}
 
-          <span className="text-[11px] sm:text-[12px] lg:text-[13px] font-medium text-center leading-none inline-block" style={{ color: '#FF3B30', minWidth: 24, maxWidth: 36 }}>
+          <span className="text-[11px] sm:text-[12px] lg:text-[15px] font-medium text-center leading-none inline-block" style={{ color: '#FF3B30', minWidth: 24, maxWidth: 36 }}>
             {displayPalaceName}
           </span>
         </div>

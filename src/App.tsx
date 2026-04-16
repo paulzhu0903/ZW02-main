@@ -17,16 +17,38 @@ import { useChartStore, useSettingsStore } from '@/stores'
 import type { UserRecord } from '@/lib/db'
 import { generateChart } from '@/lib/astro'
 import { t } from '@/lib/i18n'
+import FileIcon from '@/icons/File.svg'
+import AnalysisIcon from '@/icons/Analysis.svg'
+import AnnualStarIcon from '@/icons/Annual_Star.svg'
+import KLineIcon from '@/icons/K_Line.svg'
+import MatchIcon from '@/icons/Match.svg'
+import ShareIcon from '@/icons/Share.svg'
+import SettingIcon from '@/icons/Setting.svg'
 
 type TabType = 'chart' | 'fortune' | 'kline' | 'match' | 'share'
 
-const TABS_CONFIG: Array<{ key: TabType; labelKey: string; icon: string }> = [
-  { key: 'chart', labelKey: 'nav.chart', icon: '☰' },
-  { key: 'fortune', labelKey: 'nav.fortune', icon: '◎' },
-  { key: 'kline', labelKey: 'nav.kline', icon: '⊹' },
-  { key: 'match', labelKey: 'nav.match', icon: '⚭' },
-  { key: 'share', labelKey: 'nav.share', icon: '◈' },
+const TABS_CONFIG: Array<{ key: TabType; labelKey: string }> = [
+  { key: 'chart', labelKey: 'nav.chart' },
+  { key: 'fortune', labelKey: 'nav.fortune' },
+  { key: 'kline', labelKey: 'nav.kline' },
+  { key: 'match', labelKey: 'nav.match' },
+  { key: 'share', labelKey: 'nav.share' },
 ]
+
+/* Icon mapping */
+const getTabIcon = (tabKey: TabType | 'cases' | 'settings' = null) => {
+  const iconMap: Record<string, string> = {
+    cases: FileIcon,
+    chart: AnalysisIcon,
+    fortune: AnnualStarIcon,
+    kline: KLineIcon,
+    match: MatchIcon,
+    share: ShareIcon,
+    settings: SettingIcon,
+  }
+  const iconSrc = iconMap[tabKey as string]
+  return iconSrc ? <img src={iconSrc} alt="" className="w-full h-full" /> : null
+}
 
 export default function App() {
   const { chart, setBirthInfo, setChart, setRecordToLoad } = useChartStore()
@@ -135,7 +157,9 @@ export default function App() {
                 <span className="absolute inset-0 rounded-lg transition-all duration-200 group-hover:bg-white/[0.04]" />
                 {/* 内容 */}
                 <span className="relative flex items-center gap-2">
-                  <span className="text-[10pt] opacity-50 group-hover:opacity-70">◆</span>
+                  <span className="w-5 h-5 flex items-center justify-center opacity-50 group-hover:opacity-70">
+                    {getTabIcon('cases')}
+                  </span>
                   {t('nav.cases', language)}
                 </span>
               </button>
@@ -166,10 +190,10 @@ export default function App() {
                   {/* 内容 */}
                   <span className="relative flex items-center gap-2">
                     <span className={`
-                      text-[10pt] transition-all duration-200
+                      w-5 h-5 transition-all duration-200 flex items-center justify-center
                       ${activeTab === tab.key ? 'text-gold' : 'opacity-50 group-hover:opacity-70'}
                     `}>
-                      {tab.icon}
+                      {getTabIcon(tab.key)}
                     </span>
                     {tab.label}
                   </span>
@@ -192,32 +216,21 @@ export default function App() {
           <button
             onClick={() => setShowSettings(true)}
             className="
-              group relative p-2.5 rounded-xl
-              bg-white/[0.04] border border-white/[0.08]
-              hover:bg-white/[0.08] hover:border-white/[0.12]
-              transition-all duration-200
+              group relative px-4 py-2 rounded-lg
+              text-[14pt] font-medium transition-all duration-200
+              text-text-muted hover:text-text-secondary
             "
             title={t('nav.settings', language)}
           >
-            <svg
-              className="w-5 h-5 text-text-muted group-hover:text-text transition-colors"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg>
+            {/* 背景 */}
+            <span className="absolute inset-0 rounded-lg transition-all duration-200 group-hover:bg-white/[0.04]" />
+            {/* 内容 */}
+            <span className="relative flex items-center gap-2">
+              <span className="w-5 h-5 flex items-center justify-center opacity-50 group-hover:opacity-70">
+                {getTabIcon('settings')}
+              </span>
+              {t('nav.settings', language)}
+            </span>
           </button>
         </div>
       </header>
@@ -236,7 +249,7 @@ export default function App() {
             onClick={() => setIsDbModalOpen(true)}
             className="relative flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-0 rounded-lg text-text-muted transition-all duration-200 hover:text-text"
           >
-            <span className="text-[10pt]">◆</span>
+            <span className="w-5 h-5 flex items-center justify-center">{getTabIcon('cases')}</span>
             <span className="text-[8pt] leading-none">{t('nav.cases', language)}</span>
           </button>
 
@@ -253,8 +266,9 @@ export default function App() {
                 }
               `}
             >
-              <span className="text-[10pt]">{tab.icon}</span>
+              <span className="w-5 h-5 flex items-center justify-center">{getTabIcon(tab.key)}</span>
               <span className="text-[8pt] leading-none">{tab.label}</span>
+
               {/* 选中指示点 */}
               {activeTab === tab.key && (
                 <span className="absolute -top-1 w-1 h-1 rounded-full bg-gold shadow-[0_0_6px_rgba(212,175,55,0.6)]" />
@@ -264,31 +278,10 @@ export default function App() {
 
           <button
             onClick={() => setShowSettings(true)}
-            className="
-              relative flex flex-col items-center gap-1 px-1 py-1.5 rounded-lg
-              text-text-muted transition-all duration-200 hover:text-text
-            "
+            className="relative flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-0 rounded-lg text-text-muted transition-all duration-200 hover:text-text"
             title={t('nav.settings', language)}
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg>
+            <span className="w-5 h-5 flex items-center justify-center">{getTabIcon('settings')}</span>
             <span className="text-[8pt] leading-none">{t('nav.settings', language)}</span>
           </button>
         </div>

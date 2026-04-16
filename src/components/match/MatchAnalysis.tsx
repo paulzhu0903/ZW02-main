@@ -35,17 +35,30 @@ function getHourOptions(language: 'zh-TW' | 'zh-CN') {
 
   return [
     { value: 23, label: `子${shi} (23:00-00:59)` },
+    { value: 1, label: `丑${shi} (01:00-02:59)` },
     { value: 2, label: `丑${shi} (01:00-02:59)` },
+    { value: 3, label: `寅${shi} (03:00-04:59)` },
     { value: 4, label: `寅${shi} (03:00-04:59)` },
+    { value: 5, label: `卯${shi} (05:00-06:59)` },
     { value: 6, label: `卯${shi} (05:00-06:59)` },
+    { value: 7, label: `辰${shi} (07:00-08:59)` },
     { value: 8, label: `辰${shi} (07:00-08:59)` },
+    { value: 9, label: `巳${shi} (09:00-10:59)` },
     { value: 10, label: `巳${shi} (09:00-10:59)` },
+    { value: 11, label: `午${shi} (11:00-12:59)` },
     { value: 12, label: `午${shi} (11:00-12:59)` },
+    { value: 13, label: `未${shi} (13:00-14:59)` },
     { value: 14, label: `未${shi} (13:00-14:59)` },
+    { value: 15, label: `申${shi} (15:00-16:59)` },
     { value: 16, label: `申${shi} (15:00-16:59)` },
+    { value: 17, label: `酉${shi} (17:00-18:59)` },
     { value: 18, label: `酉${shi} (17:00-18:59)` },
+    { value: 19, label: `戌${shi} (19:00-20:59)` },
     { value: 20, label: `戌${shi} (19:00-20:59)` },
+    { value: 21, label: `亥${shi} (21:00-22:59)` },
     { value: 22, label: `亥${shi} (21:00-22:59)` },
+    { value: 22, label: `亥${shi} (21:00-22:59)` },
+    { value: 23, label: `亥${shi} (21:00-22:59)` },
   ]
 }
 const GENDER_OPTIONS = [

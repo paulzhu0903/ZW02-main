@@ -53,16 +53,16 @@ const translations: Record<Language, Record<string, any>> = {
     // AI Prompt (User Message)s
     'ai.prompt.readChart': '請解讀以下命盤：',
     'ai.prompt.keyIndicators': '關鍵指標 JSON\n- 離心/向心自化\n- 哪些宮位有「同性質四化串聯」\n- 哪些宮位有「祿忌串聯」',
-    'ai.prompt.indicatorsHint': '以下 JSON 是程式自動整理的關鍵指標，**優先依此做結構判讀**，再參考補充上下文交叉驗證。',
+    'ai.prompt.indicatorsHint': '以下是程式自動整理的關鍵指標，**優先依此做結構判讀**，再參考補充上下文交叉驗證。',
     'ai.prompt.basicInfo': '基本資訊',
     'ai.prompt.analyzeOrder': '先建立座標系（各宮干地支、生年四化、自化、男女星、我宮/他宮），再說明體用與能量流動，最後白話解讀。',
 
     // AI Prompt Context (JSON Labels)
     'ai.context.complete': '【命盤完整信息】',
     'ai.context.lifePalaceStars': '## 命宮主星',
-    'ai.context.bodyPalacePosition': '## 身宮位置',
-    'ai.context.bodyPalaceIn': '- 身宮在',
-    'ai.context.transformationCoordinate': '## 北派四化座標',
+    // 'ai.context.bodyPalacePosition': '## 身宮位置',
+    // 'ai.context.bodyPalaceIn': '- 身宮在',
+    // 'ai.context.transformationCoordinate': '## 北派四化座標',
     'ai.context.transformationCoordinateHint': '（以宮干地支、生年四化、離心/向心自化、我宮/他宮為主）',
     'ai.context.natalMutation': '## 生年四化',
     'ai.context.decadalLimits': '## 十二大限',
@@ -458,8 +458,8 @@ const translations: Record<Language, Record<string, any>> = {
     // AI Prompt Context (JSON Labels)
     'ai.context.complete': '【命盘完整信息】',
     'ai.context.lifePalaceStars': '## 命宫主星',
-    'ai.context.bodyPalacePosition': '## 身宫位置',
-    'ai.context.bodyPalaceIn': '- 身宫在',
+    // 'ai.context.bodyPalacePosition': '## 身宫位置',
+    // 'ai.context.bodyPalaceIn': '- 身宫在',
     'ai.context.transformationCoordinate': '## 北派四化坐标',
     'ai.context.transformationCoordinateHint': '（以宫干、地支、生年四化、离心/向心自化、我宫/他宫为主）',
     'ai.context.natalMutation': '## 生年四化',

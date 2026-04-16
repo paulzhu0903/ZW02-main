@@ -239,10 +239,11 @@ export default function App() {
       <nav
         className="
           md:hidden fixed bottom-0 left-0 right-0 z-40
-          px-1 py-1
+          px-1
           bg-night/90 backdrop-blur-xl
           border-t border-white/[0.06]
         "
+        style={{ paddingTop: '10px', paddingBottom: '5px' }}
       >
         <div className="flex items-center justify-between gap-1 max-w-md mx-auto">
           <button
@@ -271,7 +272,7 @@ export default function App() {
 
               {/* 选中指示点 */}
               {activeTab === tab.key && (
-                <span className="absolute -top-1 w-1 h-1 rounded-full bg-gold shadow-[0_0_6px_rgba(212,175,55,0.6)]" />
+                <span className="absolute -top-2 w-1.5 h-1.5 rounded-full bg-gold shadow-[0_0_6px_rgba(212,175,55,0.6)]" />
               )}
             </button>
           ))}

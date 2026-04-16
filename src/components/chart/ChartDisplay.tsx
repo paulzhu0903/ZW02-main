@@ -1309,7 +1309,7 @@ function DecadalAnnualMonthlyTable({
   }, [isExpanded, selectedDecadal, selectedAnnual, selectedMonthly, dailyScrollOffset, palaceData])
 
   const rowClass = 'flex items-stretch gap-0 leading-none'
-  const rowLabelClass = 'shrink-0 flex items-center justify-center px-1 py-0.5 sm:px-1.5 sm:py-0 text-[8px] sm:text-[12px] lg:text-[16px] text-text-muted font-medium leading-tight bg-[#f5f5f7] min-w-[36px] sm:min-w-[52px] border border-white/[0.12] rounded-sm whitespace-nowrap'
+  const rowLabelClass = 'shrink-0 flex items-center justify-center px-1 py-0.5 sm:px-1.5 sm:py-0 text-[8px] sm:text-[12px] lg:text-[16px] text-text-muted font-medium leading-tight bg-[#f5f5f7] min-w-[18px] sm:min-w-[40px] border border-white/[0.12] rounded-sm whitespace-nowrap'
   const scrollAreaClass = `flex-1 min-w-0 overflow-x-auto overflow-y-hidden [-webkit-overflow-scrolling:touch] ${needsScrollSpacer ? 'pb-1 sm:pb-1.5' : 'pb-0'}`
   const scrollTableClass = 'w-full min-w-full text-[8px] sm:text-[12px] lg:text-[16px] leading-tight table-fixed border-collapse border border-white/[0.12]'
   const arrowButtonClass = 'px-0.5 py-0.5 sm:px-1.5 sm:py-1 rounded-md sm:rounded-lg transition-all bg-white/[0.05] text-text-secondary hover:bg-white/[0.1] disabled:opacity-50 disabled:cursor-not-allowed min-w-5 h-5 sm:min-w-7 sm:h-7 text-[10px] sm:text-base'
@@ -1343,7 +1343,7 @@ function DecadalAnnualMonthlyTable({
           {renderScrollRow('大限', decadalData.map((item, i) => (
             <td 
               key={i} 
-              className={`relative z-0 px-0.5 py-0.5 sm:px-1.5 sm:py-1.5 text-center cursor-pointer transition-colors border-r border-white/[0.12] font-mono text-[7px] sm:text-[12px] lg:text-[16px] min-w-[44px] sm:min-w-[64px] ${
+              className={`relative z-0 px-0 py-0.5 sm:px-1.5 sm:py-1.5 text-center cursor-pointer transition-colors border-r border-white/[0.12] font-medium text-[7px] sm:text-[12px] lg:text-[16px] min-w-[44px] sm:min-w-[64px] ${
                 selectedDecadal === i 
                   ? 'bg-white/[0.01] text-star-light' 
                   : 'bg-white/[0.01] text-text-secondary hover:bg-white/[0.05]'
@@ -1358,7 +1358,7 @@ function DecadalAnnualMonthlyTable({
                 <div className="whitespace-nowrap">
                   {item.ageStart}~{item.ageEnd}
                 </div>
-                <div className="text-[6px] sm:text-[10px] text-text-muted whitespace-nowrap">
+                <div className="text-[7px] sm:text-[12px] text-text-muted whitespace-nowrap">
                   {item.stem}{item.branch}限
                 </div>
               </div>
@@ -1368,7 +1368,7 @@ function DecadalAnnualMonthlyTable({
           {selectedDecadal !== null && annualData.length > 0 && renderScrollRow('流年', annualData.map((item, i) => (
             <td 
               key={i} 
-              className={`relative z-0 px-1 py-1 sm:px-1.5 sm:py-1.5 text-center cursor-pointer transition-colors border-r border-white/[0.12] font-mono text-[7px] sm:text-[12px] lg:text-[16px] min-w-[54px] sm:min-w-[72px] ${
+              className={`relative z-0 px-0 py-0.5 sm:px-1.5 sm:py-1.5 text-center cursor-pointer transition-colors border-r border-white/[0.12] font-medium text-[7px] sm:text-[12px] lg:text-[16px] min-w-[54px] sm:min-w-[72px] ${
                 selectedAnnual === i 
                   ? 'bg-white/[0.01] text-fortune' 
                   : 'bg-white/[0.01] text-text-secondary hover:bg-white/[0.05]'
@@ -1382,7 +1382,7 @@ function DecadalAnnualMonthlyTable({
                 <div className="whitespace-nowrap text-[7px] sm:text-[12px]">
                   {item.year}年
                 </div>
-                <div className="text-[6.5px] sm:text-[10px] text-text-muted whitespace-nowrap">
+                <div className="text-[7px] sm:text-[10px] text-text-muted whitespace-nowrap">
                   {getYearGanZhi(item.year)}{item.age}歲
                 </div>
               </div>
@@ -1405,7 +1405,7 @@ function DecadalAnnualMonthlyTable({
             return (
             <td 
               key={i} 
-              className={`relative z-0 px-1 py-1.5 sm:px-1.5 sm:py-2 text-center cursor-pointer transition-colors border-r border-white/[0.12] font-medium text-[10px] sm:text-[12px] lg:text-[16px] min-w-[38px] sm:min-w-[48px] ${
+              className={`relative z-0 px-0 py-0.5 sm:px-1.5 sm:py-2 text-center cursor-pointer transition-colors border-r border-white/[0.12] font-medium text-[10px] sm:text-[12px] lg:text-[16px] min-w-[38px] sm:min-w-[48px] ${
                 selectedMonthly === i 
                   ? 'bg-white/[0.01] text-gold' 
                   : 'bg-white/[0.01] text-text-secondary hover:bg-white/[0.05]'
@@ -1414,7 +1414,7 @@ function DecadalAnnualMonthlyTable({
                 handleSetSelectedMonthly(i)
               }}
             >
-              <div className={`rounded-[4px] px-1 py-0 sm:px-1.5 sm:py-0.5 flex flex-col items-center gap-0 leading-tight ${selectedMonthly === i ? 'bg-gold/20' : ''}`}>
+              <div className={`rounded-[4px] px-1 py-0.5 sm:px-1.5 sm:py-0.5 flex flex-col items-center gap-0 leading-tight ${selectedMonthly === i ? 'bg-gold/20' : ''}`}>
                 <div className="text-[8px] sm:text-[9px] lg:text-[10px]">{displayMonth}月</div>
                 {monthlyGanZhi && (
                   <div className="text-[8px] sm:text-[9px] lg:text-[10px] text-text-muted">
@@ -1453,7 +1453,7 @@ function DecadalAnnualMonthlyTable({
                         return (
                           <td 
                             key={dayIndex} 
-                            className={`relative z-0 px-1 py-1.5 sm:px-1.5 sm:py-2 text-center cursor-pointer transition-colors font-medium text-[7px] sm:text-[12px] lg:text-[16px] min-w-[40px] sm:min-w-[52px] border-r border-white/[0.12] whitespace-nowrap ${
+                            className={`relative z-0 px-0 py-1 sm:px-1.5 sm:py-2 text-center cursor-pointer transition-colors font-medium text-[8px] sm:text-[12px] lg:text-[16px] min-w-[30px] sm:min-w-[52px] border-r border-white/[0.12] whitespace-nowrap ${
                               selectedDaily === dayIndex 
                                 ? 'bg-white/[0.01] text-star-light' 
                                 : 'bg-white/[0.01] text-text-secondary hover:bg-white/[0.05]'
@@ -1484,7 +1484,7 @@ function DecadalAnnualMonthlyTable({
           {selectedMonthly !== null && renderScrollRow('流時', shichen.map((time, i) => (
             <td 
               key={i} 
-              className="relative z-0 px-1 py-1.5 sm:px-1.5 sm:py-2 text-center cursor-pointer transition-colors border-r border-white/[0.12] font-medium text-[7px] sm:text-[12px] lg:text-[16px] bg-white/[0.01] text-text-secondary hover:bg-white/[0.05] whitespace-nowrap min-w-[42px] sm:min-w-[52px]"
+              className="relative z-0 px-0 py-1 sm:px-1.5 sm:py-2 text-center cursor-pointer transition-colors border-r border-white/[0.12] font-medium text-[8px] sm:text-[12px] lg:text-[16px] bg-white/[0.01] text-text-secondary hover:bg-white/[0.05] whitespace-nowrap min-w-[30px] sm:min-w-[52px]"
             >
               <div className="whitespace-nowrap">
                 {time}

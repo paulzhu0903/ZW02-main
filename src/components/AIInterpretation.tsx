@@ -109,7 +109,14 @@ export function AIInterpretation() {
     if (!chart || !birthInfo) return null
 
     const knowledge = extractKnowledge(chart, birthInfo.year)
-    const indicators = buildChartIndicators(chart, birthInfo.year, knowledge)
+    const indicators = buildChartIndicators(chart, {
+      year: birthInfo.year,
+      month: birthInfo.month,
+      day: birthInfo.day,
+      hour: birthInfo.hour,
+      minute: birthInfo.minute,
+      gender: birthInfo.gender,
+    }, knowledge)
 
     if (import.meta.env.DEV) {
       console.log('[AIInterpretation] current indicators index:', indicators)

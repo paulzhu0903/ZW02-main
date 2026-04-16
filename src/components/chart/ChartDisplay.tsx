@@ -281,7 +281,7 @@ function getLocalizedAstroSign(sign: string | undefined, language: 'zh-TW' | 'zh
    星曜标签组件 - 带亮度和四化
    ------------------------------------------------------------ */
 
-function StarTag({ star, showBrightness = true, isMajorStar = false, chartType = 'flying', selectedDecadal = null, selectedAnnual = null, isCurrentDecadalPalace = false, isCurrentAnnualPalace = false, decadalLifePalaceStem = null, annualLifePalaceStem = null }: StarTagProps) {
+function StarTag({ star, showBrightness = true, isMajorStar = false, forceTextColorClass = '', chartType = 'flying', selectedDecadal = null, selectedAnnual = null, isCurrentDecadalPalace = false, isCurrentAnnualPalace = false, decadalLifePalaceStem = null, annualLifePalaceStem = null }: StarTagProps) {
   const { language, triremeShowStarBrightness, triremeMutagenSquareSize } = useSettingsStore()
   // 四化盤面不顯示亮度；三合盤可由設定開關控制
   const displayBrightness = chartType === 'transformation'
@@ -527,12 +527,12 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, chartType =
       if (starEnglishParam === 'lianzhen') {
         // 廉贞例外：化禄是男星，化忌是女星
         if (mutagen === '化禄' || mutagen === '化祿') {
-          textColor = 'text-cyan-400'  // 水蓝色（男星）
+          textColor = 'text-[#00aeff]'  // 水蓝色（男星）
         } else if (mutagen === '化忌') {
           textColor = 'text-red-500'  // 红色（女星）
         }
       } else if (maleStarParams.includes(starEnglishParam)) {
-        textColor = 'text-cyan-400'  // 水蓝色
+        textColor = 'text-[#00aeff]'  // 水蓝色
       } else if (femaleStarParams.includes(starEnglishParam)) {
         textColor = 'text-red-500'  // 红色
       }
@@ -549,13 +549,17 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, chartType =
     }
   }
 
+  if (!hasMutagen && forceTextColorClass) {
+    textColor = forceTextColorClass
+  }
+
   return (
     <div className="flex flex-col items-center gap-0" style={{ minHeight: '20px' }}>
       <span
         className={`
-          flex flex-col items-center justify-center text-[11px] sm:text-[12px] lg:text-[13px] px-0 py-0 rounded
+          flex flex-col items-center justify-center text-[11px] sm:text-[12px] lg:text-[13px] font-medium px-0 py-0 rounded
           transition-all duration-200
-          ${hasMutagen ? getMutagenTextColor() + ' font-medium' : `bg-white/5 ${textColor} hover:bg-white/10`}
+          ${hasMutagen ? getMutagenTextColor() : `bg-white/5 ${textColor} hover:bg-white/10`}
         `}
         style={{ writingMode: 'vertical-rl', minWidth: '12px', minHeight: '12px', margin: '0 0 1px 0' }}
         data-star-name={name}
@@ -565,7 +569,7 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, chartType =
       {(displayBrightness || mutagen || hasTriremeMutagenSquares) && (
         <div className="flex flex-col items-center justify-center" style={{ gap: '1px' }}>
           {displayBrightness && brightnessChar && (
-            <span className="text-[11px] sm:text-[12px] lg:text-[13px] text-text-muted flex items-center justify-center" style={{ minWidth: '12px', minHeight: '12px' }}>{brightnessChar}</span>
+            <span className="text-[11px] sm:text-[12px] lg:text-[13px] font-medium text-text-muted flex items-center justify-center" style={{ minWidth: '12px', minHeight: '12px' }}>{brightnessChar}</span>
           )}
           {(hasTriremeMutagenSquares || mutagen) && (() => {
             if (chartType === 'trireme' && hasTriremeMutagenSquares) {
@@ -839,48 +843,55 @@ function PalaceCard({
       {/* 星耀水平排列 - 统一容器处理所有星曜 */}
       <div className={`relative flex flex-row flex-wrap mb-0 flex-1 justify-start items-start gap-0 overflow-visible ${chartType === 'transformation' && transformationShowCausePalace && isCausePalace ? 'pr-1 sm:pr-2' : ''}`}>
         {/* 統一主星、輔星、雜曜字體大小與排列 */}
-        <div className="flex flex-row flex-wrap items-start gap-x-0 gap-y-0 w-full">
+        <div className="flex flex-row flex-wrap items-start gap-x-0.5 gap-y-0 w-full">
           {/* 主星 */}
           {majorStars.map((star, i) => (
-            <div key={`major-${i}`} className="flex flex-col items-center" style={{ minHeight: '20px' }}>
-              <StarTag 
-                star={star} 
-                isMajorStar={isMajorStarName(star.name)} 
-                showBrightness={true}
-                chartType={chartType} 
-                selectedDecadal={selectedDecadal} 
-                selectedAnnual={selectedAnnual} 
-                isCurrentDecadalPalace={isCurrentDecadalPalace} 
-                isCurrentAnnualPalace={isCurrentAnnualPalace} 
-                decadalLifePalaceStem={decadalLifePalaceStem}
-                annualLifePalaceStem={annualLifePalaceStem}
-              />
-            </div>
+            <StarTag
+              key={`major-${i}`}
+              star={star} 
+              isMajorStar={isMajorStarName(star.name)} 
+              showBrightness={true}
+              chartType={chartType} 
+              selectedDecadal={selectedDecadal} 
+              selectedAnnual={selectedAnnual} 
+              isCurrentDecadalPalace={isCurrentDecadalPalace} 
+              isCurrentAnnualPalace={isCurrentAnnualPalace} 
+              decadalLifePalaceStem={decadalLifePalaceStem}
+              annualLifePalaceStem={annualLifePalaceStem}
+            />
           ))}
           {/* 輔星 */}
           {(chartType === 'flying' || chartType === 'transformation' || chartType === 'trireme') && minorStars.map((star, i) => (
-            <div key={`minor-${i}`} className="flex flex-col items-center" style={{ minHeight: '20px' }}>
-              <StarTag 
-                star={star} 
-                isMajorStar={isMajorStarName(star.name)} 
-                showBrightness={false}
-                chartType={chartType} 
-                selectedDecadal={selectedDecadal} 
-                selectedAnnual={selectedAnnual} 
-                isCurrentDecadalPalace={isCurrentDecadalPalace} 
-                isCurrentAnnualPalace={isCurrentAnnualPalace} 
-                decadalLifePalaceStem={decadalLifePalaceStem}
-                annualLifePalaceStem={annualLifePalaceStem}
-              />
-            </div>
+            <StarTag
+              key={`minor-${i}`}
+              star={star} 
+              isMajorStar={isMajorStarName(star.name)} 
+              showBrightness={false}
+              chartType={chartType} 
+              selectedDecadal={selectedDecadal} 
+              selectedAnnual={selectedAnnual} 
+              isCurrentDecadalPalace={isCurrentDecadalPalace} 
+              isCurrentAnnualPalace={isCurrentAnnualPalace} 
+              decadalLifePalaceStem={decadalLifePalaceStem}
+              annualLifePalaceStem={annualLifePalaceStem}
+            />
           ))}
-          {/* 雜曜 */}
+          {/* 雜曜 - 使用 StarTag 以確保與主星/輔星完全一致的容器與間距 */}
           {(chartType === 'flying' || chartType === 'trireme') && adjectiveStars.map((name, i) => (
-            <div key={`adj-${i}`} className="flex flex-col items-center" style={{ minHeight: '20px' }}>
-              <span className="text-[11px] sm:text-[12px] lg:text-[13px] px-0.5 py-0 rounded bg-white/[0.03] text-text-muted/70 flex items-center justify-center" style={{ writingMode: 'vertical-rl', minWidth: '12px', minHeight: '12px' }}>
-                {t(`star.${name}`, language) || name}
-              </span>
-            </div>
+            <StarTag
+              key={`adj-${i}`}
+              star={{ name }}
+              isMajorStar={false}
+              showBrightness={false}
+              forceTextColorClass="text-text-muted/70"
+              chartType={chartType}
+              selectedDecadal={selectedDecadal}
+              selectedAnnual={selectedAnnual}
+              isCurrentDecadalPalace={isCurrentDecadalPalace}
+              isCurrentAnnualPalace={isCurrentAnnualPalace}
+              decadalLifePalaceStem={decadalLifePalaceStem}
+              annualLifePalaceStem={annualLifePalaceStem}
+            />
           ))}
         </div>
 
@@ -937,9 +948,9 @@ function PalaceCard({
         </div>
 
         {/* 右下: 流年 + 大限 + 宮位名 */}
-        <div className="flex flex-col items-end justify-end gap-0.5 pr-2" style={{ minWidth: '34px', marginRight: 0, boxSizing: 'border-box' }}>
+        <div className="flex flex-col items-end justify-end gap-0.5 pr-1" style={{ minWidth: '24px', marginRight: 0, boxSizing: 'border-box' }}>
           {selectedAnnualLabel && (
-            <span className="text-[11px] sm:text-[12px] lg:text-[13px] font-medium text-right leading-none inline-block" style={{ color: '#5AC8FA', minWidth: 34, maxWidth: 36 }}>
+            <span className="text-[11px] sm:text-[12px] lg:text-[13px] font-medium text-center leading-none inline-block" style={{ color: '#00aeff', minWidth: 24, maxWidth: 36 }}>
               {selectedAnnualLabel}
             </span>
           )}
@@ -951,12 +962,12 @@ function PalaceCard({
           )}
 
           {selectedDecadalLabel && (
-            <span className="text-[11px] sm:text-[12px] lg:text-[13px] font-medium text-right leading-none inline-block" style={{ color: '#34C759', minWidth: 34, maxWidth: 36 }}>
+            <span className="text-[11px] sm:text-[12px] lg:text-[13px] font-medium text-center leading-none inline-block" style={{ color: '#34C759', minWidth: 24, maxWidth: 36 }}>
               {selectedDecadalLabel}
             </span>
           )}
 
-          <span className="text-[11px] sm:text-[12px] lg:text-[13px] font-medium text-right leading-none inline-block" style={{ color: '#FF3B30', minWidth: 34, maxWidth: 36 }}>
+          <span className="text-[11px] sm:text-[12px] lg:text-[13px] font-medium text-center leading-none inline-block" style={{ color: '#FF3B30', minWidth: 24, maxWidth: 36 }}>
             {displayPalaceName}
           </span>
         </div>
@@ -1030,12 +1041,13 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
     <div className="
       relative h-full min-h-[260px] sm:min-h-[320px] lg:min-h-[400px] p-2 sm:p-3 lg:p-4
       flex flex-col items-center justify-start
-      bg-gradient-to-br from-white/[0.04] to-transparent
-      shadow-inner shadow-white/30
-      border border-white/10
+      bg-gradient-to-br from-white/[0.08] via-white/[0.04] to-transparent
+      border border-slate-300/70
+      ring-1 ring-white/40
       w-full
-      rounded-xl sm:rounded-2xl
-    ">
+      rounded-[2px]
+    "
+    style={{ boxShadow: 'inset 4px 3px 12px rgba(148,163,184,0.4), 0 0 0 1px rgba(148,163,184,0.18)' }}>
       {/* 背景装饰 */}
       <div className="absolute inset-0 opacity-[0.02]">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 rounded-full border-2 border-white" />
@@ -2223,7 +2235,9 @@ export function ChartDisplay() {
                           if (!toPalaceCardElement) continue
                           
                           // 在宮位card中找到該星曜的DOM元素
-                          const starElements = Array.from(toPalaceCardElement.querySelectorAll('span[data-star-name]'))
+                          const starElements = Array.from(
+                            toPalaceCardElement.querySelectorAll<HTMLElement>('span[data-star-name]')
+                          )
                           const starElement = starElements.find(el => {
                             const starNameAttr = el.getAttribute('data-star-name') || ''
                             return starNameAttr === mutagenStarChinese || starNameAttr === mutagenStar

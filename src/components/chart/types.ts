@@ -57,6 +57,7 @@ export interface StarTagProps {
   star: StarData
   showBrightness?: boolean
   isMajorStar?: boolean
+  forceTextColorClass?: string
   chartType?: 'flying' | 'trireme' | 'transformation'
   selectedDecadal?: number | null
   selectedAnnual?: number | null

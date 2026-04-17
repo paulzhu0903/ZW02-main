@@ -11,7 +11,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useChartStore, useSettingsStore } from '@/stores'
 import { t, BRIGHTNESS_MAP as BRIGHTNESS_MAP_I18N } from '@/lib/i18n'
 import type { FunctionalAstrolabe, BirthInfo } from '@/lib/astro'
-import { calculateSolarTime } from '@/lib/astro'
+import { calculateSolarTime, generateChart } from '@/lib/astro'
 import { SIHUA_BY_GAN, SIHUA_BY_GAN_TRADITIONAL } from '@/knowledge/sihua'
 import { 
   type PalaceData, 
@@ -283,12 +283,8 @@ function getLocalizedAstroSign(sign: string | undefined, language: 'zh-TW' | 'zh
 
 function StarTag({ star, showBrightness = true, isMajorStar = false, forceTextColorClass = '', chartType = 'flying', selectedDecadal = null, selectedAnnual = null, isCurrentDecadalPalace = false, isCurrentAnnualPalace = false, decadalLifePalaceStem = null, annualLifePalaceStem = null }: StarTagProps) {
   const { language, triremeShowStarBrightness, triremeMutagenSquareSize } = useSettingsStore()
-  // 四化盤面不顯示亮度；三合盤可由設定開關控制
-  const displayBrightness = chartType === 'transformation'
-    ? false
-    : chartType === 'trireme'
-      ? (triremeShowStarBrightness && showBrightness)
-      : showBrightness
+  // 三合盤顯示亮度；四化和飛星不顯示亮度
+  const displayBrightness = chartType === 'trireme' ? true : false
   const { name, brightness, mutagen } = star
   const hasMutagen = !!mutagen
   const brightnessChar = getBrightnessDisplay(brightness, language)
@@ -487,8 +483,8 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, forceTextCo
 
   // 四化盤中重要的18顆星：14個主星 + 左輔、右弼、文昌、文曲
   // 使用英文参数名定义男星和女星
-  // 男星: 太阳、天机、天梁、天同、贪狼、文昌、左辅
-  const maleStarParams = ['taiyang', 'tianji', 'tiangliang', 'tiantong', 'tanlang', 'wenchang', 'zuofu']
+  // 男星: 太阳、天机、天梁、天同、贪狼、文昌、左辅、天相、天府、七杀
+  const maleStarParams = ['taiyang', 'tianji', 'tiangliang', 'tiantong', 'tanlang', 'wenchang', 'zuofu', 'tianxiang', 'tianfu', 'qisha']
   // 女星: 破军、武曲、紫微、太阴、巨门、文曲、右弼
   const femaleStarParams = ['pojun', 'wuqu', 'ziwei', 'taiyin', 'jumen', 'wenqu', 'youbi']
   // 四化盤中显示性别颜色的18颗星（14个主星 + 左右昌曲）
@@ -500,13 +496,13 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, forceTextCo
     'wuqu',     // 武曲 - 女
     'tiantong', // 天同 - 男
     'lianzhen', // 廉贞 - 特例（化禄男、化忌女）
-    'tianfu',   // 天府 - （中性，但在18颗内）
+    'tianfu',   // 天府 - 男
     'taiyin',   // 太阴 - 女
     'tanlang',  // 贪狼 - 男
     'jumen',    // 巨门 - 女
-    'tianxiang',// 天相 - （中性，但在18颗内）
+    'tianxiang',// 天相 - 男
     'tiangliang', // 天梁 - 男
-    'qisha',    // 七杀 - （中性，但在18颗内）
+    'qisha',    // 七杀 - 男
     'pojun',    // 破军 - 女
     'zuofu',    // 左辅 - 男
     'youbi',    // 右弼 - 女
@@ -521,7 +517,7 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, forceTextCo
   let textColor = 'text-text-secondary'
   
   if (chartType === 'transformation') {
-    // 四化盘中：只有18颗关键星显示性别颜色，其他所有星显示浅灰色（包括有ABCD标记的）
+    // 四化盘中：只有18颗关键星显示性别颜色，其他所有星（包括主星和辅星）都显示浅灰色
     if (starEnglishParam && colorfulStarsInTransformation.has(starEnglishParam)) {
       // 这是18颗关键星之一，应用性别颜色
       if (starEnglishParam === 'lianzhen') {
@@ -529,15 +525,15 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, forceTextCo
         if (mutagen === '化禄' || mutagen === '化祿') {
           textColor = 'text-[#00aeff]'  // 水蓝色（男星）
         } else if (mutagen === '化忌') {
-          textColor = 'text-red-500'  // 红色（女星）
+          textColor = 'text-[#ff00ff]'  // 粉红色（女星）
         }
       } else if (maleStarParams.includes(starEnglishParam)) {
         textColor = 'text-[#00aeff]'  // 水蓝色
       } else if (femaleStarParams.includes(starEnglishParam)) {
-        textColor = 'text-red-500'  // 红色
+        textColor = 'text-[#ff00ff]'  // 粉红色
       }
     } else {
-      // 不在18颗关键星中，保持浅灰色
+      // 不在18颗关键星中，强制设为浅灰色（包括所有辅星、雜曜等）
       textColor = 'text-text-secondary'
     }
   } else {
@@ -549,12 +545,21 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, forceTextCo
     }
   }
 
-  if (!hasMutagen && forceTextColorClass) {
-    textColor = forceTextColorClass
+  // 确保四化盤中非18顆星的輔星仍為灰色（即使有forceTextColorClass也要覆蓋）
+  if (!hasMutagen) {
+    if (chartType === 'transformation') {
+      // 四化盤中：只有18顆關鍵星才能改變顏色，其他都是灰色
+      if (!starEnglishParam || !colorfulStarsInTransformation.has(starEnglishParam)) {
+        textColor = 'text-text-secondary'
+      }
+    } else if (forceTextColorClass && !isMajorStar) {
+      // 非四化盤且不是主星，使用forceTextColorClass
+      textColor = forceTextColorClass
+    }
   }
 
   return (
-    <div className="flex flex-col items-center gap-0" style={{ minHeight: '20px', width: '16px', minWidth: '16px' }}>
+    <div className="flex flex-col items-center gap-0" style={{ minHeight: '34px', width: '16px', minWidth: '16px' }}>
       <span
         className={`
           flex flex-col items-center justify-center text-[11px] sm:text-[12px] lg:text-[15px] font-medium px-0 py-0 rounded
@@ -565,60 +570,63 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, forceTextCo
         data-star-name={name}
       >
         {displayName}
+        
       </span>
       {(displayBrightness || mutagen || hasTriremeMutagenSquares) && (
         <div className="flex flex-col items-center justify-center" style={{ gap: '1px', width: '16px', minWidth: '16px' }}>
-          {displayBrightness && brightnessChar && (
-            <span className="text-[11px] sm:text-[12px] lg:text-[15px] font-medium text-text-muted flex items-center justify-center" style={{ width: '16px', minWidth: '16px', minHeight: '12px' }}>{brightnessChar}</span>
+          {/* 亮度行 - 無論有沒有亮度都預留空間 */}
+          {displayBrightness && (
+            <span className="text-[11px] sm:text-[12px] lg:text-[15px] font-medium text-text-muted flex items-center justify-center" style={{ width: '16px', minWidth: '16px', minHeight: '12px' }}>
+              {brightnessChar || '\u00A0'}
+            </span>
           )}
-          {(hasTriremeMutagenSquares || mutagen) && (() => {
-            if (chartType === 'trireme' && hasTriremeMutagenSquares) {
-              const renderTriremeSquare = (text: string, bgColor: string, layerKey: string) => {
-                return (
-                  <span
-                    key={layerKey}
-                    className="flex items-center justify-center lg:!w-[16px] lg:!min-w-[16px] lg:!h-[16px] lg:!text-[14px]"
-                    style={{
-                      borderRadius: '0',
-                      backgroundColor: bgColor,
-                      color: 'white',
-                      width: `${triremeSquareSize}px`,
-                      height: `${triremeSquareSize}px`,
-                      lineHeight: '1',
-                      padding: '0',
-                      transform: 'none',
-                      fontSize: `${triremeSquareFontSize}px`,
-                      fontWeight: 600,
-                      visibility: text ? 'visible' : 'hidden',
-                    }}
-                  >
-                    {text || '\u00A0'}
-                  </span>
-                )
-              }
-
+          {/* 三合盤四化方塊 */}
+          {chartType === 'trireme' && hasTriremeMutagenSquares && (() => {
+            const renderTriremeSquare = (text: string, bgColor: string, layerKey: string) => {
               return (
-                <div className="flex flex-col items-center justify-center" style={{ gap: '1px' }}>
-                  {renderTriremeSquare(triremeBirthMutagen, '#FF3B30', 'birth')}
-                  {renderTriremeSquare(triremeDecadalMutagen || '', '#34C759', 'decadal')}
-                  {renderTriremeSquare(triremeAnnualMutagen || '', '#5AC8FA', 'annual')}
-                </div>
+                <span
+                  key={layerKey}
+                  className="flex items-center justify-center lg:!w-[16px] lg:!min-w-[16px] lg:!h-[16px] lg:!text-[14px]"
+                  style={{
+                    borderRadius: '0',
+                    backgroundColor: bgColor,
+                    color: 'white',
+                    width: `${triremeSquareSize}px`,
+                    height: `${triremeSquareSize}px`,
+                    lineHeight: '1',
+                    padding: '0',
+                    transform: 'none',
+                    fontSize: `${triremeSquareFontSize}px`,
+                    fontWeight: 600,
+                    visibility: text ? 'visible' : 'hidden',
+                  }}
+                >
+                  {text || '\u00A0'}
+                </span>
               )
             }
 
-            if (!mutagen) return null
-
+            return (
+              <div className="flex flex-col items-center justify-center" style={{ gap: '1px' }}>
+                {renderTriremeSquare(triremeBirthMutagen, '#FF3B30', 'birth')}
+                {renderTriremeSquare(triremeDecadalMutagen || '', '#34C759', 'decadal')}
+                {renderTriremeSquare(triremeAnnualMutagen || '', '#5AC8FA', 'annual')}
+              </div>
+            )
+          })()}
+          {/* 飛星盤和四化盤四化 */}
+          {(chartType === 'flying' || chartType === 'transformation') && mutagen && (() => {
             // 根據四化類別和盤面類型獲取顏色
             const getMutagenColors = (mutagen: string, isCurrentDecadalPalace?: boolean, isCurrentAnnualPalace?: boolean) => {
               // 先檢查是否是大限命宮或流年命宮 - 這些宮位的所有四化都應該顯示相應的顏色
               if (chartType === 'flying') {
                 // 大限命宮的所有四化顯示綠色
                 if (isCurrentDecadalPalace && selectedDecadal !== null) {
-                  return { bgHex: '#34C759' }  // 大限四化：綠色
+                  return { bgHex: '#34C759', type: 'decadal' }  // 大限四化：綠色
                 }
                 // 流年命宮的所有四化顯示藍色
                 if (isCurrentAnnualPalace && selectedAnnual !== null) {
-                  return { bgHex: '#007AFF' }  // 流年四化：藍色
+                  return { bgHex: '#007AFF', type: 'annual' }  // 流年四化：藍色
                 }
                 
                 // 非命宮宮位 - 檢查是否屬於該宮位天干的四化（生年四化）
@@ -647,28 +655,28 @@ function StarTag({ star, showBrightness = true, isMajorStar = false, forceTextCo
                                         Object.values(sihuaMap).includes(starNameMap[name] || '')
                     
                     if (isSihuaStar) {
-                      return { bgHex: '#FF3B30', isBirthYearSihua: true }  // 生年四化：紅色
+                      return { bgHex: '#FF3B30', type: 'birth', isBirthYearSihua: true }  // 生年四化：紅色
                     }
                   }
                 }
               }
               
               // 四化盤：根據四化類型返回顏色
-              const colorMap: Record<string, { bgHex: string }> = {
-                '禄': { bgHex: '#34C759' },
-                '祿': { bgHex: '#34C759' },
-                '权': { bgHex: '#AF52DE' },
-                '權': { bgHex: '#AF52DE' },
-                '科': { bgHex: '#007AFF' },
-                '忌': { bgHex: '#FF3B30' },
-                '化禄': { bgHex: '#34C759' },
-                '化祿': { bgHex: '#34C759' },
-                '化权': { bgHex: '#AF52DE' },
-                '化權': { bgHex: '#AF52DE' },
-                '化科': { bgHex: '#007AFF' },
-                '化忌': { bgHex: '#FF3B30' },
+              const colorMap: Record<string, { bgHex: string, type: string }> = {
+                '禄': { bgHex: '#34C759', type: 'lucun' },
+                '祿': { bgHex: '#34C759', type: 'lucun' },
+                '权': { bgHex: '#AF52DE', type: 'quan' },
+                '權': { bgHex: '#AF52DE', type: 'quan' },
+                '科': { bgHex: '#007AFF', type: 'ke' },
+                '忌': { bgHex: '#FF3B30', type: 'ji' },
+                '化禄': { bgHex: '#34C759', type: 'lucun' },
+                '化祿': { bgHex: '#34C759', type: 'lucun' },
+                '化权': { bgHex: '#AF52DE', type: 'quan' },
+                '化權': { bgHex: '#AF52DE', type: 'quan' },
+                '化科': { bgHex: '#007AFF', type: 'ke' },
+                '化忌': { bgHex: '#FF3B30', type: 'ji' },
               }
-              return colorMap[mutagen] || { bgHex: '#FF3B30' }
+              return colorMap[mutagen] || { bgHex: '#FF3B30', type: 'ji' }
             }
             
             const colors = getMutagenColors(mutagen, isCurrentDecadalPalace, isCurrentAnnualPalace)
@@ -728,7 +736,7 @@ function PalaceCard({
   name, stem, branch, majorStars, minorStars, adjectiveStars,
   boshi12Deity, longlifeDeity, isLife, isBody, isCausePalace, isSelected, onClick, chartType = 'flying', selectedDecadal = null, selectedAnnual = null, monthlySequenceLabels = [], selectedAnnualAge = null, selectedAnnualGanZhi = null, selectedAnnualLabel = '', selectedDecadalLabel = '', yearGan = '', gender = 'male', birthInfo = null, palaceData = null, decadalLifePalaceStem = null, annualLifePalaceStem = null
 }: PalaceCardProps) {
-  const { language, transformationShowGods, flyingShowGods, transformationShowCausePalace } = useSettingsStore()
+  const { language, transformationShowGods, flyingShowGods, transformationShowCausePalace, transformationHideMinorStars } = useSettingsStore()
   
   // 計算流年和虛歲 - 基於當前宮位在大限中的相對位置
   let decadalYear: number | null = null
@@ -862,7 +870,14 @@ function PalaceCard({
             />
           ))}
           {/* 輔星 */}
-          {(chartType === 'flying' || chartType === 'transformation' || chartType === 'trireme') && minorStars.map((star, i) => (
+          {(chartType === 'flying' || chartType === 'transformation' || chartType === 'trireme') && minorStars.map((star, i) => {
+            // 四化盤中，如果隱藏輔星，則只顯示四個重要輔星（左輔、右弼、文昌、文曲）
+            const keyMinorStars = ['左輔', '左辅', '右弼', '文昌', '文曲']
+            const shouldShow = !transformationHideMinorStars || chartType !== 'transformation' || keyMinorStars.includes(star.name)
+            
+            if (!shouldShow) return null
+            
+            return (
             <StarTag
               key={`minor-${i}`}
               star={star} 
@@ -876,7 +891,8 @@ function PalaceCard({
               decadalLifePalaceStem={decadalLifePalaceStem}
               annualLifePalaceStem={annualLifePalaceStem}
             />
-          ))}
+            )
+          })}
           {/* 雜曜 - 使用 StarTag 以確保與主星/輔星完全一致的容器與間距 */}
           {(chartType === 'flying' || chartType === 'trireme') && adjectiveStars.map((name, i) => (
             <StarTag
@@ -989,9 +1005,10 @@ interface CenterInfoProps {
   gender: string
   language: any
   nativeName?: string
+  onHourChange?: (hour: number) => void
 }
 
-function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, nativeName }: CenterInfoProps) {
+function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, nativeName, onHourChange }: CenterInfoProps) {
   // 分割四柱 - 格式: "甲辰 丙子 己卯 丁酉"
   const fourPillars = chart.chineseDate?.split(' ') || []
   const [yearPillar, monthPillar, dayPillar, hourPillar] = fourPillars
@@ -1048,11 +1065,7 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
       w-full
       rounded-[2px]
     "
-    style={{ boxShadow: 'inset 4px 3px 12px rgba(148,163,184,0.4), 0 0 0 1px rgba(148,163,184,0.18)' }}>
-      {/* 背景装饰 */}
-      <div className="absolute inset-0 opacity-[0.02]">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 rounded-full border-2 border-white" />
-      </div>
+    style={{ boxShadow: 'inset 4px 3px 12px rgba(148,163,184,0.4), 0 0 0 1px rgba(148,163,184,0.18)', pointerEvents: 'auto' }}>
 
       {/* 标题 */}
       <h3 className="
@@ -1070,33 +1083,111 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
       )}
 
       {/* 出生八字信息 - 按用户指定的格式 */}
-      <div className="text-[10px] sm:text-[11px] lg:text-[12pt] text-gray-500 space-y-0.5 sm:space-y-1 w-full px-1 sm:px-2 text-center">
+      <div className="text-[10px] sm:text-[11px] lg:text-[12pt] text-gray-500 space-y-0.5 sm:space-y-1 w-full px-1 sm:px-2 text-left" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10 }}>
         
         {/* 第一行：真太陽時 */}
-        <div className="flex flex-wrap items-center justify-center gap-x-1 sm:gap-x-1.5 gap-y-0">
+        <div className="flex flex-wrap items-center justify-start gap-x-1 sm:gap-x-1.5 gap-y-0">
           <span className="text-gray-500 whitespace-nowrap">{t('chart.solarTime', language)}:</span>
           <span className="text-gray-500 font-mono break-all">{solarDate}</span>
         </div>
         
         {/* 第二行：出生時間 */}
-        <div className="flex flex-wrap items-center justify-center gap-x-1 sm:gap-x-1.5 gap-y-0">
+        <div className="flex flex-wrap items-center justify-start gap-x-2 sm:gap-x-1.5 gap-y-0" style={{ pointerEvents: 'auto' }}>
           <span className="text-gray-500 whitespace-nowrap">{t('chart.birthTime', language)}:</span>
-          <span className="text-gray-500 font-mono break-all">
-            {birthInfo?.year && birthInfo?.month && birthInfo?.day
-              ? `${String(birthInfo.year).padStart(4, '0')}-${String(birthInfo.month).padStart(2, '0')}-${String(birthInfo.day).padStart(2, '0')} ${birthTime}`
-              : birthTime
-            }
-          </span>
+          <div className="flex items-center gap-0" style={{ pointerEvents: 'auto' }}>
+            {/* 時間顯示 */}
+            <span className="text-gray-500 font-mono break-all px-2 py-0.5">
+              {birthInfo?.year && birthInfo?.month && birthInfo?.day
+                ? `${String(birthInfo.year).padStart(4, '0')}-${String(birthInfo.month).padStart(2, '0')}-${String(birthInfo.day).padStart(2, '0')} ${birthTime}`
+                : birthTime
+              }
+            </span>
+            {/* 按鈕組 */}
+            <div className="flex items-center gap-2 ml-2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  console.log('减按钮被点击', onHourChange, birthInfo?.hour)
+                  if (onHourChange && birthInfo?.hour !== undefined) {
+                    // 計算當前時辰索引
+                    let currentShichenIndex: number
+                    if (birthInfo.hour === 23) {
+                      currentShichenIndex = 12  // 晚子時
+                    } else if (birthInfo.hour === 0) {
+                      currentShichenIndex = 0   // 早子時
+                    } else {
+                      currentShichenIndex = Math.floor((birthInfo.hour + 1) / 2)
+                    }
+                    
+                    // 上一個時辰
+                    let prevShichenIndex = (currentShichenIndex - 1 + 13) % 13
+                    if (prevShichenIndex === 12) prevShichenIndex = 11  // 從晚子時回退到亥時
+                    
+                    // 時辰索引轉換回小時
+                    const newHour = 
+                      prevShichenIndex === 0 ? 0 :
+                      prevShichenIndex === 12 ? 23 :
+                      prevShichenIndex * 2 - 1
+                    
+                    onHourChange(newHour)
+                  }
+                }}
+                style={{ pointerEvents: 'auto' }}
+                className="px-3.5 py-0 text-sm font-medium bg-gray-200 hover:bg-gray-300 active:bg-gray-400 rounded transition cursor-pointer"
+              >
+                −
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  console.log('加按钮被点击', onHourChange, birthInfo?.hour)
+                  if (onHourChange && birthInfo?.hour !== undefined) {
+                    // 計算當前時辰索引
+                    let currentShichenIndex: number
+                    if (birthInfo.hour === 23) {
+                      currentShichenIndex = 12  // 晚子時
+                    } else if (birthInfo.hour === 0) {
+                      currentShichenIndex = 0   // 早子時
+                    } else {
+                      currentShichenIndex = Math.floor((birthInfo.hour + 1) / 2)
+                    }
+                    
+                    // 下一個時辰
+                    let nextShichenIndex = (currentShichenIndex + 1) % 12
+                    if (currentShichenIndex === 11) {
+                      nextShichenIndex = 12  // 從亥時進到晚子時
+                    }
+                    
+                    // 時辰索引轉換回小時
+                    const newHour = 
+                      nextShichenIndex === 0 ? 0 :
+                      nextShichenIndex === 12 ? 23 :
+                      nextShichenIndex * 2 - 1
+                    
+                    onHourChange(newHour)
+                  }
+                }}
+                style={{ pointerEvents: 'auto' }}
+                className="px-3.5 py-0 text-sm font-medium bg-gray-200 hover:bg-gray-300 active:bg-gray-400 rounded transition cursor-pointer"
+              >
+                +
+              </button>
+            </div>
+          </div>
         </div>
         
         {/* 第三行：農曆 - 完整年月日時 */}
-        <div className="flex flex-wrap items-center justify-center gap-x-1 sm:gap-x-1.5 gap-y-0">
+        <div className="flex flex-wrap items-center justify-start gap-x-1 sm:gap-x-1.5 gap-y-0">
           <span className="text-gray-500 whitespace-nowrap">{t('chart.lunarDate', language)}:</span>
           <span className="text-gray-500 break-words">{getLunarDateFull()}</span>
         </div>
         
         {/* 第四行：四柱 */}
-        <div className="flex flex-wrap items-center justify-center gap-x-1 sm:gap-x-1.5 gap-y-0">
+        <div className="flex flex-wrap items-center justify-start gap-x-1 sm:gap-x-1.5 gap-y-0">
           <span className="text-gray-500 whitespace-nowrap">{t('chart.fourPillars', language)}:</span>
           <span className="text-gray-500 break-words">
             {yearPillar} {monthPillar} {dayPillar} {hourPillar}
@@ -1104,7 +1195,7 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
         </div>
         
         {/* 第五行：五行局 + 性别 */}
-        <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2">
+        <div className="flex flex-wrap items-center justify-start gap-1 sm:gap-2">
           <span className="text-gray-500">{chart.fiveElementsClass}</span>
           <span className="text-gray-500">
             {yinYangLabel}{genderText}
@@ -1113,14 +1204,14 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
         
         {/* 第六行：納音 */}
         {nayin && (
-          <div className="flex flex-wrap items-center justify-center gap-x-1 sm:gap-x-1.5 gap-y-0">
+          <div className="flex flex-wrap items-center justify-start gap-x-1 sm:gap-x-1.5 gap-y-0">
             <span className="text-gray-500 whitespace-nowrap">{t('chart.nayin', language)}:</span>
             <span className="text-gray-500 break-words">{nayin}</span>
           </div>
         )}
         
         {/* 第七行：命主 + 身主 */}
-        <div className="text-[10px] sm:text-[11px] lg:text-[12pt] text-gray-500 flex items-center justify-center gap-2 sm:gap-4 text-[7px] sm:text-[8px] lg:text-[9pt]">
+        <div className="text-[10px] sm:text-[11px] lg:text-[12pt] text-gray-500 flex items-center justify-start gap-2 sm:gap-4 text-[7px] sm:text-[8px] lg:text-[9pt]">
           <div className="whitespace-nowrap">
             <span className="text-gray-500">{t('chart.soul', language)}:</span>
             <span className="text-gray-500 ml-0.5">{getLocalizedStarName(chart.soul, language)}</span>
@@ -1132,7 +1223,7 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
         </div>
         
         {/* 第八行：生肖 + 星座 */}
-        <div className="flex items-center justify-center gap-2 sm:gap-4 text-[10px] sm:text-[11px] lg:text-[12pt]">
+        <div className="flex items-center justify-start gap-2 sm:gap-4 text-[10px] sm:text-[11px] lg:text-[12pt]">
           <div className="whitespace-nowrap">
             <span className="text-gray-500">{t('chart.zodiac', language)}:</span>
             <span className="text-gray-500 ml-0.5">{getLocalizedZodiacName(chart.zodiac, language)}</span>
@@ -1576,7 +1667,7 @@ function DecadalAnnualMonthlyTable({
    ------------------------------------------------------------ */
 
 export function ChartDisplay() {
-  const { chart, birthInfo } = useChartStore()
+  const { chart, birthInfo, setBirthInfo, setChart } = useChartStore()
   const { language, defaultChartType, monthlyArrangementMethod } = useSettingsStore()
   const [selectedPalace, setSelectedPalace] = useState<string | null>(null)
   const [chartType, setChartType] = useState<'flying' | 'trireme' | 'transformation'>(defaultChartType)
@@ -2296,7 +2387,33 @@ export function ChartDisplay() {
         {/* Row 1: left + center(2x2) + right */}
         {renderPalace(grid[1][0], '1-0')}
         <div className="col-span-2 row-span-2" data-centerinfo>
-          <CenterInfo chart={chart} solarDate={solarDate} birthTime={birthTime} birthInfo={birthInfo} gender={genderDisplay} language={language} nativeName={birthInfo?.name} />
+          <CenterInfo 
+            chart={chart} 
+            solarDate={solarDate} 
+            birthTime={birthTime} 
+            birthInfo={birthInfo} 
+            gender={genderDisplay} 
+            language={language} 
+            nativeName={birthInfo?.name}
+            onHourChange={(hour) => {
+              if (birthInfo && birthInfo.year && birthInfo.month && birthInfo.day && birthInfo.gender) {
+                const updatedBirthInfo: BirthInfo = {
+                  year: birthInfo.year,
+                  month: birthInfo.month,
+                  day: birthInfo.day,
+                  hour: hour,
+                  minute: birthInfo.minute || 0,
+                  gender: birthInfo.gender as 'male' | 'female',
+                  isLeapMonth: birthInfo.isLeapMonth || false,
+                  name: birthInfo.name,
+                  birthLocation: birthInfo.birthLocation,
+                }
+                setBirthInfo(updatedBirthInfo)
+                const newChart = generateChart(updatedBirthInfo)
+                setChart(newChart)
+              }
+            }}
+          />
         </div>
         {renderPalace(grid[1][3], '1-3')}
 

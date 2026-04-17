@@ -50,6 +50,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     transformationShowCentralEightCharacters,
     transformationShowCentralFixBoard,
     transformationShowCausePalace,
+    transformationHideMinorStars,
     // 飛星盤面設定
     flyingShowGods,
     flyingShowMinorStars,
@@ -82,6 +83,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     setTransformationShowCentralEightCharacters,
     setTransformationShowCentralFixBoard,
     setTransformationShowCausePalace,
+    setTransformationHideMinorStars,
     // 飛星盤面相關的setter
     setFlyingShowGods,
     setFlyingShowMinorStars,
@@ -519,6 +521,15 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                   <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${transformationShowCausePalace ? 'left-5' : 'left-1'}`} />
                 </div>
                 <span className="text-sm text-text-secondary group-hover:text-text transition-colors">{t('settings.showCausePalace', language)}</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div
+                  className={`w-10 h-6 rounded-full relative transition-colors ${transformationHideMinorStars ? 'bg-star' : 'bg-white/10'}`}
+                  onClick={() => setTransformationHideMinorStars(!transformationHideMinorStars)}
+                >
+                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${transformationHideMinorStars ? 'left-5' : 'left-1'}`} />
+                </div>
+                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">隱藏輔星、雜曜</span>
               </label>
             </div>
           </div>

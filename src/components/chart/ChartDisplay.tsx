@@ -281,8 +281,8 @@ function getLocalizedAstroSign(sign: string | undefined, language: 'zh-TW' | 'zh
    星曜标签组件 - 带亮度和四化
    ------------------------------------------------------------ */
 
-function StarTag({ star, showBrightness = true, isMajorStar = false, forceTextColorClass = '', chartType = 'flying', selectedDecadal = null, selectedAnnual = null, isCurrentDecadalPalace = false, isCurrentAnnualPalace = false, decadalLifePalaceStem = null, annualLifePalaceStem = null }: StarTagProps) {
-  const { language, triremeShowStarBrightness, triremeMutagenSquareSize } = useSettingsStore()
+function StarTag({ star, isMajorStar = false, forceTextColorClass = '', chartType = 'flying', selectedDecadal = null, selectedAnnual = null, isCurrentDecadalPalace = false, isCurrentAnnualPalace = false, decadalLifePalaceStem = null, annualLifePalaceStem = null }: StarTagProps) {
+  const { language, triremeMutagenSquareSize } = useSettingsStore()
   // 三合盤顯示亮度；四化和飛星不顯示亮度
   const displayBrightness = chartType === 'trireme' ? true : false
   const { name, brightness, mutagen } = star

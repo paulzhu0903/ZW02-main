@@ -1255,9 +1255,7 @@ function buildKLineUserPrompt(
 
 ## 基本信息
 - 出生年份: ${birthYear}年
-- 命宫主星: ${knowledge.命宫主星.map(s => s.name).join('、') || '无主星'}
-- 身宫位置: ${knowledge.身宫位置}
-- 身宫主星: ${knowledge.身宫主星.map(s => s.name).join('、') || '无主星'}
+- 命宫主星: ${knowledge.命宫主星.map((s: any) => s.name).join('、') || '无主星'}
 
 ## 本命四化
 ${sihuaInfo}

@@ -36,7 +36,7 @@ const TABS_CONFIG: Array<{ key: TabType; labelKey: string }> = [
 ]
 
 /* Icon mapping */
-const getTabIcon = (tabKey: TabType | 'cases' | 'settings' = null) => {
+const getTabIcon = (tabKey: TabType | 'cases' | 'settings' | null = null) => {
   const iconMap: Record<string, string> = {
     cases: FileIcon,
     chart: AnalysisIcon,

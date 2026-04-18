@@ -10,6 +10,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useChartStore, useSettingsStore } from '@/stores'
 import { t, BRIGHTNESS_MAP as BRIGHTNESS_MAP_I18N } from '@/lib/i18n'
+import { getChineseVariantCandidates, localizeChineseText } from '@/lib/localize-knowledge'
+import { getStarEnglishParam, getStarLookupKey } from '@/lib/star-name'
 import type { FunctionalAstrolabe, BirthInfo } from '@/lib/astro'
 import { calculateSolarTime, generateChart } from '@/lib/astro'
 import { SIHUA_BY_GAN, SIHUA_BY_GAN_TRADITIONAL } from '@/knowledge/sihua'
@@ -20,7 +22,6 @@ import {
   PALACE_BRANCH_INDEX,
   PALACE_ORDER,
   PALACE_NAME_TO_ENGLISH_MAP,
-  STAR_NAME_MAP,
   MUTAGEN_COLORS,
   type StarTagProps,
   type PalaceCardProps,
@@ -38,6 +39,7 @@ import {
 } from './mutagenLines'
 import { MutagenControls } from './MutagenControls'
 import { PalaceHintBubble } from './Bubble'
+import { DottedArcLayer } from './DottedArcLayer'
 
 /* ============================================================
    辅助函数
@@ -220,7 +222,7 @@ function getBrightnessDisplay(brightness: string | undefined, language: 'zh-TW' 
 function getLocalizedStarName(name: string | undefined, language: 'zh-TW' | 'zh-CN'): string {
   if (!name) return ''
 
-  const englishKey = STAR_NAME_MAP[name]
+  const englishKey = getStarEnglishParam(name)
   return englishKey ? t(`star.${englishKey}`, language) || name : name
 }
 
@@ -370,81 +372,16 @@ function StarTag({ star, isMajorStar = false, forceTextColorClass = '', chartTyp
   // t()函数会自动将中文星星名称映射到英文参数名并翻译
   const displayName = t(`star.${name}`, language)
 
-  // 中文星名到英文参数名的映射（包含繁简体和简体变体）
-  // 这个映射包含了所有 14 个主星 + 4 个关键辅星的所有可能写法，以及其他杂曜星
-  const chineseToEnglishStarMap: Record<string, string> = {
-    // 14 個主星 - 繁简体
-    '紫微': 'ziwei',
-    '天機': 'tianji', '天机': 'tianji',
-    '太陽': 'taiyang', '太阳': 'taiyang',
-    '武曲': 'wuqu',
-    '天同': 'tiantong',
-    '廉貞': 'lianzhen', '廉贞': 'lianzhen',
-    '天府': 'tianfu',
-    '太陰': 'taiyin', '太阴': 'taiyin',
-    '貪狼': 'tanlang', '贪狼': 'tanlang',
-    '巨門': 'jumen', '巨门': 'jumen',
-    '天相': 'tianxiang',
-    '天梁': 'tiangliang',
-    '七殺': 'qisha', '七杀': 'qisha',
-    '破軍': 'pojun', '破军': 'pojun',
-    // 4 個關鍵輔星 - 繁简体
-    '左輔': 'zuofu', '左辅': 'zuofu',
-    '右弼': 'youbi',
-    '文昌': 'wenchang',
-    '文曲': 'wenqu',
-    // 其他杂曜星（在四化盘中显示为灰色）- 繁简体
-    '擎羊': 'qingyang',
-    '陀羅': 'tuoluo', '陀罗': 'tuoluo',
-    '火星': 'huoxing',
-    '鈴星': 'lingxing', '铃星': 'lingxing',
-    '地空': 'dikong',
-    '地劫': 'dijie',
-    '祿存': 'lucun', '禄存': 'lucun',
-    '天馬': 'tianma', '天马': 'tianma',
-    '紅鸞': 'hongluan', '红鸾': 'hongluan',
-    '天喜': 'tianxi',
-    '天刑': 'tianxing',
-    '天姚': 'tianyao',
-    '天哭': 'tiankue',
-    '天虛': 'tianxu', '天虚': 'tianxu',
-    '龍池': 'longchi', '龙池': 'longchi',
-    '鳳閣': 'fengge', '凤阁': 'fengge',
-    '華蓋': 'huagai', '华盖': 'huagai',
-    '咸池': 'xianchi',
-    '天德': 'tiande',
-    '月德': 'yuede',
-    '天官': 'tianguan',
-    '天福': 'tianfu2',
-    '解神': 'jieshen',
-    '天巫': 'tianwu',
-    '天月': 'tianyue',
-    '陰煞': 'yinsha', '阴煞': 'yinsha',
-    '台輔': 'taifu',
-    '封誥': 'fenggao', '封诰': 'fenggao',
-    '三台': 'santai',
-    '八座': 'bazuo',
-    '恩光': 'enguang',
-    '天貴': 'tiangui', '天贵': 'tiangui',
-    '天壽': 'tianshou', '天寿': 'tianshou',
-    '天傷': 'tianshang', '天伤': 'tianshang',
-    '龍德': 'longde', '龙德': 'longde',
-    '天鑰': 'youyue', '天钺': 'youyue',
-    '天魁': 'tiankui',
-  }
-
-  const normalizeStarName = (starName: string): string => chineseToEnglishStarMap[starName] || starName
-
   const getDecadalMutagenForCurrentStar = (): string | null => {
     if (chartType !== 'trireme' || !decadalLifePalaceStem || selectedDecadal === null) return null
 
-    const starNameNormalized = normalizeStarName(name)
+    const starNameNormalized = getStarLookupKey(name)
     const sihuaMapSimple = SIHUA_BY_GAN[decadalLifePalaceStem] || {}
     const sihuaMapTraditional = SIHUA_BY_GAN_TRADITIONAL[decadalLifePalaceStem] || {}
 
     const findMutagenKey = (sihuaMap: Record<string, string>): string | null => {
       for (const [mutagenKey, starName] of Object.entries(sihuaMap)) {
-        if (normalizeStarName(starName) === starNameNormalized) {
+        if (getStarLookupKey(starName) === starNameNormalized) {
           return mutagenKey
         }
       }
@@ -459,13 +396,13 @@ function StarTag({ star, isMajorStar = false, forceTextColorClass = '', chartTyp
   const getAnnualMutagenForCurrentStar = (): string | null => {
     if (chartType !== 'trireme' || !annualLifePalaceStem || selectedAnnual === null) return null
 
-    const starNameNormalized = normalizeStarName(name)
+    const starNameNormalized = getStarLookupKey(name)
     const sihuaMapSimple = SIHUA_BY_GAN[annualLifePalaceStem] || {}
     const sihuaMapTraditional = SIHUA_BY_GAN_TRADITIONAL[annualLifePalaceStem] || {}
 
     const findMutagenKey = (sihuaMap: Record<string, string>): string | null => {
       for (const [mutagenKey, starName] of Object.entries(sihuaMap)) {
-        if (normalizeStarName(starName) === starNameNormalized) {
+        if (getStarLookupKey(starName) === starNameNormalized) {
           return mutagenKey
         }
       }
@@ -512,7 +449,7 @@ function StarTag({ star, isMajorStar = false, forceTextColorClass = '', chartTyp
   ])
   
   // 获取星名的英文参数名
-  const starEnglishParam = chineseToEnglishStarMap[name]
+  const starEnglishParam = getStarEnglishParam(name)
   
   // 主星用黑字，其他星耀用浅灰；四化盘中18颗关键星根据性别显示颜色
   let textColor = 'text-text-secondary'
@@ -636,28 +573,12 @@ function StarTag({ star, isMajorStar = false, forceTextColorClass = '', chartTyp
                 
                 // 非命宮宮位 - 檢查是否屬於該宮位天干的四化（生年四化）
                 if (star.palaceStem) {
-                  // 簡繁體星名對照
-                  const starNameMap: Record<string, string> = {
-                    '廉貞': '廉贞', '廉贞': '廉貞',
-                    '破軍': '破军', '破军': '破軍',
-                    '武曲': '武曲',
-                    '太陽': '太阳', '太阳': '太陽',
-                    '太陰': '太阴', '太阴': '太陰',
-                    '天機': '天机', '天机': '天機',
-                    '天梁': '天梁',
-                    '天同': '天同',
-                    '貪狼': '贪狼', '贪狼': '貪狼',
-                    '巨門': '巨门', '巨门': '巨門',
-                    '文曲': '文曲',
-                    '文昌': '文昌',
-                  }
-                  
                   // 獲取該天干的四化映射（同時檢查簡體和繁體）
                   const sihuaMap = SIHUA_BY_GAN[star.palaceStem] || SIHUA_BY_GAN_TRADITIONAL[star.palaceStem]
                   if (sihuaMap) {
                     // 檢查當前星是否在該天干的四化列表中
-                    const isSihuaStar = Object.values(sihuaMap).includes(name) || 
-                                        Object.values(sihuaMap).includes(starNameMap[name] || '')
+                    const currentStarKey = getStarLookupKey(name)
+                    const isSihuaStar = Object.values(sihuaMap).some((starName) => getStarLookupKey(starName) === currentStarKey)
                     
                     if (isSihuaStar) {
                       return { bgHex: '#FF3B30', type: 'birth', isBirthYearSihua: true }  // 生年四化：紅色
@@ -1054,16 +975,10 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
     // 从chart.time获取时辰名称（如"未時"或"未"）
     let shichen = (chart as any).time || (language === 'zh-TW' ? '未時' : '未时')
     if (shichen) {
-      if (language === 'zh-TW') {
-        shichen = shichen.replace(/时/g, '時')
-        if (!shichen.includes('時')) {
-          shichen = shichen + '時'
-        }
-      } else {
-        shichen = shichen.replace(/時/g, '时')
-        if (!shichen.includes('时')) {
-          shichen = shichen + '时'
-        }
+      shichen = localizeChineseText(shichen, language)
+      const shichenSuffix = language === 'zh-TW' ? '時' : '时'
+      if (!shichen.includes(shichenSuffix)) {
+        shichen = shichen + shichenSuffix
       }
     }
     
@@ -1284,10 +1199,10 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
         <div className="w-full mt-2 pt-2 border-t border-white/[0.07] flex items-center justify-center gap-2">
           <button
             onClick={onToggleSanFangSiZheng}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[2px] text-[8pt] font-medium transition-all border ${
+            className={`flex items-center gap-1.5 px-3.5 py-0 text-sm font-medium rounded transition cursor-pointer ${
               showSanFangSiZheng
-                ? 'bg-yellow-400/20 border-yellow-400/50 text-yellow-300'
-                : 'bg-white/[0.04] border-white/20 text-gray-500 hover:border-yellow-400/30 hover:text-yellow-300/60'
+                ? 'bg-gray-300 text-gray-800'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
             }`}
             title="點選宮位時顯示三合宮位三角形及對宮連線"
           >
@@ -1300,17 +1215,17 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
           {onToggleBubbleHint !== undefined && (
             <button
               onClick={onToggleBubbleHint}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[2px] text-[8pt] font-medium transition-all border ${
+              className={`flex items-center gap-1.5 px-3.5 py-0 text-sm font-medium rounded transition cursor-pointer ${
                 showBubbleHint
-                  ? 'bg-star/20 border-star/50 text-star'
-                  : 'bg-white/[0.04] border-white/20 text-gray-500 hover:border-star/30 hover:text-star/60'
+                  ? 'bg-gray-300 text-gray-800'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
               }`}
               title="點選宮位時顯示 Bubble Hint"
             >
               <svg className="w-3 h-3" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M2 3.5A2.5 2.5 0 0 1 4.5 1h7A2.5 2.5 0 0 1 14 3.5v4A2.5 2.5 0 0 1 11.5 10H7l-3.2 2.7c-.7.6-1.8.1-1.8-.8V3.5z" />
               </svg>
-              bubble hint
+              宮位提示
             </button>
           )}
         </div>
@@ -1753,9 +1668,10 @@ export function ChartDisplay() {
     C: boolean
     D: boolean
   }>({ A: true, B: true, C: true, D: true })
+  const arcResetVersion = 0
 
-  const lineStrokeWidth = isCompactMobile ? 1.25 : 2
-  const lineDashArray = isCompactMobile ? '4,4' : '5,5'
+  const lineStrokeWidth = isCompactMobile ? 1 : 2
+  const lineDashArray = isCompactMobile ? '1,1' : '2,2'
   const arrowMarkerSize = isCompactMobile ? 7 : 10
   const arrowRefX = isCompactMobile ? 6.3 : 9
   const arrowRefY = isCompactMobile ? 2.2 : 3
@@ -1877,14 +1793,13 @@ export function ChartDisplay() {
       const mutagenStar = sihuaMap[mutagenKey]
       if (!mutagenStar) return
 
-      // 將簡體星名轉換為繁體
-      const mutagenStarChinese = STAR_NAME_MAP[mutagenStar] || mutagenStar
+      const mutagenStarCandidates = getChineseVariantCandidates(mutagenStar)
 
       // 找到該星的 DOM 元素
       const starElements = Array.from(gridRef.current!.querySelectorAll<HTMLElement>('span[data-star-name]'))
       const starElement = starElements.find(el => {
         const starNameAttr = el.getAttribute('data-star-name') || ''
-        return starNameAttr === mutagenStarChinese || starNameAttr === mutagenStar
+        return mutagenStarCandidates.includes(starNameAttr)
       })
 
       if (starElement) {
@@ -2045,7 +1960,9 @@ export function ChartDisplay() {
           key={key}
           {...palace}
           isSelected={selectedPalace === palace.name}
-          onClick={() => setSelectedPalace(selectedPalace === palace.name ? null : palace.name)}
+          onClick={() => {
+            setSelectedPalace(selectedPalace === palace.name ? null : palace.name)
+          }}
           chartType={chartType}
           selectedDecadal={selectedDecadal}
           selectedAnnual={selectedAnnual}
@@ -2143,14 +2060,9 @@ export function ChartDisplay() {
                   // 先嘗試完全匹配，再嘗試轉換後的名稱
                   const starElement = Array.from(cardElement.querySelectorAll('span[data-star-name]')).find(el => {
                     const starNameAttr = el.getAttribute('data-star-name') || ''
-                    // 方法1: 完全相等
-                    if (starNameAttr === line.starName) return true
-                    // 方法2: 嘗試繁體/簡體互相轉換配對
-                    const starNameChinese = STAR_NAME_MAP[starNameAttr] || starNameAttr
-                    if (starNameChinese === line.starName) return true
-                    // 方法3: line.starName也嘗試逆向轉換
-                    if (starNameAttr === line.starName) return true
-                    return false
+                    const attrCandidates = getChineseVariantCandidates(starNameAttr)
+                    const lineCandidates = getChineseVariantCandidates(line.starName || '')
+                    return attrCandidates.some(name => lineCandidates.includes(name))
                   }) as HTMLElement
                   
                   if (!starElement) {
@@ -2319,142 +2231,17 @@ export function ChartDisplay() {
                   )
                 })}
               
-              {/* 選中宮位發出的四條線 - 從天干頂部到四化星曜底部（不含標籤，通過 useEffect 修改 star tag 樣式） */}
-              {selectedPalace && (() => {
-                const gridElement = gridRef.current
-                if (!gridElement) return null
-                
-                // 找到選中宮位的詳細信息
-                let selectedPalaceData: PalaceData | null = null
-                if (selectedPalace) {
-                  selectedPalaceData = palaceData.find(p => p.name === selectedPalace) || null
-                }
-                
-                if (!selectedPalaceData) {
-                  console.warn(`[四化線] 找不到宮位: ${selectedPalace}`)
-                  return null
-                }
-                
-                const stem = selectedPalaceData.stem
-                const sihuaMap = SIHUA_BY_GAN[stem]
-                
-                if (!sihuaMap) {
-                  console.warn(`[四化線] 找不到天干的四化表: ${stem}`)
-                  return null
-                }
-                
-                // 獲取起點：選中宮位的天干頂部
-                const fromCardSelector = `[data-palace-branch="${selectedPalaceData.branch}"]`
-                const fromCardElement = gridElement.querySelector(fromCardSelector) as HTMLElement
-                if (!fromCardElement) {
-                  console.warn(`[四化線] 找不到宮位card: ${selectedPalaceData.branch}`)
-                  return null
-                }
-                
-                const bottomFlexDiv = fromCardElement.querySelector('div.relative.flex.items-center.justify-between') as HTMLElement
-                let stemStartX: number | null = null
-                let stemStartY: number | null = null
-                
-                if (bottomFlexDiv) {
-                  const stemContainers = bottomFlexDiv.querySelectorAll('div[style*="vertical-rl"]')
-                  if (stemContainers.length > 0) {
-                    const stemContainer = stemContainers[0] as HTMLElement
-                    const gridRect = gridElement.getBoundingClientRect()
-                    const stemRect = stemContainer.getBoundingClientRect()
-                    stemStartX = stemRect.left - gridRect.left + stemRect.width / 2
-                    stemStartY = stemRect.top - gridRect.top
-                  }
-                }
-                
-                if (stemStartX === null || stemStartY === null) {
-                  console.warn(`[四化線] 找不到天干位置`)
-                  return null
-                }
-                
-                // 為四個四化類型生成線條
-                const mutagenKeys = ['化禄', '化权', '化科', '化忌']
-                
-                return (
-                  <>
-                    {mutagenKeys.map((mutagenKey, keyIdx) => {
-                      // 檢查該四化類型是否應該顯示
-                      const mutagenMapping: Record<string, 'A' | 'B' | 'C' | 'D'> = {
-                        '化禄': 'A',
-                        '化权': 'B',
-                        '化科': 'C',
-                        '化忌': 'D'
-                      }
-                      const label = mutagenMapping[mutagenKey]
-                      const shouldDisplay = mutagenDisplay[label] ?? true
-                      if (!shouldDisplay) return null
-                      
-                      const mutagenStar = sihuaMap[mutagenKey]
-                      if (!mutagenStar) return null
-                      
-                      // 將簡體星名轉換為繁體以匹配命盤數據
-                      const mutagenStarChinese = STAR_NAME_MAP[mutagenStar] || mutagenStar
-                      
-                      // 在palaceData中找到包含該星曜的宮位和該星的位置
-                      let starEndX: number | null = null
-                      let starEndY: number | null = null
-                      
-                      for (const palace of palaceData) {
-                        const allStars = [...palace.majorStars, ...palace.minorStars]
-                        const targetStarIndex = allStars.findIndex(s => s.name === mutagenStarChinese || s.name === mutagenStar)
-                        
-                        if (targetStarIndex !== -1) {
-                          // 找到該星所在的宮位card
-                          const toPalaceCardSelector = `[data-palace-branch="${palace.branch}"]`
-                          const toPalaceCardElement = gridElement.querySelector(toPalaceCardSelector) as HTMLElement
-                          if (!toPalaceCardElement) continue
-                          
-                          // 在宮位card中找到該星曜的DOM元素
-                          const starElements = Array.from(
-                            toPalaceCardElement.querySelectorAll<HTMLElement>('span[data-star-name]')
-                          )
-                          const starElement = starElements.find(el => {
-                            const starNameAttr = el.getAttribute('data-star-name') || ''
-                            return starNameAttr === mutagenStarChinese || starNameAttr === mutagenStar
-                          }) as HTMLElement
-                          
-                          if (starElement) {
-                            const gridRect = gridElement.getBoundingClientRect()
-                            const starRect = starElement.getBoundingClientRect()
-                            starEndX = starRect.left - gridRect.left + starRect.width / 2
-                            starEndY = starRect.bottom - gridRect.top
-                          }
-                          break
-                        }
-                      }
-                      
-                      if (starEndX === null || starEndY === null) {
-                        console.warn(`[四化線] 找不到星曜: ${mutagenStar}`)
-                        return null
-                      }
-                      
-                      // 提取四化類型作為顏色鍵
-                      const mutagenType = getMutagenType(mutagenKey)
-                      const colorInfo = MUTAGEN_COLORS[mutagenType] || MUTAGEN_COLORS[mutagenKey]
-                      
-                      return (
-                        <g key={`selected-palace-line-${keyIdx}`}>
-                          {/* 實線箭頭 - 從天干頂部到星曜底部，和離心實線相同粗度 */}
-                          <line
-                            x1={stemStartX + gridOffset.x}
-                            y1={stemStartY + gridOffset.y}
-                            x2={starEndX + gridOffset.x}
-                            y2={starEndY + gridOffset.y}
-                            stroke={colorInfo.color}
-                            strokeWidth={lineStrokeWidth}
-                            opacity={isCompactMobile ? 0.5 : 0.6}
-                            markerEnd={`url(#${colorInfo.marker})`}
-                          />
-                        </g>
-                      )
-                    })}
-                  </>
-                )
-              })()}
+              <DottedArcLayer
+                palaceData={palaceData}
+                selectedPalace={selectedPalace}
+                setSelectedPalace={setSelectedPalace}
+                gridRef={gridRef}
+                gridOffset={gridOffset}
+                isCompactMobile={isCompactMobile}
+                lineStrokeWidth={lineStrokeWidth}
+                lineDashArray={lineDashArray}
+                resetVersion={arcResetVersion}
+              />
             </>
           )
         })()}

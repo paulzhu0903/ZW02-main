@@ -10,21 +10,12 @@ import { useSettingsStore } from '@/stores'
 import { SIHUA_BY_GAN, SIHUA_BY_GAN_TRADITIONAL } from '@/knowledge/sihua'
 import { getPalaceInfo } from '@/knowledge/palaces'
 import { getStarInfo } from '@/knowledge/stars/majorStars'
+import { localizeChineseText, localizeKnowledgeText } from '@/lib/localize-knowledge'
+import { normalizeStarName as normalizeStarNameShared } from '@/lib/star-name'
 import type { PalaceData } from './types'
 
 type TabType = 'natal' | 'decadal' | 'annual'
 type ChartType = 'flying' | 'trireme' | 'transformation'
-
-const STAR_NAME_NORMALIZATION: Record<string, string> = {
-  '廉貞': '廉贞',
-  '天機': '天机',
-  '太陽': '太阳',
-  '太陰': '太阴',
-  '貪狼': '贪狼',
-  '巨門': '巨门',
-  '七殺': '七杀',
-  '破軍': '破军',
-}
 
 function normalizePalaceName(name: string): string {
   return name
@@ -37,15 +28,26 @@ function normalizePalaceName(name: string): string {
     .replace('疾厄宮', '疾厄宫')
     .replace('遷移宮', '迁移宫')
     .replace('交友宮', '交友宫')
+    .replace('奴仆宮', '交友宫')
+    .replace('奴僕宮', '交友宫')
+    .replace('仆役宮', '交友宫')
+    .replace('僕役宮', '交友宫')
     .replace('官祿宮', '官禄宫')
     .replace('田宅宮', '田宅宫')
     .replace('福德宮', '福德宫')
     .replace('父母宮', '父母宫')
+    .replace('奴仆', '交友')
+    .replace('奴僕', '交友')
+    .replace('仆役', '交友')
+    .replace('僕役', '交友')
 }
 
-function normalizeStarName(name: string): string {
-  const clean = name.replace(/化[祿禄權权科忌]/g, '').trim()
-  return STAR_NAME_NORMALIZATION[clean] || clean
+function displayPalaceName(name: string): string {
+  return name
+    .replace('奴仆', '交友')
+    .replace('奴僕', '交友')
+    .replace('仆役', '交友')
+    .replace('僕役', '交友')
 }
 
 function mutagenToABCD(mutagenKey: string): string {
@@ -80,6 +82,9 @@ export function PalaceHintBubble({
   decadalStem, annualStem, annualGanZhi,
 }: PalaceHintBubbleProps) {
   const { language } = useSettingsStore()
+  const displayName = displayPalaceName(palace.name)
+  const localizedDisplayName = localizeChineseText(displayName, language)
+  const localizeVisibleText = (text: string) => localizeChineseText(text, language)
 
   const hasDecadal = !!decadalStem
   const hasAnnual  = !!annualStem && !!annualGanZhi
@@ -92,7 +97,11 @@ export function PalaceHintBubble({
   const margin = 8
   const viewW = window.innerWidth
   const viewH = window.innerHeight
-  const centerInfoRect = document.querySelector('[data-centerinfo]')?.getBoundingClientRect() || null
+  const centerInfoEl = document.querySelector('[data-centerinfo]') as HTMLElement | null
+  const centerInfoRect = centerInfoEl?.getBoundingClientRect() || null
+  const centerInfoRadius = centerInfoEl
+    ? window.getComputedStyle(centerInfoEl).borderRadius || '2px'
+    : '2px'
 
   const BUBBLE_W = centerInfoRect ? Math.round(centerInfoRect.width) : 320
   const BUBBLE_H = centerInfoRect ? Math.round(centerInfoRect.height) : 400
@@ -117,22 +126,22 @@ export function PalaceHintBubble({
       ? SIHUA_BY_GAN_TRADITIONAL
       : SIHUA_BY_GAN
 
-    const normalizedPalaceName = normalizePalaceName(palace.name)
+    const normalizedPalaceName = normalizePalaceName(displayName)
     const palaceInfo = getPalaceInfo(normalizedPalaceName)
 
     const majorStarSummary = palace.majorStars.map(s => {
-      const m = s.mutagen ? `(${s.mutagen})` : ''
-      const b = s.brightness ?? ''
-      return `${s.name}${b}${m}`
+      const m = s.mutagen ? `(${localizeVisibleText(s.mutagen)})` : ''
+      const b = s.brightness ? localizeVisibleText(s.brightness) : ''
+      return `${localizeVisibleText(s.name)}${b}${m}`
     }).join('、')
-    const minorStarSummary = palace.minorStars.map(s => s.name).join('、')
+    const minorStarSummary = palace.minorStars.map(s => localizeVisibleText(s.name)).join('、')
 
     const majorStarKnowledges = palace.majorStars
       .map((star) => {
-        const info = getStarInfo(normalizeStarName(star.name))
+        const info = getStarInfo(normalizeStarNameShared(star.name))
         if (!info) return null
-        const palaceEffect = info.palaceEffects[normalizedPalaceName] || info.description
-        return `- ${star.name}：${palaceEffect}`
+        const palaceEffect = localizeKnowledgeText(info.palaceEffects[normalizedPalaceName] || info.description, isTW)
+        return `- ${localizeVisibleText(star.name)}：${palaceEffect}`
       })
       .filter((v): v is string => !!v)
 
@@ -141,21 +150,21 @@ export function PalaceHintBubble({
       : (isTW ? '- 此宮主星暫無本地知識條目，先以星曜組合觀察。' : '- 此宫主星暂无本地知识条目，先以星曜组合观察。')
 
     const palaceStarSet = new Set([
-      ...palace.majorStars.map((s) => normalizeStarName(s.name)),
-      ...palace.minorStars.map((s) => normalizeStarName(s.name)),
+      ...palace.majorStars.map((s) => normalizeStarNameShared(s.name)),
+      ...palace.minorStars.map((s) => normalizeStarNameShared(s.name)),
     ])
 
     const buildTransformationSOP = (label: string, stem: string, extra: string = '') => {
       const sihua = sihuaMap[stem] ?? {}
       const entries = Object.entries(sihua)
       const detailLines = entries.map(([mutagenKey, starName]) => {
-        const inPalace = palaceStarSet.has(normalizeStarName(starName))
+        const inPalace = palaceStarSet.has(normalizeStarNameShared(starName))
         const marker = inPalace
           ? (isTW ? '落本宮' : '落本宫')
           : (isTW ? '不在本宮' : '不在本宫')
-        return `- ${mutagenToABCD(mutagenKey)} (${mutagenKey}) → ${starName}：${marker}`
+        return `- ${mutagenToABCD(mutagenKey)} (${localizeVisibleText(mutagenKey)}) → ${localizeVisibleText(starName)}：${marker}`
       })
-      const hitCount = entries.filter(([, starName]) => palaceStarSet.has(normalizeStarName(starName))).length
+      const hitCount = entries.filter(([, starName]) => palaceStarSet.has(normalizeStarNameShared(starName))).length
 
       return `${isTW ? '四化盤解說 SOP（本地）' : '四化盘解说 SOP（本地）'}
 1. ${isTW ? '定位作用天干' : '定位作用天干'}：${label} = ${stem}
@@ -174,11 +183,11 @@ ${detailLines.join('\n') || '- —'}
 ${extra}`
     }
 
-    const palaceBase = `宮位：${palace.name}（${palace.stem}${palace.branch}）
-宮位主題：${palaceInfo?.domain || '—'}
+    const palaceBase = `宮位：${localizedDisplayName}（${palace.stem}${palace.branch}）
+  宮位主題：${localizeKnowledgeText(palaceInfo?.domain || '—', isTW)}
 主星：${majorStarSummary || (isTW ? '空宮' : '空宫')}
 輔星：${minorStarSummary || (isTW ? '無' : '无')}
-宮位說明：${palaceInfo?.description || (isTW ? '暫無本地宮位說明。' : '暂无本地宫位说明。')}
+  宮位說明：${localizeKnowledgeText(palaceInfo?.description || (isTW ? '暫無本地宮位說明。' : '暂无本地宫位说明。'), isTW)}
 主星重點：
 ${starKnowledgeText}`
 
@@ -243,7 +252,7 @@ ${isTW ? '三合盤 SOP：以流年角色對照本命主題，再看四化觸發
     return isTW
       ? '目前資料不足，請先選擇對應的大限或流年。'
       : '目前资料不足，请先选择对应的大限或流年。'
-  }, [palace, decadalLabel, annualLabel, decadalStem, annualStem, annualGanZhi, language, chartType])
+  }, [palace, displayName, decadalLabel, annualLabel, decadalStem, annualStem, annualGanZhi, language, chartType])
 
   const displayText = buildLocalText(activeTab)
 
@@ -264,32 +273,28 @@ ${isTW ? '三合盤 SOP：以流年角色對照本命主題，再看四化觸發
     return () => document.removeEventListener('mousedown', handle)
   }, [onClose])
 
-  const majorStarDisplay = palace.majorStars.map(s =>
-    `${s.name}${s.mutagen ? `·${s.mutagen}` : ''}`
-  ).join(' ')
-
   /* ----------------------------------------------------------
      Tab 設定
      ---------------------------------------------------------- */
   const tabs: { key: TabType; label: string; sub: string; disabled: boolean; activeColor: string }[] = [
     {
       key: 'natal',
-      label: language === 'zh-TW' ? '本命' : '本命',
-      sub: `${palace.stem}${palace.branch}`,
+      label: localizedDisplayName,
+      sub: '',
       disabled: false,
       activeColor: 'bg-misfortune text-white',
     },
     {
       key: 'decadal',
-      label: language === 'zh-TW' ? '大限' : '大限',
-      sub: decadalLabel || (hasDecadal ? decadalStem! : '—'),
+      label: decadalLabel ? localizeVisibleText(decadalLabel) : '—',
+      sub: '',
       disabled: !hasDecadal,
       activeColor: 'bg-fortune text-white',
     },
     {
       key: 'annual',
-      label: language === 'zh-TW' ? '流年' : '流年',
-      sub: annualLabel || (hasAnnual ? annualGanZhi! : '—'),
+      label: annualLabel ? localizeVisibleText(annualLabel) : '—',
+      sub: '',
       disabled: !hasAnnual,
       activeColor: 'bg-star text-white',
     },
@@ -298,13 +303,13 @@ ${isTW ? '三合盤 SOP：以流年角色對照本命主題，再看四化觸發
   return createPortal(
     <div
       ref={bubbleRef}
-      style={{ position: 'fixed', left, top, width: BUBBLE_W, zIndex: 9999, pointerEvents: 'auto' }}
+      style={{ position: 'fixed', left, top, width: BUBBLE_W, zIndex: 9999, pointerEvents: 'auto', borderRadius: centerInfoRadius }}
       className="glass overflow-hidden"
     >
       {/* 標題列 */}
       <div className="flex items-center justify-between px-3 py-2.5 border-b border-black/[0.06] bg-white/40">
         <div className="flex items-center gap-2">
-          <span className="text-misfortune font-bold text-sm">{palace.name}</span>
+          <span className="text-misfortune font-bold text-sm">{localizedDisplayName}</span>
           <span className="text-text-muted text-xs font-medium">{palace.stem}{palace.branch}</span>
           {palace.isLife && (
             <span className="text-[10px] bg-gold/10 text-gold border border-gold/20 px-1.5 py-0.5 rounded-full font-medium">命</span>
@@ -319,18 +324,6 @@ ${isTW ? '三合盤 SOP：以流年角色對照本命主題，再看四化觸發
         >
           ✕
         </button>
-      </div>
-
-      {/* 星曜摘要 */}
-      <div className="px-3 py-1.5 border-b border-black/[0.04] text-xs text-text">
-        <span className="font-medium">
-          {majorStarDisplay || <span className="text-text-muted italic">{language === 'zh-TW' ? '空宮' : '空宫'}</span>}
-        </span>
-        {palace.minorStars.length > 0 && (
-          <span className="text-text-muted ml-1.5">
-            ＋{palace.minorStars.map(s => s.name).join(' ')}
-          </span>
-        )}
       </div>
 
       {/* 三個 Tab */}
@@ -353,7 +346,6 @@ ${isTW ? '三合盤 SOP：以流年角色對照本命主題，再看四化觸發
               `}
             >
               <div className="text-[11px] font-semibold leading-tight">{tab.label}</div>
-              <div className={`text-[9px] leading-tight ${isActive ? 'opacity-80' : 'opacity-60'}`}>{tab.sub}</div>
             </button>
           )
         })}

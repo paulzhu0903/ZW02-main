@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react'
 import { Button, Input, Select } from '@/components/ui'
 import { convertLunarToSolarBirthInfo, generateChart, getShichenOptions, type BirthInfo, type Gender } from '@/lib/astro'
 import { userDB, type UserRecord } from '@/lib/db'
+import { toTraditionalChinese } from '@/lib/localize-knowledge'
 import { UserDatabaseModal } from './UserDatabaseModal'
 import { useChartStore, useSettingsStore } from '@/stores'
 import { t } from '@/lib/i18n'
@@ -71,7 +72,7 @@ const HOUR_SELECT_OPTIONS = Array.from({ length: 24 }, (_, i) => ({
 
 const SHICHEN_OPTIONS = getShichenOptions().map((option) => ({
   ...option,
-  label: option.label.replace(/时/g, '時'),
+  label: toTraditionalChinese(option.label),
 }))
 
 const MINUTE_OPTIONS = Array.from({ length: 60 }, (_, i) => ({

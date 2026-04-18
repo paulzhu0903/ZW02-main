@@ -3,6 +3,7 @@
    ============================================================ */
 
 import { SIHUA_BY_GAN } from '@/knowledge/sihua'
+import { getChineseVariantCandidates } from '@/lib/localize-knowledge'
 import { 
   type MutagenLine, 
   type PalaceData, 
@@ -10,7 +11,6 @@ import {
   OPPOSITE_PALACE, 
   MUTAGEN_COLORS,
   MUTAGEN_LABEL_MAP,
-  STAR_NAME_MAP,
   MUTAGEN_SIMPLIFIED_TO_TRADITIONAL,
   NAYIN_TABLE
 } from './types'
@@ -170,13 +170,12 @@ export function collectMutagenLines(palaceData: PalaceData[]): MutagenLine[] {
 
     // 遍歷四化表中的每個四化類型
     Object.entries(sihuaMap).forEach(([mutagenKey, mutagenStar]) => {
-      // 轉換簡體星名為繁體以匹配命盤數據
-      const mutagenStarChinese = STAR_NAME_MAP[mutagenStar] || mutagenStar
+      const mutagenStarCandidates = getChineseVariantCandidates(mutagenStar)
       
       // 雙向匹配：檢查繁體名稱 AND 簡體名稱
       const inOppositePalace =
-        oppositePalace.majorStars.some(s => s.name === mutagenStarChinese || s.name === mutagenStar) ||
-        oppositePalace.minorStars.some(s => s.name === mutagenStarChinese || s.name === mutagenStar)
+        oppositePalace.majorStars.some(s => mutagenStarCandidates.includes(s.name)) ||
+        oppositePalace.minorStars.some(s => mutagenStarCandidates.includes(s.name))
       
       if (inOppositePalace) {
         // 使用對宮天干+四化類型作為 key，避免重複
@@ -216,13 +215,12 @@ export function collectMutagenLines(palaceData: PalaceData[]): MutagenLine[] {
 
     // 遍歷四化表中的每個四化類型
     Object.entries(sihuaMap).forEach(([mutagenKey, mutagenStar]) => {
-      // 轉換簡體星名為繁體以匹配命盤數據
-      const mutagenStarChinese = STAR_NAME_MAP[mutagenStar] || mutagenStar
+      const mutagenStarCandidates = getChineseVariantCandidates(mutagenStar)
       
       // 檢查本宮中是否有該四化星耀 - 同時檢查繁體和簡體
       const hasMutagenStarInThisPalace =
-        palace.majorStars.some(s => s.name === mutagenStarChinese || s.name === mutagenStar) ||
-        palace.minorStars.some(s => s.name === mutagenStarChinese || s.name === mutagenStar)
+        palace.majorStars.some(s => mutagenStarCandidates.includes(s.name)) ||
+        palace.minorStars.some(s => mutagenStarCandidates.includes(s.name))
 
       if (hasMutagenStarInThisPalace) {
         // 提取四化類型（去掉「化」字）以獲得顏色
@@ -251,7 +249,7 @@ export function collectMutagenLines(palaceData: PalaceData[]): MutagenLine[] {
           isCounterMutagen: false,
           isSelfCentrifugal: true,
           label,
-          starName: mutagenStarChinese,
+          starName: mutagenStar,
           palaceRow: palacePos?.row,
           palaceCol: palacePos?.col,
         }

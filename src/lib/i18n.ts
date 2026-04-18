@@ -2,6 +2,8 @@
    国际化 (i18n) 翻译系统
    ============================================================ */
 
+import { getStarEnglishParam } from '@/lib/star-name'
+
 export type Language = 'zh-TW' | 'zh-CN'
 
 const translations: Record<Language, Record<string, any>> = {
@@ -911,66 +913,9 @@ export function t(key: string, language: Language = 'zh-TW'): string {
   // ================================
   if (key.startsWith('star.')) {
     const starNameOrKey = key.substring(5)  // 移除 'star.' 前缀
-    
-    // 定义映射表
-    const starNameMap: Record<string, string> = {
-      '紫微': 'ziwei',
-      '天机': 'tianji', '天機': 'tianji',
-      '太阳': 'taiyang', '太陽': 'taiyang',
-      '武曲': 'wuqu',
-      '天同': 'tiantong',
-      '廉贞': 'lianzhen', '廉貞': 'lianzhen',
-      '天府': 'tianfu',
-      '太阴': 'taiyin', '太陰': 'taiyin',
-      '贪狼': 'tanlang', '貪狼': 'tanlang',
-      '巨门': 'jumen', '巨門': 'jumen',
-      '天相': 'tianxiang',
-      '天梁': 'tiangliang',
-      '七杀': 'qisha', '七殺': 'qisha',
-      '破军': 'pojun', '破軍': 'pojun',
-      '擎羊': 'qingyang',
-      '陀罗': 'tuoluo', '陀羅': 'tuoluo',
-      '火星': 'huoxing',
-      '铃星': 'lingxing', '鈴星': 'lingxing',
-      '地空': 'dikong',
-      '地劫': 'dijie',
-      '左辅': 'zuofu', '左輔': 'zuofu',
-      '右弼': 'youbi',
-      '文昌': 'wenchang',
-      '文曲': 'wenqu',
-      '禄存': 'lucun', '祿存': 'lucun',
-      '天马': 'tianma', '天馬': 'tianma',
-      '红鸾': 'hongluan', '紅鸞': 'hongluan',
-      '天喜': 'tianxi',
-      '天刑': 'tianxing',
-      '天姚': 'tianyao',
-      '天哭': 'tiankue',
-      '天虚': 'tianxu', '天虛': 'tianxu',
-      '龙池': 'longchi', '龍池': 'longchi',
-      '凤阁': 'fengge', '鳳閣': 'fengge',
-      '华盖': 'huagai', '華蓋': 'huagai',
-      '咸池': 'xianchi',
-      '天德': 'tiande',
-      '月德': 'yuede',
-      '天官': 'tianguan',
-      '天福': 'tianfu2',
-      '解神': 'jieshen',
-      '天巫': 'tianwu',
-      '天月': 'tianyue',
-      '阴煞': 'yinsha', '陰煞': 'yinsha',
-      '台辅': 'taifu',
-      '封诰': 'fenggao',
-      '三台': 'santai',
-      '八座': 'bazuo',
-      '恩光': 'enguang',
-      '天贵': 'tiangui', '天貴': 'tiangui',
-      '天寿': 'tianshou', '天壽': 'tianshou',
-      '天伤': 'tianshang', '天傷': 'tianshang',
-      '龙德': 'longde', '龍德': 'longde',
-    }
-    
+
     // 尝试映射中文名称到英文参数名
-    const mappedKey = starNameMap[starNameOrKey]
+    const mappedKey = getStarEnglishParam(starNameOrKey)
     if (mappedKey) {
       key = `star.${mappedKey}`
     }
@@ -1048,79 +993,6 @@ export function t(key: string, language: Language = 'zh-TW'): string {
 
   // 返回翻译值，或返回原始中文字符（不返回 key）
   return value || key
-}
-
-/**
- * 星星名称映射表（中文 → 英文参数名）
- * 支持繁體和简体
- */
-export const STAR_NAME_MAP: Record<string, string> = {
-  // 十四主星
-  '紫微': 'ziwei',
-  '天机': 'tianji', '天機': 'tianji',
-  '太阳': 'taiyang', '太陽': 'taiyang',
-  '武曲': 'wuqu',
-  '天同': 'tiantong',
-  '廉贞': 'lianzhen', '廉貞': 'lianzhen',
-  '天府': 'tianfu',
-  '太阴': 'taiyin', '太陰': 'taiyin',
-  '贪狼': 'tanlang', '貪狼': 'tanlang',
-  '巨门': 'jumen', '巨門': 'jumen',
-  '天相': 'tianxiang',
-  '天梁': 'tiangliang',
-  '七杀': 'qisha', '七殺': 'qisha',
-  '破军': 'pojun', '破軍': 'pojun',
-
-  // 杂曜星 - 六吉六煞
-  '擎羊': 'qingyang',
-  '陀罗': 'tuoluo', '陀羅': 'tuoluo',
-  '火星': 'huoxing',
-  '铃星': 'lingxing', '鈴星': 'lingxing',
-  '地空': 'dikong',
-  '地劫': 'dijie',
-  '左辅': 'zuofu', '左輔': 'zuofu',
-  '右弼': 'youbi',
-  '文昌': 'wenchang',
-  '文曲': 'wenqu',
-  '禄存': 'lucun', '祿存': 'lucun',
-  '天马': 'tianma', '天馬': 'tianma',
-
-  // 其他辅星 - 喜庆系
-  '红鸾': 'hongluan', '紅鸞': 'hongluan',
-  '天喜': 'tianxi',
-
-  // 其他辅星 - 克制系
-  '天刑': 'tianxing',
-  '天姚': 'tianyao',
-  '天哭': 'tiankue',
-  '天虚': 'tianxu', '天虛': 'tianxu',
-
-  // 其他辅星 - 龙凤池系
-  '龙池': 'longchi', '龍池': 'longchi',
-  '凤阁': 'fengge', '鳳閣': 'fengge',
-
-  // 其他辅星 - 其他2
-  '华盖': 'huagai', '華蓋': 'huagai',
-  '咸池': 'xianchi',
-  '天德': 'tiande',
-  '月德': 'yuede',
-  '天官': 'tianguan',
-  '天福': 'tianfu2',
-  '解神': 'jieshen',
-  '天巫': 'tianwu',
-  '天月': 'tianyue',
-  '阴煞': 'yinsha', '陰煞': 'yinsha',
-
-  // 其他辅星 - 三台八座等
-  '台辅': 'taifu',
-  '封诰': 'fenggao',
-  '三台': 'santai',
-  '八座': 'bazuo',
-  '恩光': 'enguang',
-  '天贵': 'tiangui', '天貴': 'tiangui',
-  '天寿': 'tianshou', '天壽': 'tianshou',
-  '天伤': 'tianshang', '天傷': 'tianshang',
-  '龙德': 'longde', '龍德': 'longde',
 }
 
 /**

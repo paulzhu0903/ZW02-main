@@ -5,6 +5,7 @@
 import { getStarInfo, type StarInfo } from './stars/majorStars'
 import { getSihuaByGan, getSihuaInfo } from './sihua'
 import { t, type Language } from '@/lib/i18n'
+import { normalizeStarName as normalizeStarNameShared } from '@/lib/star-name'
 import type FunctionalAstrolabe from 'iztro/lib/astro/FunctionalAstrolabe'
 
 /* ------------------------------------------------------------
@@ -170,21 +171,8 @@ const OPPOSITE_BRANCH_MAP: Record<string, string> = {
 const SELF_PALACE_SET = new Set(['命宫', '兄弟', '夫妻', '子女', '财帛', '疾厄'])
 const OTHER_PALACE_SET = new Set(['迁移', '交友', '官禄', '田宅', '福德', '父母'])
 
-const STAR_NAME_NORMALIZATION: Record<string, string> = {
-  '廉貞': '廉贞',
-  '天機': '天机',
-  '太陽': '太阳',
-  '太陰': '太阴',
-  '貪狼': '贪狼',
-  '巨門': '巨门',
-  '七殺': '七杀',
-  '破軍': '破军',
-  '左輔': '左辅',
-}
-
-function normalizeStarName(name: unknown): string {
-  const value = String(name || '').trim()
-  return STAR_NAME_NORMALIZATION[value] || value
+function normalizeStar(name: unknown): string {
+  return normalizeStarNameShared(String(name || ''))
 }
 
 function normalizePalaceName(name: unknown): string {
@@ -206,7 +194,7 @@ function getPalaceRole(name: unknown): '我宮' | '他宮' | '' {
 }
 
 function getStarPolarityInfo(starName: unknown): { 陰陽: string; 男女星: string } {
-  const info = getStarInfo(normalizeStarName(starName))
+  const info = getStarInfo(normalizeStar(starName))
   if (!info) {
     return { 陰陽: '', 男女星: '' }
   }
@@ -239,7 +227,7 @@ function getMutagenList(mutagen: unknown): string[] {
 }
 
 function formatStarLabel(star: { name?: unknown; brightness?: unknown; mutagen?: unknown }): string {
-  const name = normalizeStarName(star.name)
+  const name = normalizeStar(star.name)
   const mutagens = getMutagenList(star.mutagen)
   const mutagenStr = mutagens.length > 0 ? `[${mutagens.join('、')}]` : ''
   return `${name}${mutagenStr}`
@@ -277,8 +265,8 @@ function collectPalaceMutagenHighlights(
       // 遍歷四化表中的每個四化類型
       Object.entries(sihuaMap).forEach(([mutagenKey, targetStar]) => {
         // 檢查本宮中是否有該四化指向的星
-        const targetStarNorm = normalizeStarName(targetStar)
-        const hasTargetStar = allStars.some(s => normalizeStarName(s.name) === targetStarNorm)
+        const targetStarNorm = normalizeStar(targetStar)
+        const hasTargetStar = allStars.some(s => normalizeStar(s.name) === targetStarNorm)
         
         if (hasTargetStar) {
           self.push({
@@ -305,8 +293,8 @@ function collectPalaceMutagenHighlights(
         // 遍歷四化表中的每個四化類型
         Object.entries(sihuaMap).forEach(([mutagenKey, targetStar]) => {
           // 檢查本宮中是否有該四化指向的星
-          const targetStarNorm = normalizeStarName(targetStar)
-          const hasTargetStar = allStars.some(s => normalizeStarName(s.name) === targetStarNorm)
+          const targetStarNorm = normalizeStar(targetStar)
+          const hasTargetStar = allStars.some(s => normalizeStar(s.name) === targetStarNorm)
           
           if (hasTargetStar) {
             counter.push({
@@ -340,7 +328,7 @@ function summarizeIndicatorPalace(
     地支: getPalaceBranch(palace),
     我宮他宮: getPalaceRole(palace.name),
     主星: majorStars.map(formatStarLabel),
-    男女星: majorStars.map(star => normalizeStarName(star.name)).filter(Boolean),
+    男女星: majorStars.map(star => normalizeStar(star.name)).filter(Boolean),
     離心: self,
     向心: counter,
     大限: decadal?.range ? `${decadal.range[0]}-${decadal.range[1]}` : '',
@@ -534,7 +522,7 @@ export function buildChartIndicators(
     })
     .map(item => {
       const normalizedPalace = normalizePalaceName(item.palace)
-      const normalizedStar = normalizeStarName(item.star)
+      const normalizedStar = normalizeStar(item.star)
       const polarity = getStarPolarityInfo(normalizedStar)
 
       return {
@@ -893,7 +881,7 @@ export function buildPromptContext(context: KnowledgeContext, language: Language
 
     const majorStarsStr = palace.majorStars.length > 0
       ? palace.majorStars.map((s: StarWithBrightness) => {
-          const name = normalizeStarName(s.name)
+          const name = normalizeStar(s.name)
           const mutagens = getMutagenList(s.mutagen)
           const mutagenStr = mutagens.length > 0 ? `[${mutagens.join('、')}]` : ''
           return `${name}${mutagenStr}`
@@ -901,7 +889,7 @@ export function buildPromptContext(context: KnowledgeContext, language: Language
       : t('ai.context.noMajorStars', language)
 
     const genderMarkers = palace.majorStars
-      .map((s: StarWithBrightness) => normalizeStarName(s.name))
+      .map((s: StarWithBrightness) => normalizeStar(s.name))
       .filter(Boolean)
       .join('、')
 
@@ -928,7 +916,7 @@ export function buildPromptContext(context: KnowledgeContext, language: Language
   if (context.四化分布.length > 0) {
     lines.push('## 生年四化')
     context.四化分布.forEach((item: any) => {
-      const normalizedStar = normalizeStarName(item.star)
+      const normalizedStar = normalizeStar(item.star)
       const normalizedPalace = normalizePalaceName(item.palace)
       const marker = formatPolarityMarker(normalizedStar)
       const role = getPalaceRole(normalizedPalace)

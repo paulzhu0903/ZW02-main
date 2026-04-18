@@ -37,6 +37,7 @@ import {
   getMutagenType,
 } from './mutagenLines'
 import { MutagenControls } from './MutagenControls'
+import { PalaceHintBubble } from './Bubble'
 
 /* ============================================================
    辅助函数
@@ -1018,9 +1019,11 @@ interface CenterInfoProps {
   onHourChange?: (hour: number) => void
   showSanFangSiZheng?: boolean
   onToggleSanFangSiZheng?: () => void
+  showBubbleHint?: boolean
+  onToggleBubbleHint?: () => void
 }
 
-function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, nativeName, onHourChange, showSanFangSiZheng, onToggleSanFangSiZheng }: CenterInfoProps) {
+function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, nativeName, onHourChange, showSanFangSiZheng, onToggleSanFangSiZheng, showBubbleHint, onToggleBubbleHint }: CenterInfoProps) {
   // 分割四柱 - 格式: "甲辰 丙子 己卯 丁酉"
   const fourPillars = chart.chineseDate?.split(' ') || []
   const [yearPillar, monthPillar, dayPillar, hourPillar] = fourPillars
@@ -1276,12 +1279,12 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
         </div>
       </div>
 
-      {/* 三方四正開關 */}
-      {onToggleSanFangSiZheng !== undefined && (
-        <div className="w-full mt-2 pt-2 border-t border-white/[0.07] flex items-center justify-center">
+      {/* 三方四正與 Bubble Hint 開關 */}
+      {(onToggleSanFangSiZheng !== undefined || onToggleBubbleHint !== undefined) && (
+        <div className="w-full mt-2 pt-2 border-t border-white/[0.07] flex items-center justify-center gap-2">
           <button
             onClick={onToggleSanFangSiZheng}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[8pt] font-medium transition-all border ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[2px] text-[8pt] font-medium transition-all border ${
               showSanFangSiZheng
                 ? 'bg-yellow-400/20 border-yellow-400/50 text-yellow-300'
                 : 'bg-white/[0.04] border-white/20 text-gray-500 hover:border-yellow-400/30 hover:text-yellow-300/60'
@@ -1293,6 +1296,23 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
             </svg>
             三方四正
           </button>
+
+          {onToggleBubbleHint !== undefined && (
+            <button
+              onClick={onToggleBubbleHint}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[2px] text-[8pt] font-medium transition-all border ${
+                showBubbleHint
+                  ? 'bg-star/20 border-star/50 text-star'
+                  : 'bg-white/[0.04] border-white/20 text-gray-500 hover:border-star/30 hover:text-star/60'
+              }`}
+              title="點選宮位時顯示 Bubble Hint"
+            >
+              <svg className="w-3 h-3" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M2 3.5A2.5 2.5 0 0 1 4.5 1h7A2.5 2.5 0 0 1 14 3.5v4A2.5 2.5 0 0 1 11.5 10H7l-3.2 2.7c-.7.6-1.8.1-1.8-.8V3.5z" />
+              </svg>
+              bubble hint
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -1708,8 +1728,20 @@ export function ChartDisplay() {
   const [selectedMonthly, setSelectedMonthly] = useState<number | null>(null)
   const [isDecadalExpanded, setIsDecadalExpanded] = useState(false)
   const [showSanFangSiZheng, setShowSanFangSiZheng] = useState(true)
+  const [showBubbleHint, setShowBubbleHint] = useState(true)
   const gridRef = useRef<HTMLDivElement>(null)
   const [gridOffset, setGridOffset] = useState({ x: 0, y: 0 })
+  // 宮位氣泡提示狀態
+  // 宮位氣泡提示狀態
+  const [bubblePalace, setBubblePalace] = useState<{
+    palace: PalaceData
+    rect: DOMRect
+    decadalLabel: string
+    annualLabel: string
+    decadalStem: string | null
+    annualStem: string | null
+    annualGanZhi: string | null
+  } | null>(null)
   const [isCompactMobile, setIsCompactMobile] = useState(false)
   const birthInfoKeyRef = useRef<string>('')
   const initializedRef = useRef(false)
@@ -1989,9 +2021,26 @@ export function ChartDisplay() {
 
   const renderPalace = (palace: PalaceData | null, key: string) => {
     if (!palace) return <div key={key} />
-    
+
     return (
-      <div key={key} data-palace-branch={palace.branch} data-palace-name={palace.name}>
+      <div
+        key={key}
+        data-palace-branch={palace.branch}
+        data-palace-name={palace.name}
+        onClick={(e) => {
+          if (!showBubbleHint) return
+          const englishKey = PALACE_NAME_TO_ENGLISH_MAP[palace.name] || ''
+          setBubblePalace({
+            palace,
+            rect: e.currentTarget.getBoundingClientRect(),
+            decadalLabel: decadalLabelsByPalaceName[englishKey] || '',
+            annualLabel: annualLabelsByPalaceName[englishKey] || '',
+            decadalStem: decadalLifePalaceStem,
+            annualStem: annualLifePalaceStem,
+            annualGanZhi: selectedAnnualGanZhi,
+          })
+        }}
+      >
         <PalaceCard
           key={key}
           {...palace}
@@ -2422,20 +2471,20 @@ export function ChartDisplay() {
         const trine1 = INDEX_TO_BRANCH[(branchIndex + 4) % 12]
         const trine2 = INDEX_TO_BRANCH[(branchIndex + 8) % 12]
         const opposite = INDEX_TO_BRANCH[(branchIndex + 6) % 12]
+        const fwd3 = INDEX_TO_BRANCH[(branchIndex + 3) % 12]
+        const back3 = INDEX_TO_BRANCH[(branchIndex + 9) % 12]
 
         const gridEl = gridRef.current
         const gridRect = gridEl.getBoundingClientRect()
-        // The SVG is absolute inset-0 on the outer container
-        const containerEl = gridEl.parentElement as HTMLElement
-        const containerRect = containerEl?.getBoundingClientRect() || gridRect
 
+        // 與四化連線相同的座標系：相對 grid 再加 gridOffset
         const getCenter = (branch: string): { x: number; y: number } | null => {
           const el = gridEl.querySelector(`[data-palace-branch="${branch}"]`) as HTMLElement
           if (!el) return null
           const r = el.getBoundingClientRect()
           return {
-            x: r.left + r.width / 2 - containerRect.left,
-            y: r.top + r.height / 2 - containerRect.top,
+            x: (r.left - gridRect.left + r.width / 2) + gridOffset.x,
+            y: (r.top - gridRect.top + r.height / 2) + gridOffset.y,
           }
         }
 
@@ -2443,7 +2492,9 @@ export function ChartDisplay() {
         const p1 = getCenter(trine1)
         const p2 = getCenter(trine2)
         const pOpp = getCenter(opposite)
-        if (!p0 || !p1 || !p2 || !pOpp) return null
+        const pFwd3 = getCenter(fwd3)
+        const pBack3 = getCenter(back3)
+        if (!p0 || !p1 || !p2 || !pOpp || !pFwd3 || !pBack3) return null
 
         const triPoints = `${p0.x},${p0.y} ${p1.x},${p1.y} ${p2.x},${p2.y}`
         return (
@@ -2455,19 +2506,17 @@ export function ChartDisplay() {
             {/* 三合宮位黃色三角形 */}
             <polygon
               points={triPoints}
-              fill="rgba(255, 213, 0, 0.1)"
-              stroke="rgba(255, 213, 0, 0.1)"
-              strokeWidth="1"
-              strokeDasharray="2 2"
+              fill="none"
+              stroke="rgba(255, 213, 0, 0.6)"
+              strokeWidth="1.5"
+              strokeDasharray="5 3"
             />
-            {/* 對宮連線 */}
-            <line
-              x1={p0.x} y1={p0.y}
-              x2={pOpp.x} y2={pOpp.y}
-              stroke="rgba(255, 210, 0, 0.6)"
-              strokeWidth="1"
-              strokeDasharray="2 2"
-            />
+            {/* 四正連線：本宮 ↔ 對宮 */}
+            <line x1={p0.x} y1={p0.y} x2={pOpp.x} y2={pOpp.y}
+              stroke="rgba(0, 200, 255, 0.7)" strokeWidth="1.5" strokeDasharray="5 3" />
+            {/* 四正連線：前3宮 ↔ 後3宮 */}
+            <line x1={pFwd3.x} y1={pFwd3.y} x2={pBack3.x} y2={pBack3.y}
+              stroke="rgba(0, 200, 255, 0.7)" strokeWidth="1.5" strokeDasharray="5 3" />
           </svg>
         )
       })()}
@@ -2490,6 +2539,13 @@ export function ChartDisplay() {
             nativeName={birthInfo?.name}
             showSanFangSiZheng={showSanFangSiZheng}
             onToggleSanFangSiZheng={() => setShowSanFangSiZheng(v => !v)}
+            showBubbleHint={showBubbleHint}
+            onToggleBubbleHint={() => {
+              setShowBubbleHint((v) => {
+                if (v) setBubblePalace(null)
+                return !v
+              })
+            }}
             onHourChange={(hour) => {
               if (birthInfo && birthInfo.year && birthInfo.month && birthInfo.day && birthInfo.gender) {
                 const updatedBirthInfo: BirthInfo = {
@@ -2587,6 +2643,21 @@ export function ChartDisplay() {
           isExpanded={isDecadalExpanded}
         />
       </div>
+
+      {/* 宮位 AI 氣泡提示 */}
+      {showBubbleHint && bubblePalace && (
+        <PalaceHintBubble
+          palace={bubblePalace.palace}
+          anchorRect={bubblePalace.rect}
+          onClose={() => setBubblePalace(null)}
+          chartType={chartType}
+          decadalLabel={bubblePalace.decadalLabel}
+          annualLabel={bubblePalace.annualLabel}
+          decadalStem={bubblePalace.decadalStem}
+          annualStem={bubblePalace.annualStem}
+          annualGanZhi={bubblePalace.annualGanZhi}
+        />
+      )}
     </div>
   )
 }

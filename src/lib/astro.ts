@@ -11,6 +11,7 @@
    ============================================================ */
 
 import { astro } from 'iztro'
+import { lunar2solar } from 'iztro/lib/calendar'
 import type FunctionalAstrolabe from 'iztro/lib/astro/FunctionalAstrolabe'
 
 /* ------------------------------------------------------------
@@ -41,6 +42,19 @@ export interface BirthInfo {
   birthLocation?: string  // 出生地
 }
 
+export interface LunarBirthInfo {
+  year: number
+  month: number
+  day: number
+  hour: number
+  minute?: number
+  gender: Gender
+  isLeapMonth?: boolean
+  // 用户信息
+  name?: string
+  birthLocation?: string
+}
+
 /* ------------------------------------------------------------
    时辰索引转换
    iztro 时辰: 0=早子(00-01), 1=丑, ..., 11=亥, 12=晚子(23-00)
@@ -64,6 +78,22 @@ export function generateChart(info: BirthInfo): FunctionalAstrolabe {
   const genderName = gender === 'male' ? '男' : '女'
 
   return astro.bySolar(dateStr, timeIndex, genderName, fixLeap)
+}
+
+export function convertLunarToSolarBirthInfo(info: LunarBirthInfo): BirthInfo {
+  const solarDate = lunar2solar(`${info.year}-${info.month}-${info.day}`, info.isLeapMonth)
+
+  return {
+    year: solarDate.solarYear,
+    month: solarDate.solarMonth,
+    day: solarDate.solarDay,
+    hour: info.hour,
+    minute: info.minute,
+    gender: info.gender,
+    name: info.name,
+    birthLocation: info.birthLocation,
+    isLeapMonth: info.isLeapMonth,
+  }
 }
 
 /* ------------------------------------------------------------

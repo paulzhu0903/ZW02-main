@@ -559,18 +559,22 @@ function StarTag({ star, isMajorStar = false, forceTextColorClass = '', chartTyp
   }
 
   return (
-    <div className="flex flex-col items-center gap-0" style={{ minHeight: '34px', width: '16px', minWidth: '16px' }}>
+    <div className="flex flex-col items-center " style={{ minHeight: '34px', width: '16px', minWidth: '16px' }}>
       <span
         className={`
-          flex flex-col items-center justify-center text-[11px] sm:text-[12px] lg:text-[15px] font-medium px-0 py-0 rounded
+          relative text-[11px] sm:text-[12px] lg:text-[15px] font-medium px-0 py-0 rounded
           transition-all duration-200
           ${hasMutagen ? getMutagenTextColor() : `bg-white/5 ${textColor} hover:bg-white/10`}
         `}
-        style={{ writingMode: 'vertical-rl', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '16px', minWidth: '16px', minHeight: '12px', margin: '0 0 5px 0' }}
+        style={{ width: '16px', minWidth: '16px', minHeight: '34px', height: '34px', margin: '0 0 5px 0' }}
         data-star-name={name}
       >
-        {displayName}
-        
+        <span
+          className="absolute inset-0 flex items-center justify-center"
+          style={{ writingMode: 'vertical-rl', textOrientation: 'mixed', textAlign: 'center', lineHeight: 1 }}
+        >
+          {displayName}
+        </span>
       </span>
       {(displayBrightness || mutagen || hasTriremeMutagenSquares) && (
         <div className="flex flex-col items-center justify-center" style={{ gap: '1px', width: '16px', minWidth: '16px' }}>
@@ -855,19 +859,21 @@ function PalaceCard({
         <div className="flex flex-row flex-wrap items-start gap-x-0.5 gap-y-0 w-full">
           {/* 主星 */}
           {majorStars.map((star, i) => (
-            <StarTag
-              key={`major-${i}`}
-              star={star} 
-              isMajorStar={isMajorStarName(star.name)} 
-              showBrightness={true}
-              chartType={chartType} 
-              selectedDecadal={selectedDecadal} 
-              selectedAnnual={selectedAnnual} 
-              isCurrentDecadalPalace={isCurrentDecadalPalace} 
-              isCurrentAnnualPalace={isCurrentAnnualPalace} 
-              decadalLifePalaceStem={decadalLifePalaceStem}
-              annualLifePalaceStem={annualLifePalaceStem}
-            />
+            <div key={`major-wrap-${i}`} className="w-[16px] min-w-[16px] flex justify-center items-start">
+              <StarTag
+                key={`major-${i}`}
+                star={star}
+                isMajorStar={isMajorStarName(star.name)}
+                showBrightness={true}
+                chartType={chartType}
+                selectedDecadal={selectedDecadal}
+                selectedAnnual={selectedAnnual}
+                isCurrentDecadalPalace={isCurrentDecadalPalace}
+                isCurrentAnnualPalace={isCurrentAnnualPalace}
+                decadalLifePalaceStem={decadalLifePalaceStem}
+                annualLifePalaceStem={annualLifePalaceStem}
+              />
+            </div>
           ))}
           {/* 輔星 */}
           {(chartType === 'flying' || chartType === 'transformation' || chartType === 'trireme') && minorStars.map((star, i) => {
@@ -878,37 +884,41 @@ function PalaceCard({
             if (!shouldShow) return null
             
             return (
-            <StarTag
-              key={`minor-${i}`}
-              star={star} 
-              isMajorStar={isMajorStarName(star.name)} 
-              showBrightness={false}
-              chartType={chartType} 
-              selectedDecadal={selectedDecadal} 
-              selectedAnnual={selectedAnnual} 
-              isCurrentDecadalPalace={isCurrentDecadalPalace} 
-              isCurrentAnnualPalace={isCurrentAnnualPalace} 
-              decadalLifePalaceStem={decadalLifePalaceStem}
-              annualLifePalaceStem={annualLifePalaceStem}
-            />
+              <div key={`minor-wrap-${i}`} className="w-[16px] min-w-[16px] flex justify-center items-start">
+                <StarTag
+                  key={`minor-${i}`}
+                  star={star}
+                  isMajorStar={isMajorStarName(star.name)}
+                  showBrightness={false}
+                  chartType={chartType}
+                  selectedDecadal={selectedDecadal}
+                  selectedAnnual={selectedAnnual}
+                  isCurrentDecadalPalace={isCurrentDecadalPalace}
+                  isCurrentAnnualPalace={isCurrentAnnualPalace}
+                  decadalLifePalaceStem={decadalLifePalaceStem}
+                  annualLifePalaceStem={annualLifePalaceStem}
+                />
+              </div>
             )
           })}
           {/* 雜曜 - 使用 StarTag 以確保與主星/輔星完全一致的容器與間距 */}
           {(chartType === 'flying' || chartType === 'trireme') && adjectiveStars.map((name, i) => (
-            <StarTag
-              key={`adj-${i}`}
-              star={{ name }}
-              isMajorStar={false}
-              showBrightness={false}
-              forceTextColorClass="text-text-muted/70"
-              chartType={chartType}
-              selectedDecadal={selectedDecadal}
-              selectedAnnual={selectedAnnual}
-              isCurrentDecadalPalace={isCurrentDecadalPalace}
-              isCurrentAnnualPalace={isCurrentAnnualPalace}
-              decadalLifePalaceStem={decadalLifePalaceStem}
-              annualLifePalaceStem={annualLifePalaceStem}
-            />
+            <div key={`adj-wrap-${i}`} className="w-[16px] min-w-[16px] flex justify-center items-start">
+              <StarTag
+                key={`adj-${i}`}
+                star={{ name }}
+                isMajorStar={false}
+                showBrightness={false}
+                forceTextColorClass="text-text-muted/70"
+                chartType={chartType}
+                selectedDecadal={selectedDecadal}
+                selectedAnnual={selectedAnnual}
+                isCurrentDecadalPalace={isCurrentDecadalPalace}
+                isCurrentAnnualPalace={isCurrentAnnualPalace}
+                decadalLifePalaceStem={decadalLifePalaceStem}
+                annualLifePalaceStem={annualLifePalaceStem}
+              />
+            </div>
           ))}
         </div>
 
@@ -1006,9 +1016,11 @@ interface CenterInfoProps {
   language: any
   nativeName?: string
   onHourChange?: (hour: number) => void
+  showSanFangSiZheng?: boolean
+  onToggleSanFangSiZheng?: () => void
 }
 
-function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, nativeName, onHourChange }: CenterInfoProps) {
+function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, nativeName, onHourChange, showSanFangSiZheng, onToggleSanFangSiZheng }: CenterInfoProps) {
   // 分割四柱 - 格式: "甲辰 丙子 己卯 丁酉"
   const fourPillars = chart.chineseDate?.split(' ') || []
   const [yearPillar, monthPillar, dayPillar, hourPillar] = fourPillars
@@ -1236,7 +1248,7 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
         
       </div>
 
-      {/* 图例 - 放在下方 */}
+      {/* 圖例 - 放在下方 */}
       <div className="w-full mt-4 pt-3 border-t border-white/[0.1]">
         <div className="flex flex-wrap items-center justify-center gap-2 text-[7pt] sm:text-[8pt]">
           <div className="flex items-center gap-1">
@@ -1263,6 +1275,26 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
           </div>
         </div>
       </div>
+
+      {/* 三方四正開關 */}
+      {onToggleSanFangSiZheng !== undefined && (
+        <div className="w-full mt-2 pt-2 border-t border-white/[0.07] flex items-center justify-center">
+          <button
+            onClick={onToggleSanFangSiZheng}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[8pt] font-medium transition-all border ${
+              showSanFangSiZheng
+                ? 'bg-yellow-400/20 border-yellow-400/50 text-yellow-300'
+                : 'bg-white/[0.04] border-white/20 text-gray-500 hover:border-yellow-400/30 hover:text-yellow-300/60'
+            }`}
+            title="點選宮位時顯示三合宮位三角形及對宮連線"
+          >
+            <svg className="w-3 h-3" viewBox="0 0 12 12" fill="currentColor">
+              <polygon points="6,1 11,10 1,10" fillOpacity="0.7" />
+            </svg>
+            三方四正
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -1675,6 +1707,7 @@ export function ChartDisplay() {
   const [selectedAnnual, setSelectedAnnual] = useState<number | null>(null)
   const [selectedMonthly, setSelectedMonthly] = useState<number | null>(null)
   const [isDecadalExpanded, setIsDecadalExpanded] = useState(false)
+  const [showSanFangSiZheng, setShowSanFangSiZheng] = useState(true)
   const gridRef = useRef<HTMLDivElement>(null)
   const [gridOffset, setGridOffset] = useState({ x: 0, y: 0 })
   const [isCompactMobile, setIsCompactMobile] = useState(false)
@@ -2168,13 +2201,13 @@ export function ChartDisplay() {
                       {/* 箭頭旁邊的ABCD標籤 */}
                       {line.label && (
                         <text
-                          x={line2X2 !== null ? line2X2 + gridOffset.x : line1X2 + gridOffset.x + (isCompactMobile ? 4 : 8)}
+                          x={line2X2 !== null ? line2X2 + gridOffset.x + (fromPalacePos.col === 0 ? (isCompactMobile ? 4 : 6) : -(isCompactMobile ? 4 : 6)) : line1X2 + gridOffset.x + (isCompactMobile ? 4 : 6)}
                           y={line2Y2 !== null ? line2Y2 + gridOffset.y - (isCompactMobile ? 8 : 10) : line1Y2 + gridOffset.y + (fromPalacePos.row === 0 ? (isCompactMobile ? 10 : 14) : (isCompactMobile ? -4 : -8))}
                           fontSize={isCompactMobile ? '10' : '14'}
                           fontWeight="medium"
                           fill={line.color}
                           opacity="0.8"
-                          textAnchor={line2X2 !== null ? 'middle' : 'start'}
+                          textAnchor={line2X2 !== null ? (fromPalacePos.col === 0 ? 'start' : 'end') : 'start'}
                         >
                           {line.label}
                         </text>
@@ -2379,6 +2412,66 @@ export function ChartDisplay() {
       </svg>
       )}
 
+      {/* 三方四正 SVG 覆蓋層 */}
+      {showSanFangSiZheng && selectedPalace && (() => {
+        const INDEX_TO_BRANCH = ['寅','卯','辰','巳','午','未','申','酉','戌','亥','子','丑']
+        const selectedPD = palaceData.find(p => p.name === selectedPalace)
+        if (!selectedPD || !gridRef.current) return null
+        const branchIndex = PALACE_BRANCH_INDEX[selectedPD.branch]
+        if (branchIndex === undefined) return null
+        const trine1 = INDEX_TO_BRANCH[(branchIndex + 4) % 12]
+        const trine2 = INDEX_TO_BRANCH[(branchIndex + 8) % 12]
+        const opposite = INDEX_TO_BRANCH[(branchIndex + 6) % 12]
+
+        const gridEl = gridRef.current
+        const gridRect = gridEl.getBoundingClientRect()
+        // The SVG is absolute inset-0 on the outer container
+        const containerEl = gridEl.parentElement as HTMLElement
+        const containerRect = containerEl?.getBoundingClientRect() || gridRect
+
+        const getCenter = (branch: string): { x: number; y: number } | null => {
+          const el = gridEl.querySelector(`[data-palace-branch="${branch}"]`) as HTMLElement
+          if (!el) return null
+          const r = el.getBoundingClientRect()
+          return {
+            x: r.left + r.width / 2 - containerRect.left,
+            y: r.top + r.height / 2 - containerRect.top,
+          }
+        }
+
+        const p0 = getCenter(selectedPD.branch)
+        const p1 = getCenter(trine1)
+        const p2 = getCenter(trine2)
+        const pOpp = getCenter(opposite)
+        if (!p0 || !p1 || !p2 || !pOpp) return null
+
+        const triPoints = `${p0.x},${p0.y} ${p1.x},${p1.y} ${p2.x},${p2.y}`
+        return (
+          <svg
+            key={selectedPalace}
+            className="absolute inset-0 w-full h-full pointer-events-none overflow-visible"
+            style={{ zIndex: 48 }}
+          >
+            {/* 三合宮位黃色三角形 */}
+            <polygon
+              points={triPoints}
+              fill="rgba(255, 213, 0, 0.1)"
+              stroke="rgba(255, 213, 0, 0.1)"
+              strokeWidth="1"
+              strokeDasharray="2 2"
+            />
+            {/* 對宮連線 */}
+            <line
+              x1={p0.x} y1={p0.y}
+              x2={pOpp.x} y2={pOpp.y}
+              stroke="rgba(255, 210, 0, 0.6)"
+              strokeWidth="1"
+              strokeDasharray="2 2"
+            />
+          </svg>
+        )
+      })()}
+
       {/* 4x4 网格 */}
       <div ref={gridRef} className="grid grid-cols-4 gap-0 relative" style={{ zIndex: 2 }}>
         {/* Row 0 */}
@@ -2395,6 +2488,8 @@ export function ChartDisplay() {
             gender={genderDisplay} 
             language={language} 
             nativeName={birthInfo?.name}
+            showSanFangSiZheng={showSanFangSiZheng}
+            onToggleSanFangSiZheng={() => setShowSanFangSiZheng(v => !v)}
             onHourChange={(hour) => {
               if (birthInfo && birthInfo.year && birthInfo.month && birthInfo.day && birthInfo.gender) {
                 const updatedBirthInfo: BirthInfo = {

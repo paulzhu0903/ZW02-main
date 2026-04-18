@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button, Input, Select } from '@/components/ui'
-import { generateChart, type BirthInfo, type Gender } from '@/lib/astro'
+import { convertLunarToSolarBirthInfo, generateChart, getShichenOptions, type BirthInfo, type Gender } from '@/lib/astro'
 import { userDB, type UserRecord } from '@/lib/db'
 import { UserDatabaseModal } from './UserDatabaseModal'
 import { useChartStore, useSettingsStore } from '@/stores'
@@ -12,14 +12,40 @@ import { t } from '@/lib/i18n'
 
 const currentYear = new Date().getFullYear()
 
+type BirthInputMode = 'solar' | 'lunar'
+
+const HEAVENLY_STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
+const EARTHLY_BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
+
+function getGanZhiYear(year: number) {
+  const heavenlyStem = HEAVENLY_STEMS[(year - 4) % 10]
+  const earthlyBranch = EARTHLY_BRANCHES[(year - 4) % 12]
+  return `${heavenlyStem}${earthlyBranch}`
+}
+
 const YEAR_OPTIONS = Array.from({ length: 100 }, (_, i) => ({
   value: currentYear - i,
   label: `${currentYear - i}年`,
 }))
 
+const LUNAR_YEAR_OPTIONS = Array.from({ length: 100 }, (_, i) => {
+  const year = currentYear - i
+  return {
+    value: year,
+    label: `${year}年 ${getGanZhiYear(year)}`,
+  }
+})
+
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => ({
   value: i + 1,
   label: `${i + 1}月`,
+}))
+
+const LUNAR_MONTH_LABELS = ['正月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '冬月', '臘月']
+
+const LUNAR_MONTH_OPTIONS = LUNAR_MONTH_LABELS.map((label, index) => ({
+  value: index + 1,
+  label,
 }))
 
 const DAY_OPTIONS = Array.from({ length: 31 }, (_, i) => ({
@@ -27,9 +53,25 @@ const DAY_OPTIONS = Array.from({ length: 31 }, (_, i) => ({
   label: `${i + 1}日`,
 }))
 
+const LUNAR_DAY_LABELS = [
+  '初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十',
+  '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
+  '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十',
+]
+
+const LUNAR_DAY_OPTIONS = LUNAR_DAY_LABELS.map((label, index) => ({
+  value: index + 1,
+  label,
+}))
+
 const HOUR_SELECT_OPTIONS = Array.from({ length: 24 }, (_, i) => ({
   value: i,
   label: String(i).padStart(2, '0'),
+}))
+
+const SHICHEN_OPTIONS = getShichenOptions().map((option) => ({
+  ...option,
+  label: option.label.replace(/时/g, '時'),
 }))
 
 const MINUTE_OPTIONS = Array.from({ length: 60 }, (_, i) => ({
@@ -52,10 +94,13 @@ export function BirthForm() {
   const [year, setYear] = useState(1970)
   const [month, setMonth] = useState(9)
   const [day, setDay] = useState(3)
+  const [inputMode, setInputMode] = useState<BirthInputMode>('solar')
+  const [isLeapMonth, setIsLeapMonth] = useState(false)
   const [hour, setHour] = useState(13)
   const [minute, setMinute] = useState(30)
   const [gender, setGender] = useState<Gender>('male')
   const [loading, setLoading] = useState(false)
+  const [formError, setFormError] = useState('')
   const [isDbModalOpen, setIsDbModalOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)  // 編輯模式
   const [recordId, setRecordId] = useState<string | null>(null)  // 编辑时保存记录 ID
@@ -69,16 +114,20 @@ export function BirthForm() {
       setYear(recordToLoad.year)
       setMonth(recordToLoad.month)
       setDay(recordToLoad.day)
+      setInputMode('solar')
+      setIsLeapMonth(false)
       setHour(recordToLoad.hour)
       setMinute(recordToLoad.minute || 0)  // 确保分钟被正确设置
       setGender(recordToLoad.gender)
       setRemark(recordToLoad.remark || '')
+      setFormError('')
       setIsEditing(true)  // 进入编辑模式
     }
   }, [recordToLoad])
 
   // 提取圖表生成邏輯為獨立函數
   const submitChart = (birthInfo: BirthInfo) => {
+    setFormError('')
     setLoading(true)
     try {
       // 儲存到資料庫（如果提供了名字）
@@ -133,17 +182,35 @@ export function BirthForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const birthInfo: BirthInfo = {
-      year,
-      month,
-      day,
-      hour,
-      minute,
-      gender,
-      name: name || undefined,
-      birthLocation: birthLocation || undefined,
+    try {
+      const birthInfo: BirthInfo = inputMode === 'solar'
+        ? {
+            year,
+            month,
+            day,
+            hour,
+            minute,
+            gender,
+            name: name || undefined,
+            birthLocation: birthLocation || undefined,
+          }
+        : convertLunarToSolarBirthInfo({
+            year,
+            month,
+            day,
+            hour,
+            minute: 0,
+            gender,
+            isLeapMonth,
+            name: name || undefined,
+            birthLocation: birthLocation || undefined,
+          })
+
+      submitChart(birthInfo)
+    } catch (error) {
+      console.error('農曆轉換失敗:', error)
+      setFormError(t('form.invalidLunarDate', language))
     }
-    submitChart(birthInfo)
   }
 
   // "新增" 按鈕：清空表單到預設值
@@ -154,9 +221,12 @@ export function BirthForm() {
     setYear(1970)
     setMonth(9)
     setDay(3)
+    setInputMode('solar')
+    setIsLeapMonth(false)
     setHour(13)
     setMinute(30)
     setGender('male')
+    setFormError('')
     setRecordId(null)
     setIsDbModalOpen(false)
   }
@@ -169,9 +239,12 @@ export function BirthForm() {
     setYear(record.year)
     setMonth(record.month)
     setDay(record.day)
+    setInputMode('solar')
+    setIsLeapMonth(false)
     setHour(record.hour)
     setMinute(record.minute || 0)
     setGender(record.gender)
+    setFormError('')
     setRecordId(record.id)  // 保存記錄 ID 用於更新
     setIsDbModalOpen(false)
     setIsEditing(true)  // 進入編輯模式
@@ -188,9 +261,12 @@ export function BirthForm() {
     setYear(currentYear)
     setMonth(1)
     setDay(1)
+    setInputMode('solar')
+    setIsLeapMonth(false)
     setHour(9)
     setMinute(0)
     setGender('male')
+    setFormError('')
   }
 
   const handleSelectFromDbAndSubmit = (record: UserRecord) => {
@@ -199,9 +275,12 @@ export function BirthForm() {
     setYear(record.year)
     setMonth(record.month)
     setDay(record.day)
+    setInputMode('solar')
+    setIsLeapMonth(false)
     setHour(record.hour)
     setMinute(record.minute || 0)
     setGender(record.gender)
+    setFormError('')
     setIsDbModalOpen(false)
     
     // 立即生成圖表
@@ -286,47 +365,133 @@ export function BirthForm() {
           hint={t('form.remarkHint', language) || '此欄位不影響排盤結果'}
         />
 
+        <div className="space-y-1 sm:space-y-1.5">
+          <span className="text-[11px] sm:text-[12px] text-text-secondary font-medium">{t('form.inputMode', language)}</span>
+          <div className="grid grid-cols-2 gap-1 sm:gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setInputMode('solar')
+                setFormError('')
+              }}
+              className={`
+                rounded-lg sm:rounded-xl px-3 py-2 text-[12px] sm:text-[13px] font-medium transition-all duration-200
+                ${inputMode === 'solar'
+                  ? 'bg-gradient-to-r from-star to-star-dark text-white shadow-[0_4px_20px_rgba(124,58,237,0.25)]'
+                  : 'bg-white/[0.04] border border-white/[0.08] text-text-secondary hover:bg-white/[0.08] hover:border-white/[0.12]'
+                }
+              `}
+            >
+              {t('form.solarInput', language)}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setInputMode('lunar')
+                setMinute(0)
+                setFormError('')
+              }}
+              className={`
+                rounded-lg sm:rounded-xl px-3 py-2 text-[12px] sm:text-[13px] font-medium transition-all duration-200
+                ${inputMode === 'lunar'
+                  ? 'bg-gradient-to-r from-gold to-gold-dark text-night shadow-[0_4px_20px_rgba(245,158,11,0.25)]'
+                  : 'bg-white/[0.04] border border-white/[0.08] text-text-secondary hover:bg-white/[0.08] hover:border-white/[0.12]'
+                }
+              `}
+            >
+              {t('form.lunarInput', language)}
+            </button>
+          </div>
+        </div>
+
         {/* 出生日期区块 */}
         <div className="space-y-1 sm:space-y-1.5">
-      
-          <div className="grid grid-cols-3 gap-1 sm:gap-1.5">
-            <Select
-              options={YEAR_OPTIONS}
-              value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
-            />
-            <Select
-              options={MONTH_OPTIONS}
-              value={month}
-              onChange={(e) => setMonth(Number(e.target.value))}
-            />
-            <Select
-              options={DAY_OPTIONS}
-              value={day}
-              onChange={(e) => setDay(Number(e.target.value))}
-            />
-          </div>
+          {inputMode === 'solar' ? (
+            <div className="grid grid-cols-3 gap-1 sm:gap-1.5">
+              <Select
+                options={YEAR_OPTIONS}
+                value={year}
+                onChange={(e) => setYear(Number(e.target.value))}
+              />
+              <Select
+                options={MONTH_OPTIONS}
+                value={month}
+                onChange={(e) => setMonth(Number(e.target.value))}
+              />
+              <Select
+                options={DAY_OPTIONS}
+                value={day}
+                onChange={(e) => setDay(Number(e.target.value))}
+              />
+            </div>
+          ) : (
+            <div className="space-y-1 sm:space-y-1.5">
+              <Select
+                options={LUNAR_YEAR_OPTIONS}
+                value={year}
+                onChange={(e) => setYear(Number(e.target.value))}
+              />
+              <div className="grid grid-cols-3 gap-1 sm:gap-1.5">
+                <Select
+                  options={LUNAR_MONTH_OPTIONS}
+                  value={month}
+                  onChange={(e) => setMonth(Number(e.target.value))}
+                />
+                <Select
+                  options={LUNAR_DAY_OPTIONS}
+                  value={day}
+                  onChange={(e) => setDay(Number(e.target.value))}
+                />
+                <button
+                  type="button"
+                  onClick={() => setIsLeapMonth((value) => !value)}
+                  className={`
+                    rounded-lg sm:rounded-xl px-2 py-2 text-[12px] sm:text-[13px] font-medium transition-all duration-200 border
+                    ${isLeapMonth
+                      ? 'border-gold/50 bg-gold/20 text-gold'
+                      : 'border-white/[0.08] bg-white/[0.04] text-text-secondary hover:bg-white/[0.08] hover:border-white/[0.12]'
+                    }
+                  `}
+                >
+                  {t('form.leapMonth', language)}
+                </button>
+              </div>
+            </div>
+          )}
           {/* 提示文字 */}
           <p className="text-[9px] sm:text-[10px] text-text-muted mt-0.5 sm:mt-1">
-            {t('form.dateHint', language)}
+            {inputMode === 'solar' ? t('form.dateHint', language) : t('form.lunarDateHint', language)}
           </p>
+          {formError && (
+            <p className="text-[10px] sm:text-[11px] text-misfortune">{formError}</p>
+          )}
         </div>
 
         {/* 出生时间 - 时和分 */}
         <div className="space-y-1 sm:space-y-1.5">
-          <span className="text-[11px] sm:text-[12px] text-text-secondary font-medium">{t('form.birthTime', language)}</span>
-          <div className="grid grid-cols-2 gap-1 sm:gap-1.5">
+          <span className="text-[11px] sm:text-[12px] text-text-secondary font-medium">
+            {inputMode === 'solar' ? t('form.birthTime', language) : t('form.shichen', language)}
+          </span>
+          {inputMode === 'solar' ? (
+            <div className="grid grid-cols-2 gap-1 sm:gap-1.5">
+              <Select
+                options={HOUR_SELECT_OPTIONS}
+                value={hour}
+                onChange={(e) => setHour(Number(e.target.value))}
+              />
+              <Select
+                options={MINUTE_OPTIONS}
+                value={minute}
+                onChange={(e) => setMinute(Number(e.target.value))}
+              />
+            </div>
+          ) : (
             <Select
-              options={HOUR_SELECT_OPTIONS}
+              options={SHICHEN_OPTIONS}
               value={hour}
               onChange={(e) => setHour(Number(e.target.value))}
             />
-            <Select
-              options={MINUTE_OPTIONS}
-              value={minute}
-              onChange={(e) => setMinute(Number(e.target.value))}
-            />
-          </div>
+          )}
         </div>
 
         {/* 性别选择 - 胶囊按钮组 */}

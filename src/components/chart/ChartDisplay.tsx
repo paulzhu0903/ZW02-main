@@ -92,6 +92,35 @@ function getLunarMonthNumber(lunarDateText: string | undefined): number | null {
   return monthMap[lunarMonthText] ?? null
 }
 
+function hasDirection(mark: '得' | '失' | '得失' | undefined, target: '得' | '失'): boolean {
+  if (!mark) return false
+  if (mark === '得失') return true
+  return mark === target
+}
+
+function getSanFangSiZhengBranches(selectedBranch: string): {
+  sanFang: string[]
+  siZheng: string[]
+} {
+  const indexToBranch = ['寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥', '子', '丑']
+  const branchIndex = PALACE_BRANCH_INDEX[selectedBranch]
+
+  if (branchIndex === undefined) {
+    return { sanFang: [], siZheng: [] }
+  }
+
+  const trine1 = indexToBranch[(branchIndex + 4) % 12]
+  const trine2 = indexToBranch[(branchIndex + 8) % 12]
+  const opposite = indexToBranch[(branchIndex + 6) % 12]
+  const forward3 = indexToBranch[(branchIndex + 3) % 12]
+  const backward3 = indexToBranch[(branchIndex + 9) % 12]
+
+  return {
+    sanFang: [selectedBranch, trine1, trine2],
+    siZheng: [selectedBranch, opposite, forward3, backward3],
+  }
+}
+
 function getTimeBranchIndex(timeText: string | undefined): number | null {
   if (!timeText) return null
 
@@ -660,7 +689,7 @@ function StarTag({ star, isMajorStar = false, forceTextColorClass = '', chartTyp
 
 function PalaceCard({
   name, stem, branch, majorStars, minorStars, adjectiveStars,
-  boshi12Deity, longlifeDeity, isLife, isBody, isCausePalace, isSelected, onClick, chartType = 'flying', selectedDecadal = null, selectedAnnual = null, monthlySequenceLabels = [], selectedAnnualAge = null, selectedAnnualGanZhi = null, selectedAnnualLabel = '', selectedDecadalLabel = '', yearGan = '', gender = 'male', birthInfo = null, palaceData = null, decadalLifePalaceStem = null, annualLifePalaceStem = null
+  boshi12Deity, longlifeDeity, isLife, isBody, isCausePalace, isSelected, onClick, chartType = 'flying', selectedDecadal = null, selectedAnnual = null, monthlySequenceLabels = [], selectedAnnualAge = null, selectedAnnualGanZhi = null, selectedAnnualLabel = '', selectedDecadalLabel = '', yearGan = '', gender = 'male', birthInfo = null, palaceData = null, decadalLifePalaceStem = null, annualLifePalaceStem = null, directionMark = null, directionFocus = null
 }: PalaceCardProps) {
   const { language, transformationShowGods, flyingShowGods, transformationShowCausePalace, transformationHideMinorStars } = useSettingsStore()
   
@@ -867,6 +896,23 @@ function PalaceCard({
         </div>
       )}
 
+      {/* 同一屬性（單一 ABCD）時，於宮位中心標示得/失 */}
+      {directionMark && (!directionFocus || hasDirection(directionMark, directionFocus)) && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <span
+            className={`px-1.5 py-0.5 rounded text-[11px] sm:text-[12px] lg:text-[14px] font-semibold border ${
+              directionMark === '得'
+                ? 'bg-emerald-500/40 text-emerald-100 border-emerald-400/70'
+                : directionMark === '失'
+                ? 'bg-rose-500/40 text-rose-100 border-rose-400/70'
+                : 'bg-amber-500/40 text-amber-100 border-amber-400/70'
+            }`}
+          >
+            {directionMark}
+          </span>
+        </div>
+      )}
+
 
       {/* 底部布局: 左下(干支) + 中間(西元+虛歲/流月) + 右下(流年/大限/宮位名) */}
       <div className="relative flex items-center justify-between w-full gap-0.5 py-0.5">
@@ -942,9 +988,13 @@ interface CenterInfoProps {
   onToggleSanFangSiZheng?: () => void
   showBubbleHint?: boolean
   onToggleBubbleHint?: () => void
+  showReversalCheck?: boolean
+  onToggleReversalCheck?: () => void
+  showFlyGongToolbox?: boolean
+  onToggleFlyGongToolbox?: () => void
 }
 
-function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, nativeName, onHourChange, showSanFangSiZheng, onToggleSanFangSiZheng, showBubbleHint, onToggleBubbleHint }: CenterInfoProps) {
+function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, nativeName, onHourChange, showSanFangSiZheng, onToggleSanFangSiZheng, showBubbleHint, onToggleBubbleHint, showReversalCheck = false, onToggleReversalCheck, showFlyGongToolbox = false, onToggleFlyGongToolbox }: CenterInfoProps) {
   // 分割四柱 - 格式: "甲辰 丙子 己卯 丁酉"
   const fourPillars = chart.chineseDate?.split(' ') || []
   const [yearPillar, monthPillar, dayPillar, hourPillar] = fourPillars
@@ -1199,14 +1249,14 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
         <div className="w-full mt-2 pt-2 border-t border-white/[0.07] flex items-center justify-center gap-2">
           <button
             onClick={onToggleSanFangSiZheng}
-            className={`flex items-center gap-1.5 px-3.5 py-0 text-sm font-medium rounded transition cursor-pointer ${
+            className={`flex items-center gap-1 px-2.5 py-0.5 text-[11px] sm:gap-1.5 sm:px-3.5 sm:py-0 sm:text-sm font-medium rounded transition cursor-pointer ${
               showSanFangSiZheng
-                ? 'bg-gray-300 text-gray-800'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
+                ? 'bg-gray-300 text-gray-500'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 active:bg-gray-300'
             }`}
             title="點選宮位時顯示三合宮位三角形及對宮連線"
           >
-            <svg className="w-3 h-3" viewBox="0 0 12 12" fill="currentColor">
+            <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" viewBox="0 0 12 12" fill="currentColor">
               <polygon points="6,1 11,10 1,10" fillOpacity="0.7" />
             </svg>
             三方四正
@@ -1215,17 +1265,45 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
           {onToggleBubbleHint !== undefined && (
             <button
               onClick={onToggleBubbleHint}
-              className={`flex items-center gap-1.5 px-3.5 py-0 text-sm font-medium rounded transition cursor-pointer ${
+              className={`flex items-center gap-1 px-2.5 py-0.5 text-[11px] sm:gap-1.5 sm:px-3.5 sm:py-0 sm:text-sm font-medium rounded transition cursor-pointer ${
                 showBubbleHint
-                  ? 'bg-gray-300 text-gray-800'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
+                  ? 'bg-gray-300 text-gray-500'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200 active:bg-gray-300'
               }`}
               title="點選宮位時顯示 Bubble Hint"
             >
-              <svg className="w-3 h-3" viewBox="0 0 16 16" fill="currentColor">
+              <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M2 3.5A2.5 2.5 0 0 1 4.5 1h7A2.5 2.5 0 0 1 14 3.5v4A2.5 2.5 0 0 1 11.5 10H7l-3.2 2.7c-.7.6-1.8.1-1.8-.8V3.5z" />
               </svg>
               宮位提示
+            </button>
+          )}
+
+          {onToggleReversalCheck !== undefined && (
+            <button
+              onClick={onToggleReversalCheck}
+              className={`flex items-center gap-1 px-2.5 py-0.5 text-[11px] sm:gap-1.5 sm:px-3.5 sm:py-0 sm:text-sm font-medium rounded transition cursor-pointer ${
+                showReversalCheck
+                  ? 'bg-gray-300 text-gray-500'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200 active:bg-gray-300'
+              }`}
+              title="控制宮位中心得/失按鈕顯示"
+            >
+              反背檢查
+            </button>
+          )}
+
+          {onToggleFlyGongToolbox !== undefined && (
+            <button
+              onClick={onToggleFlyGongToolbox}
+              className={`flex items-center gap-1 px-2.5 py-0.5 text-[11px] sm:gap-1.5 sm:px-3.5 sm:py-0 sm:text-sm font-medium rounded transition cursor-pointer ${
+                showFlyGongToolbox
+                  ? 'bg-gray-300 text-gray-500'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200 active:bg-gray-300'
+              }`}
+              title="控制飛宮弧線顯示"
+            >
+              飛宮
             </button>
           )}
         </div>
@@ -1642,8 +1720,11 @@ export function ChartDisplay() {
   const [selectedAnnual, setSelectedAnnual] = useState<number | null>(null)
   const [selectedMonthly, setSelectedMonthly] = useState<number | null>(null)
   const [isDecadalExpanded, setIsDecadalExpanded] = useState(false)
-  const [showSanFangSiZheng, setShowSanFangSiZheng] = useState(true)
-  const [showBubbleHint, setShowBubbleHint] = useState(true)
+  const [showSanFangSiZheng, setShowSanFangSiZheng] = useState(false)
+  const [showBubbleHint, setShowBubbleHint] = useState(false)
+  const [directionFocus, setDirectionFocus] = useState<'得' | '失' | null>(null)
+  const [showReversalCheck, setShowReversalCheck] = useState(false)
+  const [showFlyGongToolbox, setShowFlyGongToolbox] = useState(false)
   const gridRef = useRef<HTMLDivElement>(null)
   const [gridOffset, setGridOffset] = useState({ x: 0, y: 0 })
   // 宮位氣泡提示狀態
@@ -1670,7 +1751,7 @@ export function ChartDisplay() {
   }>({ A: true, B: true, C: true, D: true })
   const arcResetVersion = 0
 
-  const lineStrokeWidth = isCompactMobile ? 1 : 2
+  const lineStrokeWidth = 1.5
   const lineDashArray = isCompactMobile ? '1,1' : '2,2'
   const arrowMarkerSize = isCompactMobile ? 7 : 10
   const arrowRefX = isCompactMobile ? 6.3 : 9
@@ -1934,6 +2015,84 @@ export function ChartDisplay() {
     }
   }
 
+  // 沿用現有四化飛線，做最小反背接線：先過濾顯示中的線，再交給規格檔判定
+  const allMutagenLines = collectMutagenLines(palaceData)
+  const visibleMutagenLines = allMutagenLines.filter((line) => {
+    if (line.label) {
+      const shouldDisplay = mutagenDisplay[line.label as 'A' | 'B' | 'C' | 'D'] ?? true
+      return shouldDisplay
+    }
+    return true
+  })
+  const activeMutagenLabels = (['A', 'B', 'C', 'D'] as const).filter((label) => mutagenDisplay[label])
+  const singleActiveMutagenLabel = activeMutagenLabels.length === 1 ? activeMutagenLabels[0] : null
+
+  const directionMarkByBranch: Record<string, '得' | '失' | '得失'> = {}
+  if (singleActiveMutagenLabel) {
+    const getBranches = new Set<string>()
+    const lossBranches = new Set<string>()
+
+    for (const line of visibleMutagenLines) {
+      if (line.label !== singleActiveMutagenLabel) continue
+      // 依規則：有離心就是失、有向心就是得
+      if (line.isCounterMutagen && line.toPalace) {
+        getBranches.add(line.toPalace)
+      }
+      if (line.isSelfCentrifugal && line.fromPalace) {
+        lossBranches.add(line.fromPalace)
+      }
+    }
+
+    const allBranches = new Set<string>([...getBranches, ...lossBranches])
+
+    for (const branch of allBranches) {
+      const hasGet = getBranches.has(branch)
+      const hasLoss = lossBranches.has(branch)
+      directionMarkByBranch[branch] = hasGet && hasLoss ? '得失' : hasGet ? '得' : '失'
+    }
+  }
+
+  const selectedPalaceBranch = selectedPalace
+    ? palaceData.find((palace) => palace.name === selectedPalace)?.branch
+    : null
+
+  const sanFangSiZhengResult = (() => {
+    if (!selectedPalaceBranch || !singleActiveMutagenLabel) return null
+
+    const groups = getSanFangSiZhengBranches(selectedPalaceBranch)
+    if (groups.sanFang.length === 0 || groups.siZheng.length === 0) return null
+
+    const getStats = (branches: string[]) => {
+      const marks = branches.map((branch) => directionMarkByBranch[branch]).filter(Boolean) as Array<'得' | '失' | '得失'>
+      const hasGet = marks.some((mark) => hasDirection(mark, '得'))
+      const hasLoss = marks.some((mark) => hasDirection(mark, '失'))
+      const getCount = marks.filter((mark) => hasDirection(mark, '得')).length
+      const lossCount = marks.filter((mark) => hasDirection(mark, '失')).length
+
+      // 反背：選中宮本身有四化，且三方/四正中其他宮也有四化
+      const selectedHasMark = !!directionMarkByBranch[selectedPalaceBranch]
+      const otherBranches = branches.filter((b) => b !== selectedPalaceBranch)
+      const otherHasMark = otherBranches.some((b) => !!directionMarkByBranch[b])
+      const hasReversal = selectedHasMark && otherHasMark
+
+      return {
+        hasGet,
+        hasLoss,
+        hasReversal,
+        getCount,
+        lossCount,
+        total: marks.length, // 只計有四化的宮數
+      }
+    }
+
+    return {
+      sanFang: getStats(groups.sanFang),
+      siZheng: getStats(groups.siZheng),
+    }
+  })()
+
+  const effectiveDirectionFocus = showReversalCheck ? directionFocus : null
+
   const renderPalace = (palace: PalaceData | null, key: string) => {
     if (!palace) return <div key={key} />
 
@@ -1983,6 +2142,8 @@ export function ChartDisplay() {
           palaceData={palaceData}
           decadalLifePalaceStem={decadalLifePalaceStem}
           annualLifePalaceStem={annualLifePalaceStem}
+          directionMark={directionMarkByBranch[palace.branch] ?? null}
+          directionFocus={effectiveDirectionFocus}
         />
       </div>
     )
@@ -2021,16 +2182,7 @@ export function ChartDisplay() {
         
         {/* 四化連線 - 先繪製向心自化（虛線） */}
         {(() => {
-          const allLines = collectMutagenLines(palaceData)
-          
-          // 根据显示状态过滤线条（保持原有的显示逻辑）
-          const lines = allLines.filter(line => {
-            if (line.label) {
-              const shouldDisplay = mutagenDisplay[line.label as 'A' | 'B' | 'C' | 'D'] ?? true
-              return shouldDisplay
-            }
-            return true
-          })
+          const lines = visibleMutagenLines
           
           return (
             <>
@@ -2231,17 +2383,19 @@ export function ChartDisplay() {
                   )
                 })}
               
-              <DottedArcLayer
-                palaceData={palaceData}
-                selectedPalace={selectedPalace}
-                setSelectedPalace={setSelectedPalace}
-                gridRef={gridRef}
-                gridOffset={gridOffset}
-                isCompactMobile={isCompactMobile}
-                lineStrokeWidth={lineStrokeWidth}
-                lineDashArray={lineDashArray}
-                resetVersion={arcResetVersion}
-              />
+              {showFlyGongToolbox && (
+                <DottedArcLayer
+                  palaceData={palaceData}
+                  selectedPalace={selectedPalace}
+                  setSelectedPalace={setSelectedPalace}
+                  gridRef={gridRef}
+                  gridOffset={gridOffset}
+                  isCompactMobile={isCompactMobile}
+                  lineStrokeWidth={lineStrokeWidth}
+                  lineDashArray={lineDashArray}
+                  resetVersion={arcResetVersion}
+                />
+              )}
             </>
           )
         })()}
@@ -2287,7 +2441,7 @@ export function ChartDisplay() {
         return (
           <svg
             key={selectedPalace}
-            className="absolute inset-0 w-full h-full pointer-events-none overflow-visible"
+            className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden"
             style={{ zIndex: 48 }}
           >
             {/* 三合宮位黃色三角形 */}
@@ -2333,6 +2487,15 @@ export function ChartDisplay() {
                 return !v
               })
             }}
+            showReversalCheck={showReversalCheck}
+            onToggleReversalCheck={() => {
+              setShowReversalCheck((prev) => {
+                if (prev) setDirectionFocus(null)
+                return !prev
+              })
+            }}
+            showFlyGongToolbox={showFlyGongToolbox}
+            onToggleFlyGongToolbox={() => setShowFlyGongToolbox((v) => !v)}
             onHourChange={(hour) => {
               if (birthInfo && birthInfo.year && birthInfo.month && birthInfo.day && birthInfo.gender) {
                 const updatedBirthInfo: BirthInfo = {
@@ -2415,6 +2578,39 @@ export function ChartDisplay() {
         )}
         </div>
       </div>
+
+      {/* 三方四正反背檢測結果：三方談整體，四正談空間 */}
+      {showReversalCheck && sanFangSiZhengResult && (
+        <div className="mb-2 px-2 sm:px-0">
+          <div className="text-[10px] sm:text-[12px] text-text-secondary bg-white/[0.06] border border-white/[0.12] rounded-md px-2 py-1.5 flex flex-wrap gap-x-3 gap-y-1 items-center">
+            <span className="font-semibold">三方四正統計：</span>
+            <span>
+              三方(整體)&nbsp;
+              <span className="text-emerald-300 font-semibold">得{sanFangSiZhengResult.sanFang.getCount}</span>
+              <span className="mx-0.5">/</span>
+              <span className="text-rose-300 font-semibold">失{sanFangSiZhengResult.sanFang.lossCount}</span>
+              <span className="text-white/40">（{sanFangSiZhengResult.sanFang.total}宮）</span>
+            </span>
+            <span>
+              四正(空間)&nbsp;
+              <span className="text-emerald-300 font-semibold">得{sanFangSiZhengResult.siZheng.getCount}</span>
+              <span className="mx-0.5">/</span>
+              <span className="text-rose-300 font-semibold">失{sanFangSiZhengResult.siZheng.lossCount}</span>
+              <span className="text-white/40">（{sanFangSiZhengResult.siZheng.total}宮）</span>
+            </span>
+            <span className={`font-semibold ${
+              sanFangSiZhengResult.sanFang.hasReversal ? 'text-emerald-300' : 'text-amber-300'
+            }`}>
+              三方反背{sanFangSiZhengResult.sanFang.hasReversal ? '✓' : '✗'}
+            </span>
+            <span className={`font-semibold ${
+              sanFangSiZhengResult.siZheng.hasReversal ? 'text-emerald-300' : 'text-amber-300'
+            }`}>
+              四正反背{sanFangSiZhengResult.siZheng.hasReversal ? '✓' : '✗'}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* 大限流年表格 */}
       <div className="mt-0">

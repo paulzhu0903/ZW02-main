@@ -39,8 +39,6 @@ interface BranchState {
 }
 
 interface ArcContinueMenuState {
-  x: number
-  y: number
   rootBranch: string
   targetPalaceName: string
   targetBranch: string
@@ -63,7 +61,7 @@ export function DottedArcLayer({
   const [palaceRootMap, setPalaceRootMap] = useState<Record<string, string>>({})
   const [branchStates, setBranchStates] = useState<Record<string, BranchState>>({})
   const [arcContinueMenu, setArcContinueMenu] = useState<ArcContinueMenuState | null>(null)
-  const [entryMenu, setEntryMenu] = useState<{ x: number; y: number } | null>(null)
+  const [entryMenu, setEntryMenu] = useState<{ branch: string } | null>(null)
 
   const EMPTY_BRANCH_STATE: BranchState = {
     selectedArcLabel: null,
@@ -239,21 +237,12 @@ export function DottedArcLayer({
       return
     }
 
-    const center = getCardCenter(selectedPalaceData.branch)
-    if (!center) {
-      setEntryMenu(null)
-      return
-    }
-
     setEntryMenu({
-      x: center.x + gridOffset.x,
-      y: center.y + gridOffset.y,
+      branch: selectedPalaceData.branch,
     })
-  }, [selectedPalaceData, palaceRootMap, branchStates, arcContinueMenu, gridOffset.x, gridOffset.y])
+  }, [selectedPalaceData, palaceRootMap, branchStates, arcContinueMenu])
 
   const openArcMenu = (
-    x: number,
-    y: number,
     rootBranch: string,
     targetPalaceName: string,
     targetBranch: string,
@@ -262,8 +251,6 @@ export function DottedArcLayer({
     currentArcLabel: 'A' | 'B' | 'C' | 'D',
   ) => {
     setArcContinueMenu({
-      x,
-      y,
       rootBranch,
       targetPalaceName,
       targetBranch,
@@ -274,13 +261,8 @@ export function DottedArcLayer({
   }
 
   const clampPanelX = (anchorX: number, panelWidth: number): number => {
-    if (!gridRect) return anchorX - panelWidth / 2
-
-    const minX = gridOffset.x + 4
-    const maxX = gridOffset.x + gridRect.width - panelWidth - 4
-    if (maxX < minX) return minX
-    // 以中心為錨點：toolbox 的中心應該在 anchorX，所以左邊界是 anchorX - panelWidth / 2
-    return Math.max(minX, Math.min(anchorX - panelWidth / 2, maxX))
+    // 以中心為錨點：toolbox 的中心應該在 anchorX
+    return anchorX - panelWidth / 2
   }
 
   const getUnorderedPairKey = (a: string, b: string) => (a < b ? `${a}-${b}` : `${b}-${a}`)
@@ -426,13 +408,7 @@ export function DottedArcLayer({
                 fill="transparent"
                 style={{ pointerEvents: 'all', cursor: 'pointer' }}
                 onClick={() => {
-                  const targetCenter = getCardCenter(targetPalace.branch)
-                  if (!targetCenter) return
-                  const menuX = targetCenter.x + gridOffset.x
-                  const menuY = targetCenter.y + gridOffset.y
                   openArcMenu(
-                    menuX,
-                    menuY,
                     rootBranch,
                     targetPalace.name,
                     targetPalace.branch,
@@ -447,38 +423,30 @@ export function DottedArcLayer({
         })
       })}
 
-      {arcContinueMenu && (
-        <>
-          {/* 背景透明層，點擊外部關閉菜單並取消 selected palace */}
-          <rect
-            x={gridOffset.x}
-            y={gridOffset.y}
-            width={gridRect?.width || 1000}
-            height={gridRect?.height || 1000}
-            fill="transparent"
-            style={{ pointerEvents: 'all', cursor: 'default' }}
-            onClick={() => {
-              setArcContinueMenu(null)
-              setSelectedPalace(null)
-            }}
-          />
-          <foreignObject
-            x={clampPanelX(arcContinueMenu.x, isCompactMobile ? 124 : 132)}
-            y={arcContinueMenu.y - (isCompactMobile ? 40 : 45)}
-            width={isCompactMobile ? 124 : 132}
-            height={isCompactMobile ? 80 : 90}
-            style={{ overflow: 'visible', pointerEvents: 'all' }}
+      {arcContinueMenu && (() => {
+        const targetCenter = getCardCenter(arcContinueMenu.targetBranch)
+        const cardRect = getCardRectRelativeToGrid(arcContinueMenu.targetBranch)
+        if (!targetCenter || !cardRect) return null
+        const panelWidth = Math.round(cardRect.width * 0.8)
+        const panelHeight = isCompactMobile ? 80 : 90
+        return (
+        <foreignObject
+          x={targetCenter.x + gridOffset.x - panelWidth / 2}
+          y={targetCenter.y + gridOffset.y- panelHeight / 2}
+          width={panelWidth}
+          height={panelHeight}
+          style={{ overflow: 'visible', pointerEvents: 'none' }}
+        >
+          <div 
+            className="inline-flex w-full flex-col gap-1 rounded-xl border border-slate-300/70 bg-white/88 p-1.5 text-slate-700 shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-md"
+            style={{ pointerEvents: 'auto' }}
           >
-            <div 
-              className="inline-flex w-fit flex-col gap-1 rounded-xl border border-slate-300/70 bg-white/88 p-1.5 text-slate-700 shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-md"
-              onClick={(e) => e.stopPropagation()}
-            >
-            <div className="flex items-center gap-1">
+            <div className="flex items-center justify-center gap-2.5">
               {(['A', 'B', 'C', 'D', 'M'] as const).map((label) => (
                 <button
                   key={label}
                   type="button"
-                  className="h-4 w-4 rounded border border-white/50 bg-white/60 text-[9px] font-semibold leading-none text-slate-700 transition-colors hover:bg-white/85"
+                  className="h-5 w-5 rounded border border-white/50 bg-white/60 text-[12px] font-semibold leading-none text-slate-700 transition-colors hover:bg-white/85"
                   onClick={() => {
                     const rootBranch = arcContinueMenu.rootBranch
                     if (selectedPalace) {
@@ -522,7 +490,7 @@ export function DottedArcLayer({
               <button
                 type="button"
                 title="Back"
-                className="flex h-7 w-10 items-center justify-center rounded-lg border border-slate-300/60 bg-white/70 text-slate-700 transition-colors hover:bg-white"
+                className="flex h-6 w-10 items-center justify-center rounded-lg border border-slate-300/60 bg-white/70 text-slate-700 transition-colors hover:bg-white"
                 onClick={() => {
                   undoOneArcStep(arcContinueMenu.rootBranch)
                   setArcContinueMenu(null)
@@ -536,7 +504,7 @@ export function DottedArcLayer({
               <button
                 type="button"
                 title="Clean All"
-                className="flex h-7 w-10 items-center justify-center rounded-lg border border-rose-200/60 bg-rose-100/70 text-rose-700 transition-colors hover:bg-rose-100"
+                className="flex h-6 w-10 items-center justify-center rounded-lg border border-rose-200/60 bg-rose-100/70 text-rose-700 transition-colors hover:bg-rose-100"
                 onClick={() => {
                   resetSingleBranch(arcContinueMenu.rootBranch)
                   setArcContinueMenu(null)
@@ -553,40 +521,32 @@ export function DottedArcLayer({
             </div>
             </div>
           </foreignObject>
-        </>
-      )}
+        )
+      })()}
 
-      {entryMenu && (
-        <>
-          {/* 背景透明層，點擊外部關閉菜單並取消 selected palace */}
-          <rect
-            x={gridOffset.x}
-            y={gridOffset.y}
-            width={gridRect?.width || 1000}
-            height={gridRect?.height || 1000}
-            fill="transparent"
-            style={{ pointerEvents: 'all', cursor: 'default' }}
-            onClick={() => {
-              setEntryMenu(null)
-              setSelectedPalace(null)
-            }}
-          />
-          <foreignObject
-            x={clampPanelX(entryMenu.x, isCompactMobile ? 112 : 120)}
-            y={entryMenu.y - (isCompactMobile ? 22 : 24)}
-            width={isCompactMobile ? 112 : 120}
-            height={isCompactMobile ? 44 : 48}
-            style={{ overflow: 'visible', pointerEvents: 'all' }}
+      {entryMenu && (() => {
+        const center = getCardCenter(entryMenu.branch)
+        const cardRect = getCardRectRelativeToGrid(entryMenu.branch)
+        if (!center || !cardRect) return null
+        const panelWidth = Math.round(cardRect.width * 0.8)
+        const panelHeight = isCompactMobile ? 44 : 48
+        return (
+        <foreignObject
+          x={center.x + gridOffset.x - panelWidth / 2}
+          y={center.y + gridOffset.y- panelHeight / 2}
+          width={panelWidth}
+          height={panelHeight}
+          style={{ overflow: 'visible', pointerEvents: 'none' }}
+        >
+          <div 
+            className="inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-slate-300/70 bg-white/88 p-1.5 text-slate-700 shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-md"
+            style={{ pointerEvents: 'auto' }}
           >
-            <div 
-              className="inline-flex w-fit items-center gap-1 rounded-xl border border-slate-300/70 bg-white/88 p-1.5 text-slate-700 shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-md"
-              onClick={(e) => e.stopPropagation()}
-            >
             {(['A', 'B', 'C', 'D', 'M'] as const).map((label) => (
               <button
                 key={`entry-${label}`}
                 type="button"
-                className="h-4 w-4 rounded border border-white/50 bg-white/60 text-[9px] font-semibold leading-none text-slate-700 transition-colors hover:bg-white/85"
+                className="h-5 w-5 rounded border border-white/50 bg-white/60 text-[12px] font-semibold leading-none text-slate-700 transition-colors hover:bg-white/85"
                 onClick={() => {
                   if (!selectedPalaceData) return
                   const rootBranch = currentRootBranch || selectedPalaceData.branch
@@ -608,8 +568,8 @@ export function DottedArcLayer({
             ))}
             </div>
           </foreignObject>
-        </>
-      )}
+        )
+      })()}
     </>
   )
 }

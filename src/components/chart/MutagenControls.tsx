@@ -18,10 +18,10 @@ export function MutagenControls({ mutagenDisplay, setMutagenDisplay }: MutagenCo
           key={label}
           onClick={() => setMutagenDisplay({ ...mutagenDisplay, [label]: !mutagenDisplay[label] })}
           className={`
-            w-6 h-5 sm:w-7 sm:h-7 rounded-md sm:rounded-lg font-bold transition-all duration-200 text-[9px] sm:text-xs flex items-center justify-center shrink-0
+            w-6 h-5 sm:w-7 sm:h-7 rounded-md sm:rounded-lg font-extrabold transition-all duration-200 text-[10px] sm:text-sm flex items-center justify-center shrink-0 border
             ${mutagenDisplay[label]
-              ? 'bg-star text-white shadow-lg'
-              : 'bg-white/[0.05] text-text-secondary hover:bg-white/[0.1]'
+              ? 'bg-star text-white border-white/30 shadow-[0_0_0_1px_rgba(255,255,255,0.18)]'
+              : 'bg-white/80 text-slate-900 border-slate-400 hover:bg-white'
             }
           `}
         >

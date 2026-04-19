@@ -84,6 +84,8 @@ export interface PalaceCardProps extends PalaceData {
   palaceData?: PalaceData[] | null
   decadalLifePalaceStem?: string | null
   annualLifePalaceStem?: string | null
+  directionMark?: '得' | '失' | '得失' | null
+  directionFocus?: '得' | '失' | null
 }
 
 export interface DecadalAnnualMonthlyTableProps {

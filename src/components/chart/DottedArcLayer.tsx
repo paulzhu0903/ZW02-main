@@ -260,11 +260,6 @@ export function DottedArcLayer({
     })
   }
 
-  const clampPanelX = (anchorX: number, panelWidth: number): number => {
-    // 以中心為錨點：toolbox 的中心應該在 anchorX
-    return anchorX - panelWidth / 2
-  }
-
   const getUnorderedPairKey = (a: string, b: string) => (a < b ? `${a}-${b}` : `${b}-${a}`)
 
   const buildArcPath = (

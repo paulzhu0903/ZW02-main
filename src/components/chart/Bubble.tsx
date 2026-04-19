@@ -8,39 +8,12 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useSettingsStore } from '@/stores'
 import { SIHUA_BY_GAN, SIHUA_BY_GAN_TRADITIONAL } from '@/knowledge/sihua'
-import { getPalaceInfo } from '@/knowledge/palaces'
-import { getStarInfo } from '@/knowledge/stars/majorStars'
-import { localizeChineseText, localizeKnowledgeText } from '@/lib/localize-knowledge'
+import { localizeChineseText } from '@/lib/localize-knowledge'
 import { normalizeStarName as normalizeStarNameShared } from '@/lib/star-name'
 import type { PalaceData } from './types'
 
 type TabType = 'natal' | 'decadal' | 'annual'
 type ChartType = 'flying' | 'trireme' | 'transformation'
-
-function normalizePalaceName(name: string): string {
-  return name
-    .trim()
-    .replace('命宮', '命宫')
-    .replace('兄弟宮', '兄弟宫')
-    .replace('夫妻宮', '夫妻宫')
-    .replace('子女宮', '子女宫')
-    .replace('財帛宮', '财帛宫')
-    .replace('疾厄宮', '疾厄宫')
-    .replace('遷移宮', '迁移宫')
-    .replace('交友宮', '交友宫')
-    .replace('奴仆宮', '交友宫')
-    .replace('奴僕宮', '交友宫')
-    .replace('仆役宮', '交友宫')
-    .replace('僕役宮', '交友宫')
-    .replace('官祿宮', '官禄宫')
-    .replace('田宅宮', '田宅宫')
-    .replace('福德宮', '福德宫')
-    .replace('父母宮', '父母宫')
-    .replace('奴仆', '交友')
-    .replace('奴僕', '交友')
-    .replace('仆役', '交友')
-    .replace('僕役', '交友')
-}
 
 function displayPalaceName(name: string): string {
   return name
@@ -125,29 +98,6 @@ export function PalaceHintBubble({
     const sihuaMap = isTW
       ? SIHUA_BY_GAN_TRADITIONAL
       : SIHUA_BY_GAN
-
-    const normalizedPalaceName = normalizePalaceName(displayName)
-    const _palaceInfo = getPalaceInfo(normalizedPalaceName)
-
-    const _majorStarSummary = palace.majorStars.map(s => {
-      const m = s.mutagen ? `(${localizeVisibleText(s.mutagen)})` : ''
-      const b = s.brightness ? localizeVisibleText(s.brightness) : ''
-      return `${localizeVisibleText(s.name)}${b}${m}`
-    }).join('、')
-    const _minorStarSummary = palace.minorStars.map(s => localizeVisibleText(s.name)).join('、')
-
-    const majorStarKnowledges = palace.majorStars
-      .map((star) => {
-        const info = getStarInfo(normalizeStarNameShared(star.name))
-        if (!info) return null
-        const palaceEffect = localizeKnowledgeText(info.palaceEffects[normalizedPalaceName] || info.description, isTW)
-        return `- ${localizeVisibleText(star.name)}：${palaceEffect}`
-      })
-      .filter((v): v is string => !!v)
-
-    const _starKnowledgeText = majorStarKnowledges.length > 0
-      ? majorStarKnowledges.join('\n')
-      : (isTW ? '- 此宮主星暫無本地知識條目，先以星曜組合觀察。' : '- 此宫主星暂无本地知识条目，先以星曜组合观察。')
 
     const palaceStarSet = new Set([
       ...palace.majorStars.map((s) => normalizeStarNameShared(s.name)),

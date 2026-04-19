@@ -156,10 +156,11 @@ function getCodeFromLine(line: MutagenLine): ABCDCode | null {
     return line.label
   }
 
-  if (line.type === '禄' || line.type === '祿') return 'A'
-  if (line.type === '权' || line.type === '權') return 'B'
-  if (line.type === '科') return 'C'
-  if (line.type === '忌') return 'D'
+  const typeText = String(line.type)
+  if (typeText === '禄' || typeText === '祿') return 'A'
+  if (typeText === '权' || typeText === '權') return 'B'
+  if (typeText === '科') return 'C'
+  if (typeText === '忌') return 'D'
   return null
 }
 

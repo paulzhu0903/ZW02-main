@@ -430,8 +430,25 @@ interface HoroscopeData {
   palaceNames: string[]
 }
 
+interface YearlyContextStarItem {
+  name: unknown
+  brightness?: unknown
+  mutagen?: unknown
+}
+
+interface YearlyContextPalace {
+  name: unknown
+  majorStars: YearlyContextStarItem[]
+  minorStars: YearlyContextStarItem[]
+  adjectiveStars: Array<{ name: unknown }>
+}
+
+interface YearlyContextChart {
+  palaces: YearlyContextPalace[]
+}
+
 function buildYearlyContext(
-  chart: { palaces: Array<{ name: unknown; majorStars: Array<{ name: unknown; brightness?: unknown; mutagen?: unknown }>; minorStars: Array<{ name: unknown; mutagen?: unknown }> }> },
+  chart: YearlyContextChart,
   horoscope: { yearly: HoroscopeData; decadal: HoroscopeData },
   year: number
 ): string {
@@ -489,9 +506,12 @@ function buildYearlyContext(
       return str
     }).join('、')
 
+    const adjectiveStarsStr = (palace.adjectiveStars || []).map(s => String(s.name)).join('、')
+
     lines.push(`### ${palaceName}`)
     lines.push(`- 主星：${majorStarsStr}`)
-    if (minorStarsStr) lines.push(`- 辅星：${minorStarsStr}`)
+    if (minorStarsStr) lines.push(`- 輔星：${minorStarsStr}`)
+    if (adjectiveStarsStr) lines.push(`- 雜曜：${adjectiveStarsStr}`)
     lines.push('')
   }
 
@@ -849,7 +869,7 @@ ${yearlyContext}
         {/* Prompt 预览（测试模式）*/}
         {showYearlyFortunePrompt && (
           <div className="mb-6 p-4 rounded-lg bg-white/[0.08] border border-gold/20">
-            <div className="text-xs font-semibold text-gold mb-3 uppercase">📋 System Prompt (JSON格式)</div>
+            <div className="text-xs font-semibold text-gold mb-3 uppercase">📋 System Prompt</div>
             <pre className="text-xs text-text-secondary overflow-auto max-h-64 whitespace-pre-wrap break-words font-mono bg-white/5 p-3 rounded">
               {monthlyAnalysis && yearlyData ? getForttunePrompt(language, yearlyData, monthlyAnalysis) : getForttunePrompt(language)}
             </pre>
@@ -859,7 +879,6 @@ ${yearlyContext}
         {/* 未配置提示 */}
         {!currentSettings.apiKey && !fortune && !showYearlyFortunePrompt && (
           <div className="text-text-muted text-sm py-8 text-center">
-            <div className="text-3xl mb-3 opacity-30">◎</div>
             {t('fortune.configureApiLong', language)}
           </div>
         )}
@@ -867,7 +886,6 @@ ${yearlyContext}
         {/* 未分析提示 */}
         {currentSettings.apiKey && !fortune && !loading && !showYearlyFortunePrompt && (
           <div className="text-text-muted text-sm py-8 text-center">
-            <div className="text-3xl mb-3 opacity-30">◎</div>
             {t('fortune.selectYearHint', language)}
           </div>
         )}
@@ -880,7 +898,7 @@ ${yearlyContext}
           </div>
         )}
 
-        {/* 运势内容 - 书法字体 + Markdown 渲染 */}
+        {/* 运势内容+ Markdown 渲染 */}
         {fortune && (
           <div
             className="

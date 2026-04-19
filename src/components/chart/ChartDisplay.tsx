@@ -40,6 +40,7 @@ import {
 import { MutagenControls } from './MutagenControls'
 import { PalaceHintBubble } from './Bubble'
 import { DottedArcLayer } from './DottedArcLayer'
+import { HoverHint } from '@/components/ui'
 
 /* ============================================================
    辅助函数
@@ -62,6 +63,10 @@ function getYearGanZhi(year: number): string {
 
 const EARTHLY_BRANCH_ORDER = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'] as const
 const LUNAR_MONTH_NAMES = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'] as const
+const PALACE_CLOCKWISE_BRANCHES = ['寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥', '子', '丑'] as const
+const DISPLAY_MONTH_NAMES = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '冬', '臘'] as const
+const CHINESE_DAY_NAMES = ['初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十', '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十'] as const
+const SHICHEN_NAMES = ['子時', '丑時', '寅時', '卯時', '辰時', '巳時', '午時', '未時', '申時', '酉時', '戌時', '亥時'] as const
 
 function normalizeIndex(value: number): number {
   return ((value % 12) + 12) % 12
@@ -231,6 +236,13 @@ function getMonthlySequenceByBranch(
   return monthlyMap
 }
 
+function getMonthlySequenceLabel(year: number, lunarMonth: number): string {
+  const monthName = LUNAR_MONTH_NAMES[lunarMonth - 1]
+  const monthlyGan = getMonthlyGan(year, lunarMonth)
+  const monthlyZhi = EARTHLY_BRANCH_ORDER[(lunarMonth + 1) % 12]
+  return `${monthName}月${monthlyGan}${monthlyZhi}月`
+}
+
 /**
  * 根据语言设置获取亮度显示字符
  * @param brightness - 亮度值（中文字符，如"廟"、"庙"、"望"、"平"、"陷"）
@@ -309,19 +321,22 @@ function getLocalizedAstroSign(sign: string | undefined, language: 'zh-TW' | 'zh
   return (language === 'zh-TW' ? signMapTW[sign] : signMapCN[sign]) || sign
 }
 
+// 主星 / 輔星 / 雜曜統一尺寸（base / sm / lg）
+const STAR_SLOT_WIDTH_CLASS = 'w-[14px] min-w-[14px] sm:w-[16px] sm:min-w-[16px] lg:w-[18px] lg:min-w-[18px]'
+const STAR_BASE_TEXT_CLASS = 'text-[10px] sm:text-[11px] md:text-[12px] lg:text-[14px] xl:text-[15px]'
+const TRIREME_MUTAGEN_SQUARE_CLASS = 'flex items-center justify-center w-[14px] h-[14px] text-[10px] sm:w-[14px] sm:h-[14px] sm:text-[11px] md:text-[12px] lg:w-[16px] lg:h-[16px] lg:text-[14px] xl:text-[15px]'
+
 /* ------------------------------------------------------------
    星曜标签组件 - 带亮度和四化
    ------------------------------------------------------------ */
 
 function StarTag({ star, isMajorStar = false, forceTextColorClass = '', chartType = 'flying', selectedDecadal = null, selectedAnnual = null, isCurrentDecadalPalace = false, isCurrentAnnualPalace = false, decadalLifePalaceStem = null, annualLifePalaceStem = null }: StarTagProps) {
-  const { language, triremeMutagenSquareSize } = useSettingsStore()
+  const { language } = useSettingsStore()
   // 三合盤顯示亮度；四化和飛星不顯示亮度
   const displayBrightness = chartType === 'trireme' ? true : false
   const { name, brightness, mutagen } = star
   const hasMutagen = !!mutagen
   const brightnessChar = getBrightnessDisplay(brightness, language)
-  const triremeSquareSize = triremeMutagenSquareSize
-  const triremeSquareFontSize = Math.max(7, triremeSquareSize - 2)
 
   // 获取本地化的四化字符
   const getMutagenDisplay = (mutagen: string | undefined): string => {
@@ -354,7 +369,6 @@ function StarTag({ star, isMajorStar = false, forceTextColorClass = '', chartTyp
     // 在其他盤面，返回本地化的字符
     return t(`mutagen.${key}`, language) || mutagen
   }
-
   const displayMutagen = getMutagenDisplay(mutagen)
 
   const getShortMutagenDisplay = (mutagenText: string | undefined): string => {
@@ -526,14 +540,14 @@ function StarTag({ star, isMajorStar = false, forceTextColorClass = '', chartTyp
   }
 
   return (
-    <div className="flex flex-col items-center " style={{ minHeight: '34px', width: '16px', minWidth: '16px' }}>
+    <div className={`flex flex-col items-center ${STAR_SLOT_WIDTH_CLASS}`} style={{ minHeight: '30px' }}>
       <span
         className={`
-          relative text-[11px] sm:text-[12px] lg:text-[15px] font-medium px-0 py-0 rounded
+          relative ${STAR_SLOT_WIDTH_CLASS} ${STAR_BASE_TEXT_CLASS} font-medium px-0 py-0 rounded
           transition-all duration-200
           ${hasMutagen ? getMutagenTextColor() : `bg-white/5 ${textColor} hover:bg-white/10`}
         `}
-        style={{ width: '16px', minWidth: '16px', minHeight: '34px', height: '34px', margin: '0 0 5px 0' }}
+        style={{ minHeight: '30px', height: '30px', margin: '0 0 0px 0' }}
         data-star-name={name}
       >
         <span
@@ -544,10 +558,10 @@ function StarTag({ star, isMajorStar = false, forceTextColorClass = '', chartTyp
         </span>
       </span>
       {(displayBrightness || mutagen || hasTriremeMutagenSquares) && (
-        <div className="flex flex-col items-center justify-center" style={{ gap: '1px', width: '16px', minWidth: '16px' }}>
+        <div className={`flex flex-col items-center justify-center ${STAR_SLOT_WIDTH_CLASS}`} style={{ gap: '1px' }}>
           {/* 亮度行 - 無論有沒有亮度都預留空間 */}
           {displayBrightness && (
-            <span className="text-[11px] sm:text-[12px] lg:text-[15px] font-medium text-text-muted flex items-center justify-center" style={{ width: '16px', minWidth: '16px', minHeight: '12px' }}>
+            <span className={`${STAR_SLOT_WIDTH_CLASS} ${STAR_BASE_TEXT_CLASS} font-medium text-text-muted flex items-center justify-center`} style={{ minHeight: '12px' }}>
               {brightnessChar || '\u00A0'}
             </span>
           )}
@@ -557,17 +571,14 @@ function StarTag({ star, isMajorStar = false, forceTextColorClass = '', chartTyp
               return (
                 <span
                   key={layerKey}
-                  className="flex items-center justify-center lg:!w-[16px] lg:!min-w-[16px] lg:!h-[16px] lg:!text-[14px]"
+                  className={TRIREME_MUTAGEN_SQUARE_CLASS}
                   style={{
-                    borderRadius: '0',
+                    borderRadius: '2px',
                     backgroundColor: bgColor,
                     color: 'white',
-                    width: `${triremeSquareSize}px`,
-                    height: `${triremeSquareSize}px`,
                     lineHeight: '1',
                     padding: '0',
                     transform: 'none',
-                    fontSize: `${triremeSquareFontSize}px`,
                     fontWeight: 600,
                     visibility: text ? 'visible' : 'hidden',
                   }}
@@ -580,8 +591,8 @@ function StarTag({ star, isMajorStar = false, forceTextColorClass = '', chartTyp
             return (
               <div className="flex flex-col items-center justify-center" style={{ gap: '1px' }}>
                 {renderTriremeSquare(triremeBirthMutagen, '#FF3B30', 'birth')}
-                {renderTriremeSquare(triremeDecadalMutagen || '', '#34C759', 'decadal')}
-                {renderTriremeSquare(triremeAnnualMutagen || '', '#5AC8FA', 'annual')}
+                {renderTriremeSquare(triremeDecadalMutagen || '', '#00c030', 'decadal')}
+                {renderTriremeSquare(triremeAnnualMutagen || '', '#00aeff', 'annual')}
               </div>
             )
           })()}
@@ -640,9 +651,9 @@ function StarTag({ star, isMajorStar = false, forceTextColorClass = '', chartTyp
             let borderRadiusStyle = '50%'
             let styleObj: React.CSSProperties = {
               borderRadius: borderRadiusStyle,
-              width: '16px',
-              minWidth: '16px',
-              height: '16px',
+              width: '14px',
+              minWidth: '14px',
+              height: '14px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -670,7 +681,7 @@ function StarTag({ star, isMajorStar = false, forceTextColorClass = '', chartTyp
             }
             
             return (
-              <span className="text-[11px] sm:text-[12px] lg:text-[15px] flex items-center justify-center"
+              <span className={`${STAR_BASE_TEXT_CLASS} flex items-center justify-center`}
                 style={styleObj}>
                 {displayMutagen}
               </span>
@@ -689,9 +700,10 @@ function StarTag({ star, isMajorStar = false, forceTextColorClass = '', chartTyp
 
 function PalaceCard({
   name, stem, branch, majorStars, minorStars, adjectiveStars,
-  boshi12Deity, longlifeDeity, isLife, isBody, isCausePalace, isSelected, onClick, chartType = 'flying', selectedDecadal = null, selectedAnnual = null, monthlySequenceLabels = [], selectedAnnualAge = null, selectedAnnualGanZhi = null, selectedAnnualLabel = '', selectedDecadalLabel = '', yearGan = '', gender = 'male', birthInfo = null, palaceData = null, decadalLifePalaceStem = null, annualLifePalaceStem = null, directionMark = null, directionFocus = null
+  boshi12Deity, longlifeDeity, isLife, isBody, isCausePalace, isSelected, onClick, chartType = 'flying', selectedDecadal = null, selectedAnnual = null, monthlySequenceLabels = [], selectedDailyLabel = '', selectedHourlyLabel = '', selectedAnnualAge = null, selectedAnnualYear = null, selectedAnnualGanZhi = null, selectedAnnualLabel = '', selectedDecadalLabel = '', yearGan = '', gender = 'male', birthInfo = null, palaceData = null, decadalLifePalaceStem = null, annualLifePalaceStem = null, directionMark = null, directionFocus = null
 }: PalaceCardProps) {
   const { language, transformationShowGods, flyingShowGods, transformationShowCausePalace, transformationHideMinorStars } = useSettingsStore()
+  const hasMergedDailyHourly = !!selectedDailyLabel && !!selectedHourlyLabel && selectedHourlyLabel.startsWith(selectedDailyLabel)
   
   // 計算流年和虛歲 - 基於當前宮位在大限中的相對位置
   let decadalYear: number | null = null
@@ -788,6 +800,9 @@ function PalaceCard({
   // 宮位名稱固定為原始序列，不因大限/流年切換而改名
   const displayPalaceName = originalPalaceName
   const annualPalaceLabel = ''
+  const shouldUseFixedAnnual = selectedAnnual !== null && monthlySequenceLabels.length > 0
+  const displayYear = shouldUseFixedAnnual ? selectedAnnualYear : decadalYear
+  const displayAge = shouldUseFixedAnnual ? selectedAnnualAge : masterAge
   
   return (
     <div
@@ -807,10 +822,10 @@ function PalaceCard({
       {/* 星耀水平排列 - 统一容器处理所有星曜 */}
       <div className={`relative flex flex-row flex-wrap mb-0 flex-1 justify-start items-start gap-0 overflow-visible ${chartType === 'transformation' && transformationShowCausePalace && isCausePalace ? 'pr-1 sm:pr-2' : ''}`}>
         {/* 統一主星、輔星、雜曜字體大小與排列 */}
-        <div className="flex flex-row flex-wrap items-start gap-x-0.5 gap-y-0 w-full">
+        <div className="flex flex-row flex-wrap items-start gap-x-0 gap-y-0 w-full">
           {/* 主星 */}
           {majorStars.map((star, i) => (
-            <div key={`major-wrap-${i}`} className="w-[16px] min-w-[16px] flex justify-center items-start">
+            <div key={`major-wrap-${i}`} className={`${STAR_SLOT_WIDTH_CLASS} flex justify-center items-start`}>
               <StarTag
                 key={`major-${i}`}
                 star={star}
@@ -835,7 +850,7 @@ function PalaceCard({
             if (!shouldShow) return null
             
             return (
-              <div key={`minor-wrap-${i}`} className="w-[16px] min-w-[16px] flex justify-center items-start">
+              <div key={`minor-wrap-${i}`} className={`${STAR_SLOT_WIDTH_CLASS} flex justify-center items-start`}>
                 <StarTag
                   key={`minor-${i}`}
                   star={star}
@@ -854,7 +869,7 @@ function PalaceCard({
           })}
           {/* 雜曜 - 使用 StarTag 以確保與主星/輔星完全一致的容器與間距 */}
           {(chartType === 'flying' || chartType === 'trireme') && adjectiveStars.map((name, i) => (
-            <div key={`adj-wrap-${i}`} className="w-[16px] min-w-[16px] flex justify-center items-start">
+            <div key={`adj-wrap-${i}`} className={`${STAR_SLOT_WIDTH_CLASS} flex justify-center items-start`}>
               <StarTag
                 key={`adj-${i}`}
                 star={{ name }}
@@ -923,10 +938,10 @@ function PalaceCard({
 
         {/* 中間: 由上而下顯示 西元+虛歲、流月 */}
         <div className="flex flex-col items-center justify-center flex-1 text-center gap-0.5">
-          {(decadalYear !== null || masterAge !== null) && (
+          {(displayYear !== null || displayAge !== null) && (
             <div className="text-[9px] sm:text-[10px] lg:text-[13px] text-text-muted text-center leading-none whitespace-nowrap">
-              {decadalYear !== null && <span className="mr-0.5">{decadalYear}</span>}
-              {masterAge !== null && <span>{masterAge}歲</span>}
+              {displayYear !== null && <span className="mr-0.5">{displayYear}</span>}
+              {displayAge !== null && <span>{displayAge}歲</span>}
             </div>
           )}
 
@@ -936,8 +951,39 @@ function PalaceCard({
                 // 只去掉最後一個 "月" 字，並將十一、十二顯示為冬、臘
                 let cleanLabel = label.replace(/月$/, '')
                 cleanLabel = cleanLabel.replace('十一', '冬').replace('十二', '臘')
-                return <span key={`${branch}-${label}`} className="whitespace-nowrap">{cleanLabel}</span>
+                const monthMatch = label.match(/^(正|二|三|四|五|六|七|八|九|十|十一|十二)月/)
+                const lunarMonthText = monthMatch?.[1]
+                const lunarMonthMap: Record<string, number> = {
+                  '正': 1,
+                  '二': 2,
+                  '三': 3,
+                  '四': 4,
+                  '五': 5,
+                  '六': 6,
+                  '七': 7,
+                  '八': 8,
+                  '九': 9,
+                  '十': 10,
+                  '十一': 11,
+                  '十二': 12,
+                }
+                const lunarMonthNumber = lunarMonthText ? lunarMonthMap[lunarMonthText] : null
+                const westernMonth = lunarMonthNumber ? (lunarMonthNumber % 12) + 1 : null
+                return <span key={`${branch}-${label}`} className="whitespace-nowrap">{cleanLabel}{westernMonth ? `(${westernMonth})` : ''}</span>
               })}
+            </div>
+          )}
+
+          {(selectedDailyLabel || selectedHourlyLabel) && (
+            <div className="flex items-center justify-center gap-1 text-[8px] sm:text-[9px] lg:text-[13px] text-gray-400 text-center leading-none whitespace-nowrap">
+              {hasMergedDailyHourly ? (
+                <span>{selectedHourlyLabel}</span>
+              ) : (
+                <>
+                  {selectedDailyLabel && <span>{selectedDailyLabel}</span>}
+                  {selectedHourlyLabel && <span>{selectedHourlyLabel}</span>}
+                </>
+              )}
             </div>
           )}
         </div>
@@ -1247,64 +1293,68 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
       {/* 三方四正與 Bubble Hint 開關 */}
       {(onToggleSanFangSiZheng !== undefined || onToggleBubbleHint !== undefined) && (
         <div className="w-full mt-2 pt-2 border-t border-white/[0.07] flex items-center justify-center gap-2">
-          <button
-            onClick={onToggleSanFangSiZheng}
-            className={`flex items-center gap-1 px-2.5 py-0.5 text-[11px] sm:gap-1.5 sm:px-3.5 sm:py-0 sm:text-sm font-medium rounded transition cursor-pointer ${
-              showSanFangSiZheng
-                ? 'bg-gray-300 text-gray-500'
-                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 active:bg-gray-300'
-            }`}
-            title="點選宮位時顯示三合宮位三角形及對宮連線"
-          >
-            <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" viewBox="0 0 12 12" fill="currentColor">
-              <polygon points="6,1 11,10 1,10" fillOpacity="0.7" />
-            </svg>
-            三方四正
-          </button>
-
-          {onToggleBubbleHint !== undefined && (
+          <HoverHint content="點選宮位時顯示三合宮位三角形及對宮連線">
             <button
-              onClick={onToggleBubbleHint}
+              onClick={onToggleSanFangSiZheng}
               className={`flex items-center gap-1 px-2.5 py-0.5 text-[11px] sm:gap-1.5 sm:px-3.5 sm:py-0 sm:text-sm font-medium rounded transition cursor-pointer ${
-                showBubbleHint
+                showSanFangSiZheng
                   ? 'bg-gray-300 text-gray-500'
                   : 'bg-gray-100 text-gray-500 hover:bg-gray-200 active:bg-gray-300'
               }`}
-              title="點選宮位時顯示 Bubble Hint"
             >
-              <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M2 3.5A2.5 2.5 0 0 1 4.5 1h7A2.5 2.5 0 0 1 14 3.5v4A2.5 2.5 0 0 1 11.5 10H7l-3.2 2.7c-.7.6-1.8.1-1.8-.8V3.5z" />
+              <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" viewBox="0 0 12 12" fill="currentColor">
+                <polygon points="6,1 11,10 1,10" fillOpacity="0.7" />
               </svg>
-              宮位提示
+              三方四正
             </button>
+          </HoverHint>
+
+          {onToggleBubbleHint !== undefined && (
+            <HoverHint content="點選宮位時顯示 Bubble Hint">
+              <button
+                onClick={onToggleBubbleHint}
+                className={`flex items-center gap-1 px-2.5 py-0.5 text-[11px] sm:gap-1.5 sm:px-3.5 sm:py-0 sm:text-sm font-medium rounded transition cursor-pointer ${
+                  showBubbleHint
+                    ? 'bg-gray-300 text-gray-500'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200 active:bg-gray-300'
+                }`}
+              >
+                <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M2 3.5A2.5 2.5 0 0 1 4.5 1h7A2.5 2.5 0 0 1 14 3.5v4A2.5 2.5 0 0 1 11.5 10H7l-3.2 2.7c-.7.6-1.8.1-1.8-.8V3.5z" />
+                </svg>
+                宮位提示
+              </button>
+            </HoverHint>
           )}
 
           {onToggleReversalCheck !== undefined && (
-            <button
-              onClick={onToggleReversalCheck}
-              className={`flex items-center gap-1 px-2.5 py-0.5 text-[11px] sm:gap-1.5 sm:px-3.5 sm:py-0 sm:text-sm font-medium rounded transition cursor-pointer ${
-                showReversalCheck
-                  ? 'bg-gray-300 text-gray-500'
-                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200 active:bg-gray-300'
-              }`}
-              title="控制宮位中心得/失按鈕顯示"
-            >
-              反背檢查
-            </button>
+            <HoverHint content="控制宮位中心得/失按鈕顯示">
+              <button
+                onClick={onToggleReversalCheck}
+                className={`flex items-center gap-1 px-2.5 py-0.5 text-[11px] sm:gap-1.5 sm:px-3.5 sm:py-0 sm:text-sm font-medium rounded transition cursor-pointer ${
+                  showReversalCheck
+                    ? 'bg-gray-300 text-gray-500'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200 active:bg-gray-300'
+                }`}
+              >
+                反背檢查
+              </button>
+            </HoverHint>
           )}
 
           {onToggleFlyGongToolbox !== undefined && (
-            <button
-              onClick={onToggleFlyGongToolbox}
-              className={`flex items-center gap-1 px-2.5 py-0.5 text-[11px] sm:gap-1.5 sm:px-3.5 sm:py-0 sm:text-sm font-medium rounded transition cursor-pointer ${
-                showFlyGongToolbox
-                  ? 'bg-gray-300 text-gray-500'
-                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200 active:bg-gray-300'
-              }`}
-              title="控制飛宮弧線顯示"
-            >
-              飛宮
-            </button>
+            <HoverHint content="控制飛宮弧線顯示">
+              <button
+                onClick={onToggleFlyGongToolbox}
+                className={`flex items-center gap-1 px-2.5 py-0.5 text-[11px] sm:gap-1.5 sm:px-3.5 sm:py-0 sm:text-sm font-medium rounded transition cursor-pointer ${
+                  showFlyGongToolbox
+                    ? 'bg-gray-300 text-gray-500'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200 active:bg-gray-300'
+                }`}
+              >
+                飛宮
+              </button>
+            </HoverHint>
           )}
         </div>
       )}
@@ -1373,6 +1423,10 @@ function DecadalAnnualMonthlyTable({
   setSelectedAnnual: externalSetSelectedAnnual,
   selectedMonthly: externalSelectedMonthly = null,
   setSelectedMonthly: externalSetSelectedMonthly,
+  selectedDaily: externalSelectedDaily = null,
+  setSelectedDaily: externalSetSelectedDaily,
+  selectedHourly: externalSelectedHourly = null,
+  setSelectedHourly: externalSetSelectedHourly,
   isExpanded: externalIsExpanded,
 }: DecadalAnnualMonthlyTableProps) {
   // 使用外部传入的状态，如果没有则使用内部状态
@@ -1391,7 +1445,12 @@ function DecadalAnnualMonthlyTable({
   const selectedMonthly = externalSelectedMonthly !== undefined ? externalSelectedMonthly : internalSelectedMonthly
   const setSelectedMonthly = externalSetSelectedMonthly || internalSetSelectedMonthly
 
-  const [selectedDaily, setSelectedDaily] = useState<number | null>(0)
+  const [internalSelectedDaily, internalSetSelectedDaily] = useState<number | null>(0)
+  const selectedDaily = externalSelectedDaily !== undefined ? externalSelectedDaily : internalSelectedDaily
+  const setSelectedDaily = externalSetSelectedDaily || internalSetSelectedDaily
+  const [internalSelectedHourly, internalSetSelectedHourly] = useState<number | null>(0)
+  const selectedHourly = externalSelectedHourly !== undefined ? externalSelectedHourly : internalSelectedHourly
+  const setSelectedHourly = externalSetSelectedHourly || internalSetSelectedHourly
   const [dailyScrollOffset, setDailyScrollOffset] = useState(0)
   const [needsScrollSpacer, setNeedsScrollSpacer] = useState(false)
   const [annualYearsToShow, setAnnualYearsToShow] = useState(10) // 显示10个流年年份
@@ -1400,13 +1459,19 @@ function DecadalAnnualMonthlyTable({
   // 當選擇新月份時，重置流日窗口位置
   const handleSetSelectedMonthly = (index: number | null) => {
     setSelectedMonthly(index)
-    setSelectedDaily(0)
+    if (index === null) {
+      setSelectedDaily(null)
+      setSelectedHourly(null)
+    } else {
+      setSelectedDaily(0)
+      setSelectedHourly(0)
+    }
     setDailyScrollOffset(0)
   }
   
   // 天干地支列表
   const shichen = ['子時', '丑時', '寅時', '卯時', '辰時', '巳時', '午時', '未時', '申時', '酉時', '戌時', '亥時']
-  const monthNames = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '冬', '臘']
+  const monthNames = DISPLAY_MONTH_NAMES
   
   // 提取大限信息
   const decadalData = palaceData
@@ -1498,9 +1563,22 @@ function DecadalAnnualMonthlyTable({
                   : 'bg-white/[0.01] text-text-secondary hover:bg-white/[0.05]'
               }`}
               onClick={() => {
+                if (selectedDecadal === i) {
+                  setSelectedDecadal(null)
+                  setSelectedAnnual(null)
+                  setSelectedMonthly(null)
+                  setSelectedDaily(null)
+                  setSelectedHourly(null)
+                  setDailyScrollOffset(0)
+                  return
+                }
+
                 setSelectedDecadal(i)
-                setSelectedAnnual(0)
-                handleSetSelectedMonthly(0)
+                setSelectedAnnual(null)
+                setSelectedMonthly(null)
+                setSelectedDaily(null)
+                setSelectedHourly(null)
+                setDailyScrollOffset(0)
               }}
             >
               <div className={`flex flex-col items-center gap-px leading-tight rounded-[2px] px-0.5 py-0 sm:px-1.5 sm:py-0.5 ${selectedDecadal === i ? 'bg-star/20' : ''}`}>
@@ -1523,6 +1601,15 @@ function DecadalAnnualMonthlyTable({
                   : 'bg-white/[0.01] text-text-secondary hover:bg-white/[0.05]'
               }`}
               onClick={() => {
+                if (selectedAnnual === i) {
+                  setSelectedAnnual(null)
+                  setSelectedMonthly(null)
+                  setSelectedDaily(null)
+                  setSelectedHourly(null)
+                  setDailyScrollOffset(0)
+                  return
+                }
+
                 setSelectedAnnual(i)
                 handleSetSelectedMonthly(0)
               }}
@@ -1560,7 +1647,7 @@ function DecadalAnnualMonthlyTable({
                   : 'bg-white/[0.01] text-text-secondary hover:bg-white/[0.05]'
               }`}
               onClick={() => {
-                handleSetSelectedMonthly(i)
+                handleSetSelectedMonthly(selectedMonthly === i ? null : i)
               }}
             >
               <div className={`rounded-[4px] px-1 py-0.5 sm:px-1.5 sm:py-0.5 flex flex-col items-center gap-0 leading-tight ${selectedMonthly === i ? 'bg-gold/20' : ''}`}>
@@ -1595,10 +1682,7 @@ function DecadalAnnualMonthlyTable({
                       {Array.from({ length: 10 }, (_, i) => {
                         const dayIndex = dailyScrollOffset + i
                         if (dayIndex >= 30) return null
-                        const chineseDays = ['初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十',
-                                            '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
-                                            '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十']
-                        const dayLabel = chineseDays[dayIndex]
+                        const dayLabel = CHINESE_DAY_NAMES[dayIndex]
                         return (
                           <td 
                             key={dayIndex} 
@@ -1607,7 +1691,10 @@ function DecadalAnnualMonthlyTable({
                                 ? 'bg-white/[0.01] text-star-light' 
                                 : 'bg-white/[0.01] text-text-secondary hover:bg-white/[0.05]'
                             }`}
-                            onClick={() => setSelectedDaily(dayIndex)}
+                            onClick={() => {
+                              setSelectedDaily(dayIndex)
+                              setSelectedHourly(0)
+                            }}
                           >
                             <div className={`whitespace-nowrap rounded-[4px] px-1 py-0 sm:px-1.5 sm:py-0.5 ${selectedDaily === dayIndex ? 'bg-star-light/20' : ''}`}>
                               {dayLabel}
@@ -1633,9 +1720,14 @@ function DecadalAnnualMonthlyTable({
           {selectedMonthly !== null && renderScrollRow('流時', shichen.map((time, i) => (
             <td 
               key={i} 
-              className="relative z-0 px-0 py-1 sm:px-1.5 sm:py-2 text-center cursor-pointer transition-colors border-r border-white/[0.12] font-medium text-[8px] sm:text-[12px] lg:text-[16px] bg-white/[0.01] text-text-secondary hover:bg-white/[0.05] whitespace-nowrap min-w-[30px] sm:min-w-[52px]"
+              className={`relative z-0 px-0 py-1 sm:px-1.5 sm:py-2 text-center cursor-pointer transition-colors border-r border-white/[0.12] font-medium text-[8px] sm:text-[12px] lg:text-[16px] whitespace-nowrap min-w-[30px] sm:min-w-[52px] ${
+                selectedHourly === i
+                  ? 'bg-white/[0.01] text-gold'
+                  : 'bg-white/[0.01] text-text-secondary hover:bg-white/[0.05]'
+              }`}
+              onClick={() => setSelectedHourly(i)}
             >
-              <div className="whitespace-nowrap">
+              <div className={`whitespace-nowrap rounded-[4px] px-1 py-0 sm:px-1.5 sm:py-0.5 ${selectedHourly === i ? 'bg-gold/20' : ''}`}>
                 {time}
               </div>
             </td>
@@ -1655,10 +1747,22 @@ function DecadalAnnualMonthlyTable({
                   : 'bg-white/[0.01] text-text-secondary hover:bg-white/[0.05]'
               }`}
               onClick={() => {
+                if (selectedDecadal === i) {
+                  setSelectedDecadal(null)
+                  setSelectedAnnual(null)
+                  setSelectedMonthly(null)
+                  setSelectedDaily(null)
+                  setSelectedHourly(null)
+                  setDailyScrollOffset(0)
+                  return
+                }
+
                 setSelectedDecadal(i)
-                setSelectedAnnual(0)
-                setSelectedMonthly(0)
-                setSelectedDaily(0)
+                setSelectedAnnual(null)
+                setSelectedMonthly(null)
+                setSelectedDaily(null)
+                setSelectedHourly(null)
+                setDailyScrollOffset(0)
               }}
             >
               <div className={`flex flex-col items-center gap-0 leading-tight rounded-[4px] px-1 py-0.5 sm:px-1.5 sm:py-1 ${selectedDecadal === i ? 'bg-star/20' : ''}`}>
@@ -1681,9 +1785,20 @@ function DecadalAnnualMonthlyTable({
                   : 'bg-white/[0.01] text-text-secondary hover:bg-white/[0.05]'
               }`}
               onClick={() => {
+                if (selectedAnnual === i) {
+                  setSelectedAnnual(null)
+                  setSelectedMonthly(null)
+                  setSelectedDaily(null)
+                  setSelectedHourly(null)
+                  setDailyScrollOffset(0)
+                  return
+                }
+
                 setSelectedAnnual(i)
                 setSelectedMonthly(0)
                 setSelectedDaily(0)
+                setSelectedHourly(0)
+                setDailyScrollOffset(0)
               }}
             >
               <div className={`flex flex-col items-center gap-0 leading-tight rounded-[4px] px-1 py-0.5 sm:px-1.5 sm:py-1 ${selectedAnnual === i ? 'bg-fortune/20' : ''}`}>
@@ -1719,6 +1834,8 @@ export function ChartDisplay() {
   const [selectedDecadal, setSelectedDecadal] = useState<number | null>(null)
   const [selectedAnnual, setSelectedAnnual] = useState<number | null>(null)
   const [selectedMonthly, setSelectedMonthly] = useState<number | null>(null)
+  const [selectedDaily, setSelectedDaily] = useState<number | null>(null)
+  const [selectedHourly, setSelectedHourly] = useState<number | null>(null)
   const [isDecadalExpanded, setIsDecadalExpanded] = useState(false)
   const [showSanFangSiZheng, setShowSanFangSiZheng] = useState(false)
   const [showBubbleHint, setShowBubbleHint] = useState(false)
@@ -1769,6 +1886,8 @@ export function ChartDisplay() {
       setSelectedDecadal(0)
       setSelectedAnnual(0)
       setSelectedMonthly(null)
+      setSelectedDaily(null)
+      setSelectedHourly(null)
       initializedRef.current = true
     } else if (!initializedRef.current) {
       // 首次掛載時初始化
@@ -1821,6 +1940,8 @@ export function ChartDisplay() {
   // 重置流月選擇（當 birthInfo 改變時）
   useEffect(() => {
     setSelectedMonthly(null)
+    setSelectedDaily(null)
+    setSelectedHourly(null)
   }, [birthInfo?.year, birthInfo?.month, birthInfo?.day])
 
   // 處理選中宮位的四化星樣式
@@ -1965,6 +2086,50 @@ export function ChartDisplay() {
   })()
 
   const monthlySequenceByBranch = getMonthlySequenceByBranch(chart, palaceData, selectedDecadal, selectedAnnual, selectedAnnualGanZhi, selectedAnnualYear, monthlyArrangementMethod)
+  const selectedDailyLabel = selectedDaily !== null ? CHINESE_DAY_NAMES[selectedDaily] || '' : ''
+  const selectedMonthlyLabel = (() => {
+    if (selectedAnnualYear === null || selectedMonthly === null) return null
+    return getMonthlySequenceLabel(selectedAnnualYear, selectedMonthly + 1)
+  })()
+  const selectedMonthlyPalaceBranch = (() => {
+    if (selectedAnnualYear === null || selectedMonthly === null) return null
+
+    const selectedMonthlyLabel = getMonthlySequenceLabel(selectedAnnualYear, selectedMonthly + 1)
+    for (const [branch, labels] of Object.entries(monthlySequenceByBranch)) {
+      if (labels.includes(selectedMonthlyLabel)) {
+        return branch
+      }
+    }
+
+    return null
+  })()
+  const selectedDailyPalaceBranch = (() => {
+    if (selectedMonthlyPalaceBranch === null || selectedDaily === null) return null
+
+    const monthlyPalaceIndex = PALACE_BRANCH_INDEX[selectedMonthlyPalaceBranch]
+    if (monthlyPalaceIndex === undefined) return null
+
+    // 規則：流日起算從當月初一直接起，第1日同流月宮，之後順時針遞進。
+    const dailyPalaceIndex = normalizeIndex(monthlyPalaceIndex + selectedDaily)
+    return PALACE_CLOCKWISE_BRANCHES[dailyPalaceIndex] || null
+  })()
+  const hourlySequenceByBranch = (() => {
+    const result: Record<string, string> = {}
+    if (selectedDailyPalaceBranch === null || !selectedDailyLabel) return result
+
+    const dailyPalaceIndex = PALACE_BRANCH_INDEX[selectedDailyPalaceBranch]
+    if (dailyPalaceIndex === undefined) return result
+
+    // 以流日所在宮位作為子時起點，順時針排滿12宮。
+    for (let i = 0; i < 12; i++) {
+      const palaceIndex = normalizeIndex(dailyPalaceIndex + i)
+      const branch = PALACE_CLOCKWISE_BRANCHES[palaceIndex]
+      const shichen = SHICHEN_NAMES[i]
+      result[branch] = `${selectedDailyLabel}${shichen}`
+    }
+
+    return result
+  })()
 
   // 計算大限標籤映射 - 根據選中大限找出大命宮位
   let decadalLabelsByPalaceName: Record<string, string> = {}
@@ -2125,8 +2290,11 @@ export function ChartDisplay() {
           chartType={chartType}
           selectedDecadal={selectedDecadal}
           selectedAnnual={selectedAnnual}
-          monthlySequenceLabels={monthlySequenceByBranch[palace.branch] || []}
+          monthlySequenceLabels={selectedMonthlyLabel ? [selectedMonthlyLabel] : (monthlySequenceByBranch[palace.branch] || [])}
+          selectedDailyLabel={palace.branch === selectedDailyPalaceBranch ? selectedDailyLabel : ''}
+          selectedHourlyLabel={hourlySequenceByBranch[palace.branch] || ''}
           selectedAnnualAge={selectedAnnualAge}
+          selectedAnnualYear={selectedAnnualYear}
           selectedAnnualGanZhi={selectedAnnualGanZhi}
           selectedAnnualLabel={(() => {
             const englishKey = PALACE_NAME_TO_ENGLISH_MAP[palace.name] || ''
@@ -2556,21 +2724,22 @@ export function ChartDisplay() {
         {chartType === 'trireme' && <div className="flex-1" />}
 
         {/* 第二部分：收合按鈕 */}
-        <button
-          onClick={() => setIsDecadalExpanded(!isDecadalExpanded)}
-          className="rounded-md sm:rounded-lg font-medium transition-all bg-star text-white hover:bg-star-light shadow-lg flex items-center justify-center w-7 h-6 sm:w-7 sm:h-7 shrink-0"
-          title={isDecadalExpanded ? '收起' : '展開'}
-        >
-          {isDecadalExpanded ? (
-            <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" stroke="currentColor" fill="none" viewBox="0 0 24 24" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M18 15l-6-6-6 6" />
-            </svg>
-          ) : (
-            <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" stroke="currentColor" fill="none" viewBox="0 0 24 24" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
-            </svg>
-          )}
-        </button>
+        <HoverHint content={isDecadalExpanded ? '收起' : '展開'}>
+          <button
+            onClick={() => setIsDecadalExpanded(!isDecadalExpanded)}
+            className="rounded-md sm:rounded-lg font-medium transition-all bg-star text-white hover:bg-star-light shadow-lg flex items-center justify-center w-7 h-6 sm:w-7 sm:h-7 shrink-0"
+          >
+            {isDecadalExpanded ? (
+              <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" stroke="currentColor" fill="none" viewBox="0 0 24 24" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18 15l-6-6-6 6" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" stroke="currentColor" fill="none" viewBox="0 0 24 24" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+              </svg>
+            )}
+          </button>
+        </HoverHint>
 
         {/* 第三部分：ABCD 控制组件 - 飛星盤與四化盤顯示，三合盤隱藏 */}
         {(chartType === 'flying' || chartType === 'transformation') && (
@@ -2623,6 +2792,10 @@ export function ChartDisplay() {
           setSelectedAnnual={setSelectedAnnual}
           selectedMonthly={selectedMonthly}
           setSelectedMonthly={setSelectedMonthly}
+          selectedDaily={selectedDaily}
+          setSelectedDaily={setSelectedDaily}
+          selectedHourly={selectedHourly}
+          setSelectedHourly={setSelectedHourly}
           isExpanded={isDecadalExpanded}
         />
       </div>

@@ -63,7 +63,6 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     flyingShowTripleQuaternaryLine,
     // 三合盤面設定
     triremeShowStarBrightness,
-    triremeMutagenSquareSize,
     // 方法
     setProvider,
     updateCurrentProvider,
@@ -96,7 +95,6 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     setFlyingShowTripleQuaternaryLine,
     // 三合盤面相關的setter
     setTriremeShowStarBrightness,
-    setTriremeMutagenSquareSize,
   } = useSettingsStore()
 
   // 当前厂商的配置
@@ -635,17 +633,6 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                 </div>
                 <span className="text-sm text-text-secondary group-hover:text-text transition-colors">{t('settings.showStarBrightness', language)}</span>
               </label>
-
-              <Select
-                label={t('settings.mutagenSquareSize', language)}
-                value={triremeMutagenSquareSize}
-                onChange={(e) => setTriremeMutagenSquareSize(Number(e.target.value) as 10 | 11 | 12)}
-                options={[
-                  { value: 10, label: t('settings.squareSizeSmall', language) },
-                  { value: 11, label: t('settings.squareSizeMedium', language) },
-                  { value: 12, label: t('settings.squareSizeLarge', language) },
-                ]}
-              />
             </div>
           </div>
         </div>

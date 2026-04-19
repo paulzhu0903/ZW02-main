@@ -10,7 +10,6 @@ const translations: Record<Language, Record<string, any>> = {
   'zh-TW': {
     // App 头部
     'app.title': '紫微知道',
-    'app.subtitle': 'AI 命理工具',
 
     // 导航标签
     'nav.cases': '命例',
@@ -135,8 +134,6 @@ const translations: Record<Language, Record<string, any>> = {
     'share.customizeQuote': '✎ 自定義金句',
     'share.saveImage': '保存分享圖',
     'share.generating': '生成中...',
-    'share.footerHint': '長按保存圖片，分享到小紅書 📕',
-    'share.downloadFailed': '圖片生成失敗',
     'share.unknownError': '未知錯誤',
     'share.watermark': '─── 紫微知道 ───',
 
@@ -227,10 +224,6 @@ const translations: Record<Language, Record<string, any>> = {
     'settings.trireme': '三合盤面設定',
     'settings.showMinorStars': '顯示小星',
     'settings.showStarBrightness': '顯示星曜亮度',
-    'settings.mutagenSquareSize': '四化方塊尺寸',
-    'settings.squareSizeSmall': '小 (9px)',
-    'settings.squareSizeMedium': '中 (10px)',
-    'settings.squareSizeLarge': '大 (11px)',
     'settings.showBodyPalace': '顯示身宮',
     'settings.showCommandMutagen': '顯示命宮四化',
     'settings.useColorMultiArrow': '標識 - 彩色多箭頭標識自化',
@@ -414,7 +407,6 @@ const translations: Record<Language, Record<string, any>> = {
   'zh-CN': {
     // App 头部
     'app.title': '紫微知道',
-    'app.subtitle': 'AI 命理工具',
 
     // 导航标签
     'nav.cases': '命例',
@@ -540,8 +532,6 @@ const translations: Record<Language, Record<string, any>> = {
     'share.customizeQuote': '✎ 自定义金句',
     'share.saveImage': '保存分享图',
     'share.generating': '生成中...',
-    'share.footerHint': '长按保存图片，分享到小红书 📕',
-    'share.downloadFailed': '图片生成失败',
     'share.unknownError': '未知错误',
     'share.watermark': '─── 紫微知道 ───',
 

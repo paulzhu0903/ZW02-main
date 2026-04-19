@@ -74,7 +74,10 @@ export interface PalaceCardProps extends PalaceData {
   selectedDecadal?: number | null
   selectedAnnual?: number | null
   monthlySequenceLabels?: string[]
+  selectedDailyLabel?: string
+  selectedHourlyLabel?: string
   selectedAnnualAge?: number | null
+  selectedAnnualYear?: number | null
   selectedAnnualGanZhi?: string | null
   selectedAnnualLabel?: string
   selectedDecadalLabel?: string
@@ -97,6 +100,10 @@ export interface DecadalAnnualMonthlyTableProps {
   setSelectedAnnual?: (index: number | null) => void
   selectedMonthly?: number | null
   setSelectedMonthly?: (index: number | null) => void
+  selectedDaily?: number | null
+  setSelectedDaily?: (index: number | null) => void
+  selectedHourly?: number | null
+  setSelectedHourly?: (index: number | null) => void
   isExpanded?: boolean
 }
 

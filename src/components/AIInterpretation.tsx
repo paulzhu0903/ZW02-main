@@ -9,7 +9,7 @@ import { useChartStore, useSettingsStore, useContentCacheStore } from '@/stores'
 import { extractKnowledge, buildChartIndicators, buildPromptContext } from '@/knowledge'
 import { streamChat, type ChatMessage, type LLMConfig } from '@/lib/llm'
 import { getSystemPrompt, buildUserPrompt } from '@/lib/prompts'
-import { Button } from '@/components/ui'
+import { Button, HoverHint } from '@/components/ui'
 import { t } from '@/lib/i18n'
 
 /* ------------------------------------------------------------
@@ -285,14 +285,15 @@ export function AIInterpretation() {
         </h2>
         <div className="flex items-center gap-1.5 sm:gap-2">
           {currentSettings.apiKey && (
-            <button
-              type="button"
-              onClick={handleTogglePrompt}
-              title={t('ai.promptHintNoApi', language)}
-              className="h-8 sm:h-10 min-w-[5rem] px-2 sm:px-3 rounded-lg text-[10px] sm:text-xs font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors whitespace-nowrap flex items-center justify-center"
-            >
-              {showPrompt ? t('ai.hidePrompt', language) : t('ai.showPrompt', language)}
-            </button>
+            <HoverHint content={t('ai.promptHintNoApi', language)}>
+              <button
+                type="button"
+                onClick={handleTogglePrompt}
+                className="h-8 sm:h-10 min-w-[5rem] px-2 sm:px-3 rounded-lg text-[10px] sm:text-xs font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors whitespace-nowrap flex items-center justify-center"
+              >
+                {showPrompt ? t('ai.hidePrompt', language) : t('ai.showPrompt', language)}
+              </button>
+            </HoverHint>
           )}
           {currentSettings.apiKey && (
             <button

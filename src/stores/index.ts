@@ -171,7 +171,6 @@ interface SettingsState {
 
   // 三合盤面設定
   triremeShowStarBrightness: boolean
-  triremeMutagenSquareSize: 10 | 11 | 12
 
   setProvider: (provider: ModelProvider) => void
   updateCurrentProvider: (settings: Partial<ProviderSettings>) => void
@@ -207,7 +206,6 @@ interface SettingsState {
 
   // 三合盤面相關的setter
   setTriremeShowStarBrightness: (value: boolean) => void
-  setTriremeMutagenSquareSize: (value: 10 | 11 | 12) => void
 
   // 便捷访问当前厂商配置
   getCurrentSettings: () => ProviderSettings
@@ -256,7 +254,6 @@ export const useSettingsStore = create<SettingsState>()(
 
       // 三合盤面設定
       triremeShowStarBrightness: true,
-      triremeMutagenSquareSize: 12,
 
       setProvider: (provider) => set({ provider }),
 
@@ -302,7 +299,6 @@ export const useSettingsStore = create<SettingsState>()(
 
       // 三合盤面相關的setter
       setTriremeShowStarBrightness: (value) => set({ triremeShowStarBrightness: value }),
-      setTriremeMutagenSquareSize: (value) => set({ triremeMutagenSquareSize: value }),
 
       getCurrentSettings: () => {
         const state = get()

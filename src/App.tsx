@@ -13,6 +13,7 @@ import { LifeKLine } from '@/components/kline'
 import { MatchAnalysis } from '@/components/match'
 import { ShareCard } from '@/components/share'
 import { UserDatabaseModal } from '@/components/UserDatabaseModal'
+import { HoverHint } from '@/components/ui'
 import { useChartStore, useSettingsStore } from '@/stores'
 import type { UserRecord } from '@/lib/db'
 import { generateChart } from '@/lib/astro'
@@ -136,9 +137,7 @@ export default function App() {
                 >
                   {t('app.title', language)}
                 </h1>
-                <p className="text-text-muted text-[10pt] md:text-[12pt] hidden sm:block">
-                  {t('app.subtitle', language)}
-                </p>
+
               </div>
             </div>
 
@@ -213,25 +212,26 @@ export default function App() {
           </div>
 
           {/* 设置按钮 */}
-          <button
-            onClick={() => setShowSettings(true)}
-            className="
-              group relative px-4 py-2 rounded-lg
-              text-[14pt] font-medium transition-all duration-200
-              text-text-muted hover:text-text-secondary
-            "
-            title={t('nav.settings', language)}
-          >
-            {/* 背景 */}
-            <span className="absolute inset-0 rounded-lg transition-all duration-200 group-hover:bg-white/[0.04]" />
-            {/* 内容 */}
-            <span className="relative flex items-center gap-2">
-              <span className="w-5 h-5 flex items-center justify-center opacity-50 group-hover:opacity-70">
-                {getTabIcon('settings')}
+          <HoverHint content={t('nav.settings', language)}>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="
+                group relative px-4 py-2 rounded-lg
+                text-[14pt] font-medium transition-all duration-200
+                text-text-muted hover:text-text-secondary
+              "
+            >
+              {/* 背景 */}
+              <span className="absolute inset-0 rounded-lg transition-all duration-200 group-hover:bg-white/[0.04]" />
+              {/* 内容 */}
+              <span className="relative flex items-center gap-2">
+                <span className="w-5 h-5 flex items-center justify-center opacity-50 group-hover:opacity-70">
+                  {getTabIcon('settings')}
+                </span>
+                {t('nav.settings', language)}
               </span>
-              {t('nav.settings', language)}
-            </span>
-          </button>
+            </button>
+          </HoverHint>
         </div>
       </header>
 
@@ -277,14 +277,15 @@ export default function App() {
             </button>
           ))}
 
-          <button
-            onClick={() => setShowSettings(true)}
-            className="relative flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-0 rounded-lg text-text-muted transition-all duration-200 hover:text-text"
-            title={t('nav.settings', language)}
-          >
-            <span className="w-5 h-5 flex items-center justify-center">{getTabIcon('settings')}</span>
-            <span className="text-[8pt] leading-none">{t('nav.settings', language)}</span>
-          </button>
+          <HoverHint content={t('nav.settings', language)} className="flex min-w-0 flex-1 justify-center">
+            <button
+              onClick={() => setShowSettings(true)}
+              className="relative flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-0 rounded-lg text-text-muted transition-all duration-200 hover:text-text"
+            >
+              <span className="w-5 h-5 flex items-center justify-center">{getTabIcon('settings')}</span>
+              <span className="text-[8pt] leading-none">{t('nav.settings', language)}</span>
+            </button>
+          </HoverHint>
         </div>
       </nav>
 

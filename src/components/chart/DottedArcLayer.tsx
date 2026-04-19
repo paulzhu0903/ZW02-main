@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { SIHUA_BY_GAN } from '@/knowledge/sihua'
 import { getChineseVariantCandidates } from '@/lib/localize-knowledge'
+import { HoverHint } from '@/components/ui'
 import { MUTAGEN_COLORS, PALACE_POSITIONS, type PalaceData } from './types'
 import { getMutagenType } from './mutagenLines'
 
@@ -23,8 +24,8 @@ interface ArcTrailItem {
 }
 
 interface ArcStateItem {
-  selectedPalaceName: string
-  selectedPalaceBranch: string
+  selectedPalaceName: string | null
+  selectedPalaceBranch: string | null
   selectedArcLabel: 'A' | 'B' | 'C' | 'D' | 'M' | null
 }
 
@@ -38,13 +39,14 @@ interface BranchState {
   arcStateStack: ArcStateItem[]
 }
 
-interface ArcContinueMenuState {
+interface ArcMenuState {
+  branch: string
   rootBranch: string
-  targetPalaceName: string
-  targetBranch: string
-  fromPalaceName: string
-  fromBranch: string
-  currentArcLabel: 'A' | 'B' | 'C' | 'D'
+  targetPalaceName?: string
+  targetBranch?: string
+  fromPalaceName?: string
+  fromBranch?: string
+  currentArcLabel?: 'A' | 'B' | 'C' | 'D'
 }
 
 export function DottedArcLayer({
@@ -60,8 +62,7 @@ export function DottedArcLayer({
 }: DottedArcLayerProps) {
   const [palaceRootMap, setPalaceRootMap] = useState<Record<string, string>>({})
   const [branchStates, setBranchStates] = useState<Record<string, BranchState>>({})
-  const [arcContinueMenu, setArcContinueMenu] = useState<ArcContinueMenuState | null>(null)
-  const [entryMenu, setEntryMenu] = useState<{ branch: string } | null>(null)
+  const [arcMenu, setArcMenu] = useState<ArcMenuState | null>(null)
 
   const EMPTY_BRANCH_STATE: BranchState = {
     selectedArcLabel: null,
@@ -95,15 +96,13 @@ export function DottedArcLayer({
   }
 
   const resetAllArcChains = () => {
-    setArcContinueMenu(null)
-    setEntryMenu(null)
+    setArcMenu(null)
     setPalaceRootMap({})
     setBranchStates({})
   }
 
   const resetSingleBranch = (rootBranch: string) => {
-    setArcContinueMenu(null)
-    setEntryMenu(null)
+    setArcMenu(null)
     setBranchStates((prev) => ({
       ...prev,
       [rootBranch]: EMPTY_BRANCH_STATE,
@@ -217,30 +216,27 @@ export function DottedArcLayer({
     ? palaceData.find(p => p.name === selectedPalace) || null
     : null
 
-  const currentRootBranch = selectedPalaceData
-    ? (palaceRootMap[selectedPalaceData.branch] || selectedPalaceData.branch)
-    : null
-
   const allArcTrails = Object.values(branchStates).flatMap(branch => branch.arcTrail)
 
   useEffect(() => {
     if (!selectedPalaceData) {
-      setEntryMenu(null)
+      setArcMenu(null)
       return
     }
 
     const rootBranch = palaceRootMap[selectedPalaceData.branch] || selectedPalaceData.branch
     const activeLabel = (branchStates[rootBranch] || EMPTY_BRANCH_STATE).selectedArcLabel
 
-    if (activeLabel !== null || arcContinueMenu) {
-      setEntryMenu(null)
+    if (activeLabel !== null) {
+      setArcMenu(null)
       return
     }
 
-    setEntryMenu({
+    setArcMenu({
       branch: selectedPalaceData.branch,
+      rootBranch,
     })
-  }, [selectedPalaceData, palaceRootMap, branchStates, arcContinueMenu])
+  }, [selectedPalaceData, palaceRootMap, branchStates])
 
   const openArcMenu = (
     rootBranch: string,
@@ -250,7 +246,8 @@ export function DottedArcLayer({
     fromBranch: string,
     currentArcLabel: 'A' | 'B' | 'C' | 'D',
   ) => {
-    setArcContinueMenu({
+    setArcMenu({
+      branch: targetBranch,
       rootBranch,
       targetPalaceName,
       targetBranch,
@@ -418,149 +415,140 @@ export function DottedArcLayer({
         })
       })}
 
-      {arcContinueMenu && (() => {
-        const targetCenter = getCardCenter(arcContinueMenu.targetBranch)
-        const cardRect = getCardRectRelativeToGrid(arcContinueMenu.targetBranch)
-        if (!targetCenter || !cardRect) return null
-        const panelWidth = Math.round(cardRect.width * 0.8)
-        const panelHeight = isCompactMobile ? 80 : 90
+      {arcMenu && (() => {
+        const center = getCardCenter(arcMenu.branch)
+        const cardRect = getCardRectRelativeToGrid(arcMenu.branch)
+        if (!center || !cardRect) return null
+        
+        const panelWidth = Math.round(cardRect.width * 0.9)
+        const panelHeight = isCompactMobile ? 90 : 130
+        const hasArcs = (branchStates[arcMenu.rootBranch] || EMPTY_BRANCH_STATE).arcStateStack.length > 0
+        
         return (
         <foreignObject
-          x={targetCenter.x + gridOffset.x - panelWidth / 2}
-          y={targetCenter.y + gridOffset.y- panelHeight / 2}
+          x={center.x + gridOffset.x - panelWidth / 2}
+          y={center.y + gridOffset.y - panelHeight / 2}
           width={panelWidth}
           height={panelHeight}
           style={{ overflow: 'visible', pointerEvents: 'none' }}
         >
           <div 
-            className="inline-flex w-full flex-col gap-1 rounded-xl border border-slate-300/70 bg-white/88 p-1.5 text-slate-700 shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-md"
+            className="inline-flex w-full flex-col gap-2 rounded-xl border border-slate-300/70 bg-gray-200/90 p-2 text-slate-700 shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-md"
             style={{ pointerEvents: 'auto' }}
           >
-            <div className="flex items-center justify-center gap-2.5">
+            <div className="grid grid-cols-3 gap-1">
               {(['A', 'B', 'C', 'D', 'M'] as const).map((label) => (
                 <button
                   key={label}
                   type="button"
-                  className="h-5 w-5 rounded border border-white/50 bg-white/60 text-[12px] font-semibold leading-none text-slate-700 transition-colors hover:bg-white/85"
+                  className="h-6 w-6 rounded border border-white/50 bg-white/60 text-[13px] font-semibold leading-none text-slate-700 transition-colors hover:bg-white/85"
                   onClick={() => {
-                    const rootBranch = arcContinueMenu.rootBranch
-                    if (selectedPalace) {
+                    const rootBranch = arcMenu.rootBranch
+                    
+                    // 如果是从弧线触发，记录前一个状态
+                    if (arcMenu.fromBranch !== undefined && arcMenu.targetBranch !== undefined && arcMenu.currentArcLabel !== undefined && arcMenu.targetPalaceName !== undefined && selectedPalace) {
+                      const fromBranch = arcMenu.fromBranch as string
+                      const targetBranch = arcMenu.targetBranch as string
+                      const currentArcLabel = arcMenu.currentArcLabel as 'A' | 'B' | 'C' | 'D'
+                      const targetPalaceName = arcMenu.targetPalaceName as string
+                      
                       updateBranchState(rootBranch, (state) => ({
                         ...state,
                         arcStateStack: [
                           ...state.arcStateStack,
                           {
                             selectedPalaceName: selectedPalace,
-                            selectedPalaceBranch: arcContinueMenu.fromBranch,
+                            selectedPalaceBranch: fromBranch,
                             selectedArcLabel: state.selectedArcLabel,
                           },
                         ],
                         arcTrail: [
                           ...state.arcTrail,
                           {
-                            fromBranch: arcContinueMenu.fromBranch,
-                            toBranch: arcContinueMenu.targetBranch,
-                            label: arcContinueMenu.currentArcLabel,
+                            fromBranch,
+                            toBranch: targetBranch,
+                            label: currentArcLabel,
                           },
                         ],
                         selectedArcLabel: label,
-                        currentPalaceName: arcContinueMenu.targetPalaceName,
-                        currentPalaceBranch: arcContinueMenu.targetBranch,
+                        currentPalaceName: targetPalaceName,
+                        currentPalaceBranch: targetBranch,
+                      }))
+                      setPalaceRootMap(prev => ({
+                        ...prev,
+                        [fromBranch]: rootBranch,
+                        [targetBranch]: rootBranch,
+                      }))
+                      setSelectedPalace(targetPalaceName)
+                    } else {
+                      // 从宫位触发，开始新链
+                      if (!selectedPalaceData) return
+                      updateBranchState(rootBranch, (state) => ({
+                        ...state,
+                        arcStateStack: [
+                          ...state.arcStateStack,
+                          {
+                            selectedPalaceName: state.currentPalaceName,
+                            selectedPalaceBranch: state.currentPalaceBranch,
+                            selectedArcLabel: state.selectedArcLabel,
+                          },
+                        ],
+                        selectedArcLabel: label,
+                        currentPalaceName: selectedPalaceData.name,
+                        currentPalaceBranch: selectedPalaceData.branch,
+                      }))
+                      setPalaceRootMap(prev => ({
+                        ...prev,
+                        [selectedPalaceData.branch]: rootBranch,
                       }))
                     }
-                    setPalaceRootMap(prev => ({
-                      ...prev,
-                      [arcContinueMenu.fromBranch]: rootBranch,
-                      [arcContinueMenu.targetBranch]: rootBranch,
-                    }))
-                    setSelectedPalace(arcContinueMenu.targetPalaceName)
-                    setArcContinueMenu(null)
+                    setArcMenu(null)
                   }}
                 >
                   {label}
                 </button>
               ))}
             </div>
-            <div className="flex items-center justify-center gap-1.5">
-              <button
-                type="button"
-                title="Back"
-                className="flex h-6 w-10 items-center justify-center rounded-lg border border-slate-300/60 bg-white/70 text-slate-700 transition-colors hover:bg-white"
-                onClick={() => {
-                  undoOneArcStep(arcContinueMenu.rootBranch)
-                  setArcContinueMenu(null)
-                }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <line x1="19" y1="12" x2="5" y2="12" />
-                  <polyline points="12 19 5 12 12 5" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                title="Clean All"
-                className="flex h-6 w-10 items-center justify-center rounded-lg border border-rose-200/60 bg-rose-100/70 text-rose-700 transition-colors hover:bg-rose-100"
-                onClick={() => {
-                  resetSingleBranch(arcContinueMenu.rootBranch)
-                  setArcContinueMenu(null)
-                }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <polyline points="3 6 5 6 21 6" />
-                  <path d="M19 6l-1 14H6L5 6" />
-                  <path d="M10 11v6" />
-                  <path d="M14 11v6" />
-                  <path d="M9 6V4h6v2" />
-                </svg>
-              </button>
+            <div className="flex items-center justify-between gap-1">
+              <HoverHint content="Back" className="flex-1">
+                <button
+                  type="button"
+                  disabled={!hasArcs}
+                  className={`flex-1 flex h-6 items-center justify-center rounded-lg border text-[11px] font-medium transition-colors ${
+                    hasArcs
+                      ? 'border-slate-300/60 bg-white/70 text-slate-700 hover:bg-white'
+                      : 'border-slate-200/40 bg-slate-100/40 text-slate-400 cursor-not-allowed'
+                  }`}
+                  onClick={() => {
+                    if (hasArcs) {
+                      undoOneArcStep(arcMenu.rootBranch)
+                      setArcMenu(null)
+                    }
+                  }}
+                >
+                  Undo
+                </button>
+              </HoverHint>
+              <HoverHint content="Clean All" className="flex-1">
+                <button
+                  type="button"
+                  disabled={!hasArcs}
+                  className={`flex-1 flex h-6 items-center justify-center rounded-lg border text-[11px] font-medium transition-colors ${
+                    hasArcs
+                      ? 'border-rose-200/60 bg-rose-100/70 text-rose-700 hover:bg-rose-100'
+                      : 'border-slate-200/40 bg-slate-100/40 text-slate-400 cursor-not-allowed'
+                  }`}
+                  onClick={() => {
+                    if (hasArcs) {
+                      resetSingleBranch(arcMenu.rootBranch)
+                      setArcMenu(null)
+                    }
+                  }}
+                >
+                  Clean
+                </button>
+              </HoverHint>
             </div>
-            </div>
-          </foreignObject>
-        )
-      })()}
-
-      {entryMenu && (() => {
-        const center = getCardCenter(entryMenu.branch)
-        const cardRect = getCardRectRelativeToGrid(entryMenu.branch)
-        if (!center || !cardRect) return null
-        const panelWidth = Math.round(cardRect.width * 0.8)
-        const panelHeight = isCompactMobile ? 44 : 48
-        return (
-        <foreignObject
-          x={center.x + gridOffset.x - panelWidth / 2}
-          y={center.y + gridOffset.y- panelHeight / 2}
-          width={panelWidth}
-          height={panelHeight}
-          style={{ overflow: 'visible', pointerEvents: 'none' }}
-        >
-          <div 
-            className="inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-slate-300/70 bg-white/88 p-1.5 text-slate-700 shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-md"
-            style={{ pointerEvents: 'auto' }}
-          >
-            {(['A', 'B', 'C', 'D', 'M'] as const).map((label) => (
-              <button
-                key={`entry-${label}`}
-                type="button"
-                className="h-5 w-5 rounded border border-white/50 bg-white/60 text-[12px] font-semibold leading-none text-slate-700 transition-colors hover:bg-white/85"
-                onClick={() => {
-                  if (!selectedPalaceData) return
-                  const rootBranch = currentRootBranch || selectedPalaceData.branch
-                  updateBranchState(rootBranch, (state) => ({
-                    ...state,
-                    selectedArcLabel: label,
-                    currentPalaceName: selectedPalaceData.name,
-                    currentPalaceBranch: selectedPalaceData.branch,
-                  }))
-                  setPalaceRootMap(prev => ({
-                    ...prev,
-                    [selectedPalaceData.branch]: rootBranch,
-                  }))
-                  setEntryMenu(null)
-                }}
-              >
-                {label}
-              </button>
-            ))}
             </div>
           </foreignObject>
         )

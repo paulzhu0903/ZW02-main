@@ -45,6 +45,41 @@
   --font-brush: 'Ma Shan Zheng', 'STKaiti', 'KaiTi', cursive;
 }
 
+@utility hover-hint-trigger {
+  position: relative;
+  display: inline-flex;
+}
+
+@utility hover-hint-bubble {
+  position: absolute;
+  left: 50%;
+  z-index: 70;
+  width: max-content;
+  max-width: min(14rem, calc(100vw - 1rem));
+  transform: translateX(-50%) translateY(2px);
+  border-radius: 3px;
+  border: 1px solid rgb(156 163 175 / 0.95);
+  background: rgb(255 255 255 / 0.96);
+  padding: 4px 8px;
+  color: rgb(75 85 99 / 0.98);
+  font-size: 11px;
+  line-height: 1.35;
+  white-space: normal;
+  text-align: center;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s ease;
+}
+
+.hover-hint-trigger:hover .hover-hint-bubble,
+.hover-hint-trigger:focus-within .hover-hint-bubble {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
 /* ============================================================
    基础样式
    ============================================================ */

@@ -73,6 +73,9 @@ export interface PalaceCardProps extends PalaceData {
   chartType?: 'flying' | 'trireme' | 'transformation'
   selectedDecadal?: number | null
   selectedAnnual?: number | null
+  selectedMonthly?: number | null
+  selectedDaily?: number | null
+  selectedHourly?: number | null
   monthlySequenceLabels?: string[]
   selectedDailyLabel?: string
   selectedHourlyLabel?: string

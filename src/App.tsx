@@ -143,76 +143,78 @@ export default function App() {
 
             {/* 桌面端导航 */}
             <nav className="hidden md:flex items-center gap-1">
-              {/* 命例按钮 */}
-              <button
-                onClick={() => setIsDbModalOpen(true)}
-                className="
-                  group relative px-4 py-2 rounded-lg
-                  text-[14pt] font-medium transition-all duration-200
-                  text-text-muted hover:text-text-secondary
-                "
-              >
-                {/* 背景 */}
-                <span className="absolute inset-0 rounded-lg transition-all duration-200 group-hover:bg-white/[0.04]" />
-                {/* 内容 */}
-                <span className="relative flex items-center gap-2">
-                  <span className="w-5 h-5 flex items-center justify-center opacity-50 group-hover:opacity-70">
-                    {getTabIcon('cases')}
-                  </span>
-                  {t('nav.cases', language)}
-                </span>
-              </button>
-
-              {TABS.map((tab) => (
+              {/* 命例按鈕 */}
+              <HoverHint content={t('nav.cases', language)} position="bottom">
                 <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`
+                  onClick={() => setIsDbModalOpen(true)}
+                  className="
                     group relative px-4 py-2 rounded-lg
                     text-[14pt] font-medium transition-all duration-200
-                    ${activeTab === tab.key
-                      ? 'text-text'
-                      : 'text-text-muted hover:text-text-secondary'
-                    }
-                  `}
+                    text-text-muted hover:text-text-secondary
+                  "
                 >
                   {/* 背景 */}
-                  <span
+                  <span className="absolute inset-0 rounded-lg transition-all duration-200 group-hover:bg-white/[0.04]" />
+                  {/* 內容 */}
+                  <span className="relative flex items-center justify-center">
+                    <span className="w-5 h-5 flex items-center justify-center opacity-50 group-hover:opacity-70">
+                      {getTabIcon('cases')}
+                    </span>
+                  </span>
+                </button>
+              </HoverHint>
+
+              {TABS.map((tab) => (
+                <HoverHint key={`hint-${tab.key}`} content={tab.label} position="bottom">
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
                     className={`
-                      absolute inset-0 rounded-lg transition-all duration-200
+                      group relative px-4 py-2 rounded-lg
+                      text-[14pt] font-medium transition-all duration-200
                       ${activeTab === tab.key
-                        ? 'bg-white/[0.08]'
-                        : 'group-hover:bg-white/[0.04]'
+                        ? 'text-text'
+                        : 'text-text-muted hover:text-text-secondary'
                       }
                     `}
-                  />
-                  {/* 内容 */}
-                  <span className="relative flex items-center gap-2">
-                    <span className={`
-                      w-5 h-5 transition-all duration-200 flex items-center justify-center
-                      ${activeTab === tab.key ? 'text-gold' : 'opacity-50 group-hover:opacity-70'}
-                    `}>
-                      {getTabIcon(tab.key)}
+                  >
+                    {/* 背景 */}
+                    <span
+                      className={`
+                        absolute inset-0 rounded-lg transition-all duration-200
+                        ${activeTab === tab.key
+                          ? 'bg-white/[0.08]'
+                          : 'group-hover:bg-white/[0.04]'
+                        }
+                      `}
+                    />
+                    {/* 內容 */}
+                    <span className="relative flex items-center justify-center">
+                      <span className={`
+                        w-5 h-5 transition-all duration-200 flex items-center justify-center
+                        ${activeTab === tab.key ? 'text-gold' : 'opacity-50 group-hover:opacity-70'}
+                      `}>
+                        {getTabIcon(tab.key)}
+                      </span>
                     </span>
-                    {tab.label}
-                  </span>
-                  {/* 下划线指示器 */}
-                  <span
-                    className={`
-                      absolute -bottom-1 left-1/2 -translate-x-1/2
-                      h-0.5 rounded-full
-                      bg-gradient-to-r from-star via-gold to-star
-                      transition-all duration-300
-                      ${activeTab === tab.key ? 'w-2/3 opacity-100' : 'w-0 opacity-0'}
-                    `}
-                  />
-                </button>
+                    {/* 下劃線指示器 */}
+                    <span
+                      className={`
+                        absolute -bottom-1 left-1/2 -translate-x-1/2
+                        h-0.5 rounded-full
+                        bg-gradient-to-r from-star via-gold to-star
+                        transition-all duration-300
+                        ${activeTab === tab.key ? 'w-2/3 opacity-100' : 'w-0 opacity-0'}
+                      `}
+                    />
+                  </button>
+                </HoverHint>
               ))}
             </nav>
           </div>
 
           {/* 设置按钮 */}
-          <HoverHint content={t('nav.settings', language)}>
+          <HoverHint content={t('nav.settings', language)} position="bottom">
             <button
               onClick={() => setShowSettings(true)}
               className="
@@ -224,11 +226,10 @@ export default function App() {
               {/* 背景 */}
               <span className="absolute inset-0 rounded-lg transition-all duration-200 group-hover:bg-white/[0.04]" />
               {/* 内容 */}
-              <span className="relative flex items-center gap-2">
+              <span className="relative flex items-center justify-center">
                 <span className="w-5 h-5 flex items-center justify-center opacity-50 group-hover:opacity-70">
                   {getTabIcon('settings')}
                 </span>
-                {t('nav.settings', language)}
               </span>
             </button>
           </HoverHint>
@@ -246,35 +247,37 @@ export default function App() {
         style={{ paddingTop: '10px', paddingBottom: '5px' }}
       >
         <div className="flex items-center justify-between gap-1 max-w-md mx-auto">
-          <button
-            onClick={() => setIsDbModalOpen(true)}
-            className="relative flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-0 rounded-lg text-text-muted transition-all duration-200 hover:text-text"
-          >
-            <span className="w-5 h-5 flex items-center justify-center">{getTabIcon('cases')}</span>
-            <span className="text-[8pt] leading-none">{t('nav.cases', language)}</span>
-          </button>
+          <HoverHint content={t('nav.cases', language)} className="flex min-w-0 flex-1 justify-center">
+            <button
+              onClick={() => setIsDbModalOpen(true)}
+              className="relative flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-0 rounded-lg text-text-muted transition-all duration-200 hover:text-text"
+            >
+              <span className="w-5 h-5 flex items-center justify-center">{getTabIcon('cases')}</span>
+            </button>
+          </HoverHint>
 
           {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`
-                relative flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-0 rounded-lg
-                transition-all duration-200
-                ${activeTab === tab.key
-                  ? 'text-gold'
-                  : 'text-text-muted'
-                }
-              `}
-            >
-              <span className="w-5 h-5 flex items-center justify-center">{getTabIcon(tab.key)}</span>
-              <span className="text-[8pt] leading-none">{tab.label}</span>
+            <HoverHint key={`mobile-hint-${tab.key}`} content={tab.label} className="flex min-w-0 flex-1 justify-center">
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`
+                  relative flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-0 rounded-lg
+                  transition-all duration-200
+                  ${activeTab === tab.key
+                    ? 'text-gold'
+                    : 'text-text-muted'
+                  }
+                `}
+              >
+                <span className="w-5 h-5 flex items-center justify-center">{getTabIcon(tab.key)}</span>
 
-              {/* 选中指示点 */}
-              {activeTab === tab.key && (
-                <span className="absolute -top-2 w-1.5 h-1.5 rounded-full bg-gold shadow-[0_0_6px_rgba(212,175,55,0.6)]" />
-              )}
-            </button>
+                {/* 选中指示点 */}
+                {activeTab === tab.key && (
+                  <span className="absolute -top-2 w-1.5 h-1.5 rounded-full bg-gold shadow-[0_0_6px_rgba(212,175,55,0.6)]" />
+                )}
+              </button>
+            </HoverHint>
           ))}
 
           <HoverHint content={t('nav.settings', language)} className="flex min-w-0 flex-1 justify-center">
@@ -283,7 +286,6 @@ export default function App() {
               className="relative flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-0 rounded-lg text-text-muted transition-all duration-200 hover:text-text"
             >
               <span className="w-5 h-5 flex items-center justify-center">{getTabIcon('settings')}</span>
-              <span className="text-[8pt] leading-none">{t('nav.settings', language)}</span>
             </button>
           </HoverHint>
         </div>

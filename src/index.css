@@ -70,7 +70,6 @@
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s ease;
 }
 
 .hover-hint-trigger:hover .hover-hint-bubble,
@@ -78,6 +77,7 @@
   opacity: 1;
   visibility: visible;
   transform: translateX(-50%) translateY(0);
+  transition: opacity 0.08s ease;
 }
 
 /* ============================================================

@@ -4,6 +4,8 @@ import { getChineseVariantCandidates } from '@/lib/localize-knowledge'
 import { HoverHint } from '@/components/ui'
 import { MUTAGEN_COLORS, PALACE_POSITIONS, type PalaceData } from './types'
 import { getMutagenType } from './mutagenLines'
+import UndoIcon from '@/icons/undo.svg'
+import DeleteIcon from '@/icons/delete.svg'
 
 interface DottedArcLayerProps {
   palaceData: PalaceData[]
@@ -514,7 +516,7 @@ export function DottedArcLayer({
                 <button
                   type="button"
                   disabled={!hasArcs}
-                  className={`flex-1 flex h-6 items-center justify-center rounded-lg border text-[11px] font-medium transition-colors ${
+                  className={`flex-1 flex h-6 items-center justify-center rounded-lg border font-medium transition-colors ${
                     hasArcs
                       ? 'border-slate-300/60 bg-white/70 text-slate-700 hover:bg-white'
                       : 'border-slate-200/40 bg-slate-100/40 text-slate-400 cursor-not-allowed'
@@ -526,14 +528,14 @@ export function DottedArcLayer({
                     }
                   }}
                 >
-                  Undo
+                  <img src={UndoIcon} alt="Undo" className="w-3.5 h-3.5" />
                 </button>
               </HoverHint>
               <HoverHint content="Clean All" className="flex-1">
                 <button
                   type="button"
                   disabled={!hasArcs}
-                  className={`flex-1 flex h-6 items-center justify-center rounded-lg border text-[11px] font-medium transition-colors ${
+                  className={`flex-1 flex h-6 items-center justify-center rounded-lg border font-medium transition-colors ${
                     hasArcs
                       ? 'border-rose-200/60 bg-rose-100/70 text-rose-700 hover:bg-rose-100'
                       : 'border-slate-200/40 bg-slate-100/40 text-slate-400 cursor-not-allowed'
@@ -545,7 +547,7 @@ export function DottedArcLayer({
                     }
                   }}
                 >
-                  Clean
+                  <img src={DeleteIcon} alt="Clean" className="w-3.5 h-3.5" />
                 </button>
               </HoverHint>
             </div>

@@ -39,8 +39,14 @@ import {
 } from './mutagenLines'
 import { MutagenControls } from './MutagenControls'
 import { PalaceHintBubble } from './Bubble'
+import { TimeTableModal } from './TimeTableModal' // 時間表查詢模態框
 import { DottedArcLayer } from './DottedArcLayer'
 import { HoverHint } from '@/components/ui'
+import TriIcon from '@/icons/Tri.svg'
+import HintIcon from '@/icons/Hint.svg'
+import CounterIcon from '@/icons/Counter.svg'
+import FlyingIcon from '@/icons/Flying.svg'
+import CalendarIcon from '@/icons/calendar.svg'
 
 /* ============================================================
    辅助函数
@@ -700,7 +706,7 @@ function StarTag({ star, isMajorStar = false, forceTextColorClass = '', chartTyp
 
 function PalaceCard({
   name, stem, branch, majorStars, minorStars, adjectiveStars,
-  boshi12Deity, longlifeDeity, isLife, isBody, isCausePalace, isSelected, onClick, chartType = 'flying', selectedDecadal = null, selectedAnnual = null, monthlySequenceLabels = [], selectedDailyLabel = '', selectedHourlyLabel = '', selectedAnnualAge = null, selectedAnnualYear = null, selectedAnnualGanZhi = null, selectedAnnualLabel = '', selectedDecadalLabel = '', yearGan = '', gender = 'male', birthInfo = null, palaceData = null, decadalLifePalaceStem = null, annualLifePalaceStem = null, directionMark = null, directionFocus = null
+  boshi12Deity, longlifeDeity, isLife, isBody, isCausePalace, isSelected, onClick, chartType = 'flying', selectedDecadal = null, selectedAnnual = null, monthlySequenceLabels = [], selectedDailyLabel = '', selectedHourlyLabel = '', selectedAnnualAge = null, selectedAnnualYear = null, selectedAnnualGanZhi = null, selectedAnnualLabel = '', selectedDecadalLabel = '', yearGan = '', gender = 'male', birthInfo = null, palaceData = null, decadalLifePalaceStem = null, annualLifePalaceStem = null, directionMark = null, directionFocus = null, selectedMonthly = null, selectedDaily = null, selectedHourly = null
 }: PalaceCardProps) {
   const { language, transformationShowGods, flyingShowGods, transformationShowCausePalace, transformationHideMinorStars } = useSettingsStore()
   const hasMergedDailyHourly = !!selectedDailyLabel && !!selectedHourlyLabel && selectedHourlyLabel.startsWith(selectedDailyLabel)
@@ -766,30 +772,62 @@ function PalaceCard({
   // 获取英文参数名
   const englishPalaceName = PALACE_NAME_TO_ENGLISH_MAP[name]
   
-  // 计算是否是当前选中的大限或流年宫位
+  // 计算是否是当前选中的宫位（优先级：流時 > 流日 > 流月 > 流年 > 大限）
+  let isCurrentHighlightPalace = false
   let isCurrentDecadalPalace = false
   let isCurrentAnnualPalace = false
   
-  if (selectedDecadal !== null && selectedDecadal !== undefined && englishPalaceName) {
-    if (selectedDecadal === 0) {
-      // 第一大限，只有命宫是大限命宫
-      isCurrentDecadalPalace = englishPalaceName === 'ming'
+  const EARTHLY_BRANCHES_ARR = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
+  
+  if (selectedAnnual !== null && selectedAnnual !== undefined && selectedAnnualGanZhi) {
+    // 有選流年時的邏輯
+    const yearlyBranch = selectedAnnualGanZhi.slice(-1)
+    const yearlyBranchIndex = EARTHLY_BRANCHES_ARR.indexOf(yearlyBranch)
+    
+    // 流年命宮判定（用於 getMutagenColors）
+    isCurrentAnnualPalace = branch === yearlyBranch
+    
+    // 高亮宮位判定（優先最細粒度）
+    if (selectedHourly !== null && selectedHourly !== undefined) {
+      // 優先判斷流時
+      if (selectedMonthly !== null && selectedDaily !== null) {
+        const monthlyBranchIndex = (yearlyBranchIndex + selectedMonthly) % 12
+        const dailyBranchIndex = (monthlyBranchIndex + selectedDaily) % 12
+        const hourlyBranchIndex = (dailyBranchIndex + selectedHourly) % 12
+        const hourlyBranch = EARTHLY_BRANCHES_ARR[hourlyBranchIndex]
+        isCurrentHighlightPalace = branch === hourlyBranch
+      }
+    } else if (selectedDaily !== null && selectedDaily !== undefined && selectedHourly === null) {
+      // 判斷流日
+      if (selectedMonthly !== null) {
+        const monthlyBranchIndex = (yearlyBranchIndex + selectedMonthly) % 12
+        const dailyBranchIndex = (monthlyBranchIndex + selectedDaily) % 12
+        const dailyBranch = EARTHLY_BRANCHES_ARR[dailyBranchIndex]
+        isCurrentHighlightPalace = branch === dailyBranch
+      }
+    } else if (selectedMonthly !== null && selectedMonthly !== undefined) {
+      // 判斷流月
+      const monthlyBranchIndex = (yearlyBranchIndex + selectedMonthly) % 12
+      const monthlyBranch = EARTHLY_BRANCHES_ARR[monthlyBranchIndex]
+      isCurrentHighlightPalace = branch === monthlyBranch
     } else {
-      // 第二大限及以後，需要計算轉移後的宮位
+      // 流月、流日、流時都為 null 時，顯示流年命宮高亮
+      isCurrentHighlightPalace = branch === yearlyBranch
+    }
+  } else if (selectedDecadal !== null && selectedDecadal !== undefined && englishPalaceName) {
+    // 只選了大限，沒選流年
+    if (selectedDecadal === 0) {
+      isCurrentDecadalPalace = englishPalaceName === 'ming'
+      isCurrentHighlightPalace = englishPalaceName === 'ming'
+    } else {
       const originIndex = PALACE_ORDER.indexOf(englishPalaceName)
       if (originIndex !== -1) {
         const newIndex = getDecadalPalaceIndex(originIndex, selectedDecadal, gender, yearGan)
         const newPalaceKey = PALACE_ORDER[newIndex]
-        // 檢查轉移後的宮位是否是"命宫"
-        isCurrentDecadalPalace = newPalaceKey === 'ming'  // 大限命宫
+        isCurrentDecadalPalace = newPalaceKey === 'ming'
+        isCurrentHighlightPalace = newPalaceKey === 'ming'
       }
     }
-  }
-  
-  // 流年命宫：根据流年地支确定
-  if (selectedAnnual !== null && selectedAnnual !== undefined && selectedAnnualGanZhi) {
-    const yearlyBranch = selectedAnnualGanZhi.slice(-1)
-    isCurrentAnnualPalace = branch === yearlyBranch
   }
   
   // 原始宫位名称（用于右下角显示）
@@ -817,6 +855,7 @@ function PalaceCard({
         ${isBody ? 'bg-star/[0.03]' : ''}
         ${chartType === 'transformation' && transformationShowCausePalace && isCausePalace ? 'bg-amber/[0.03]' : ''}
         ${isSelected ? 'ring-1 sm:ring-2 ring-star border-star z-10' : ''}
+        ${isCurrentHighlightPalace ? 'ring-2 sm:ring-[3px] ring-blue-400/60 border-blue-400/80 shadow-[0_0_12px_rgba(96,165,250,0.4)]' : ''}
       `}
     >
       {/* 星耀水平排列 - 统一容器处理所有星曜 */}
@@ -1038,9 +1077,10 @@ interface CenterInfoProps {
   onToggleReversalCheck?: () => void
   showFlyGongToolbox?: boolean
   onToggleFlyGongToolbox?: () => void
+  onTimeTableClick?: () => void
 }
 
-function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, nativeName, onHourChange, showSanFangSiZheng, onToggleSanFangSiZheng, showBubbleHint, onToggleBubbleHint, showReversalCheck = false, onToggleReversalCheck, showFlyGongToolbox = false, onToggleFlyGongToolbox }: CenterInfoProps) {
+function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, nativeName, onHourChange, showSanFangSiZheng, onToggleSanFangSiZheng, showBubbleHint, onToggleBubbleHint, showReversalCheck = false, onToggleReversalCheck, showFlyGongToolbox = false, onToggleFlyGongToolbox, onTimeTableClick }: CenterInfoProps) {
   // 分割四柱 - 格式: "甲辰 丙子 己卯 丁酉"
   const fourPillars = chart.chineseDate?.split(' ') || []
   const [yearPillar, monthPillar, dayPillar, hourPillar] = fourPillars
@@ -1262,97 +1302,74 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
         
       </div>
 
-      {/* 圖例 - 放在下方 */}
-      <div className="w-full mt-4 pt-3 border-t border-white/[0.1]">
-        <div className="flex flex-wrap items-center justify-center gap-2 text-[7pt] sm:text-[8pt]">
-          <div className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-gold" />
-            <span className="text-gray-500">{t('palace.life', language)}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-star-light" />
-            <span className="text-gray-500">{t('chart.body', language)}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="text-fortune text-[7pt] sm:text-[8pt]">{t('mutagen.lucun', language)}</span>
-            <span className="text-gold text-[7pt] sm:text-[8pt]">{t('mutagen.quan', language)}</span>
-            <span className="text-star-light text-[7pt] sm:text-[8pt]">{t('mutagen.ke', language)}</span>
-            <span className="text-misfortune text-[7pt] sm:text-[8pt]">{t('mutagen.ji', language)}</span>
-            <span className="text-gray-500">{t('chart.mutagen', language)}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="text-fortune text-[7pt] sm:text-[8pt]">{t('brightness.temple', language)}</span>
-            <span className="text-gold text-[7pt] sm:text-[8pt]">{t('brightness.wang', language)}</span>
-            <span className="text-gray-500 text-[7pt] sm:text-[8pt]">{t('brightness.ping', language)}</span>
-            <span className="text-misfortune text-[7pt] sm:text-[8pt]">{t('brightness.xian', language)}</span>
-            <span className="text-gray-500">{t('chart.brightness', language)}</span>
-          </div>
-        </div>
-      </div>
-
       {/* 三方四正與 Bubble Hint 開關 */}
       {(onToggleSanFangSiZheng !== undefined || onToggleBubbleHint !== undefined) && (
-        <div className="w-full mt-2 pt-2 border-t border-white/[0.07] flex items-center justify-center gap-2">
-          <HoverHint content="點選宮位時顯示三合宮位三角形及對宮連線">
+        <div className="w-full mt-2.5 pt-2.5 border-t border-white/[0.07] flex items-center justify-center gap-2.5 flex-wrap">
+          <HoverHint content="三方四正" position="bottom">
             <button
               onClick={onToggleSanFangSiZheng}
-              className={`flex items-center gap-1 px-2.5 py-0.5 text-[11px] sm:gap-1.5 sm:px-3.5 sm:py-0 sm:text-sm font-medium rounded transition cursor-pointer ${
+              className={`flex items-center justify-center px-1 py-1 text-[11px] sm:gap-1.5 sm:px-2 sm:py-2 sm:text-sm font-medium rounded transition cursor-pointer ${
                 showSanFangSiZheng
                   ? 'bg-gray-300 text-gray-500'
                   : 'bg-gray-100 text-gray-500 hover:bg-gray-200 active:bg-gray-300'
               }`}
             >
-              <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" viewBox="0 0 12 12" fill="currentColor">
-                <polygon points="6,1 11,10 1,10" fillOpacity="0.7" />
-              </svg>
-              三方四正
+              <img src={TriIcon} alt="三方四正" className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
           </HoverHint>
 
           {onToggleBubbleHint !== undefined && (
-            <HoverHint content="點選宮位時顯示 Bubble Hint">
+            <HoverHint content="宮位提示" position="bottom">
               <button
                 onClick={onToggleBubbleHint}
-                className={`flex items-center gap-1 px-2.5 py-0.5 text-[11px] sm:gap-1.5 sm:px-3.5 sm:py-0 sm:text-sm font-medium rounded transition cursor-pointer ${
+                className={`flex items-center justify-center px-1 py-1 text-[11px] sm:gap-1.5 sm:px-2 sm:py-2 sm:text-sm font-medium rounded transition cursor-pointer ${
                   showBubbleHint
                     ? 'bg-gray-300 text-gray-500'
                     : 'bg-gray-100 text-gray-500 hover:bg-gray-200 active:bg-gray-300'
                 }`}
               >
-                <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M2 3.5A2.5 2.5 0 0 1 4.5 1h7A2.5 2.5 0 0 1 14 3.5v4A2.5 2.5 0 0 1 11.5 10H7l-3.2 2.7c-.7.6-1.8.1-1.8-.8V3.5z" />
-                </svg>
-                宮位提示
+                <img src={HintIcon} alt="宮位提示" className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </HoverHint>
           )}
 
           {onToggleReversalCheck !== undefined && (
-            <HoverHint content="控制宮位中心得/失按鈕顯示">
+            <HoverHint content="反背檢查" position="bottom">
               <button
                 onClick={onToggleReversalCheck}
-                className={`flex items-center gap-1 px-2.5 py-0.5 text-[11px] sm:gap-1.5 sm:px-3.5 sm:py-0 sm:text-sm font-medium rounded transition cursor-pointer ${
+                className={`flex items-center justify-center px-1 py-1 text-[11px] sm:gap-1.5 sm:px-2 sm:py-2 sm:text-sm font-medium rounded transition cursor-pointer ${
                   showReversalCheck
                     ? 'bg-gray-300 text-gray-500'
                     : 'bg-gray-100 text-gray-500 hover:bg-gray-200 active:bg-gray-300'
                 }`}
               >
-                反背檢查
+                <img src={CounterIcon} alt="反背檢查" className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </HoverHint>
           )}
 
           {onToggleFlyGongToolbox !== undefined && (
-            <HoverHint content="控制飛宮弧線顯示">
+            <HoverHint content="飛宮" position="bottom">
               <button
                 onClick={onToggleFlyGongToolbox}
-                className={`flex items-center gap-1 px-2.5 py-0.5 text-[11px] sm:gap-1.5 sm:px-3.5 sm:py-0 sm:text-sm font-medium rounded transition cursor-pointer ${
+                className={`flex items-center justify-center px-1 py-1 text-[11px] sm:gap-1.5 sm:px-2 sm:py-2 sm:text-sm font-medium rounded transition cursor-pointer ${
                   showFlyGongToolbox
                     ? 'bg-gray-300 text-gray-500'
                     : 'bg-gray-100 text-gray-500 hover:bg-gray-200 active:bg-gray-300'
                 }`}
               >
-                飛宮
+                <img src={FlyingIcon} alt="飛宮" className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </HoverHint>
+          )}
+
+          {onTimeTableClick !== undefined && (
+            <HoverHint content="查詢大限、流年、流月、流日、流時" position="bottom">
+              <button
+                onClick={onTimeTableClick}
+                className="flex items-center justify-center px-1 py-1 text-[11px] sm:gap-1.5 sm:px-2 sm:py-2 sm:text-sm font-medium rounded transition cursor-pointer bg-gray-100 text-gray-500 hover:bg-gray-200 active:bg-gray-300"
+              >
+                <img src={CalendarIcon} alt="時間表查詢" className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </HoverHint>
           )}
@@ -1441,14 +1458,14 @@ function DecadalAnnualMonthlyTable({
   const [internalIsExpanded] = useState(false)
   const isExpanded = externalIsExpanded !== undefined ? externalIsExpanded : internalIsExpanded
   
-  const [internalSelectedMonthly, internalSetSelectedMonthly] = useState<number | null>(0)
+  const [internalSelectedMonthly, internalSetSelectedMonthly] = useState<number | null>(null)
   const selectedMonthly = externalSelectedMonthly !== undefined ? externalSelectedMonthly : internalSelectedMonthly
   const setSelectedMonthly = externalSetSelectedMonthly || internalSetSelectedMonthly
 
-  const [internalSelectedDaily, internalSetSelectedDaily] = useState<number | null>(0)
+  const [internalSelectedDaily, internalSetSelectedDaily] = useState<number | null>(null)
   const selectedDaily = externalSelectedDaily !== undefined ? externalSelectedDaily : internalSelectedDaily
   const setSelectedDaily = externalSetSelectedDaily || internalSetSelectedDaily
-  const [internalSelectedHourly, internalSetSelectedHourly] = useState<number | null>(0)
+  const [internalSelectedHourly, internalSetSelectedHourly] = useState<number | null>(null)
   const selectedHourly = externalSelectedHourly !== undefined ? externalSelectedHourly : internalSelectedHourly
   const setSelectedHourly = externalSetSelectedHourly || internalSetSelectedHourly
   const [dailyScrollOffset, setDailyScrollOffset] = useState(0)
@@ -1463,8 +1480,8 @@ function DecadalAnnualMonthlyTable({
       setSelectedDaily(null)
       setSelectedHourly(null)
     } else {
-      setSelectedDaily(0)
-      setSelectedHourly(0)
+      setSelectedDaily(null)
+      setSelectedHourly(null)
     }
     setDailyScrollOffset(0)
   }
@@ -1611,7 +1628,7 @@ function DecadalAnnualMonthlyTable({
                 }
 
                 setSelectedAnnual(i)
-                handleSetSelectedMonthly(0)
+                handleSetSelectedMonthly(null)
               }}
             >
               <div className={`flex flex-col items-center gap-0 leading-tight rounded-[2px] px-1 py-0.5 sm:px-1.5 sm:py-1 ${selectedAnnual === i ? 'bg-fortune/20' : ''}`}>
@@ -1692,8 +1709,13 @@ function DecadalAnnualMonthlyTable({
                                 : 'bg-white/[0.01] text-text-secondary hover:bg-white/[0.05]'
                             }`}
                             onClick={() => {
-                              setSelectedDaily(dayIndex)
-                              setSelectedHourly(0)
+                              if (selectedDaily === dayIndex) {
+                                setSelectedDaily(null)
+                                setSelectedHourly(null)
+                              } else {
+                                setSelectedDaily(dayIndex)
+                                setSelectedHourly(null)
+                              }
                             }}
                           >
                             <div className={`whitespace-nowrap rounded-[4px] px-1 py-0 sm:px-1.5 sm:py-0.5 ${selectedDaily === dayIndex ? 'bg-star-light/20' : ''}`}>
@@ -1717,7 +1739,7 @@ function DecadalAnnualMonthlyTable({
             </div>
           )}
 
-          {selectedMonthly !== null && renderScrollRow('流時', shichen.map((time, i) => (
+          {selectedMonthly !== null && selectedDaily !== null && renderScrollRow('流時', shichen.map((time, i) => (
             <td 
               key={i} 
               className={`relative z-0 px-0 py-1 sm:px-1.5 sm:py-2 text-center cursor-pointer transition-colors border-r border-white/[0.12] font-medium text-[8px] sm:text-[12px] lg:text-[16px] whitespace-nowrap min-w-[30px] sm:min-w-[52px] ${
@@ -1725,7 +1747,13 @@ function DecadalAnnualMonthlyTable({
                   ? 'bg-white/[0.01] text-gold'
                   : 'bg-white/[0.01] text-text-secondary hover:bg-white/[0.05]'
               }`}
-              onClick={() => setSelectedHourly(i)}
+              onClick={() => {
+                if (selectedHourly === i) {
+                  setSelectedHourly(null)
+                } else {
+                  setSelectedHourly(i)
+                }
+              }}
             >
               <div className={`whitespace-nowrap rounded-[4px] px-1 py-0 sm:px-1.5 sm:py-0.5 ${selectedHourly === i ? 'bg-gold/20' : ''}`}>
                 {time}
@@ -1795,9 +1823,9 @@ function DecadalAnnualMonthlyTable({
                 }
 
                 setSelectedAnnual(i)
-                setSelectedMonthly(0)
-                setSelectedDaily(0)
-                setSelectedHourly(0)
+                setSelectedMonthly(null)
+                setSelectedDaily(null)
+                setSelectedHourly(null)
                 setDailyScrollOffset(0)
               }}
             >
@@ -1842,6 +1870,7 @@ export function ChartDisplay() {
   const [directionFocus, setDirectionFocus] = useState<'得' | '失' | null>(null)
   const [showReversalCheck, setShowReversalCheck] = useState(false)
   const [showFlyGongToolbox, setShowFlyGongToolbox] = useState(false)
+  const [isTimeTableModalOpen, setIsTimeTableModalOpen] = useState(false)
   const gridRef = useRef<HTMLDivElement>(null)
   const [gridOffset, setGridOffset] = useState({ x: 0, y: 0 })
   // 宮位氣泡提示狀態
@@ -1865,7 +1894,7 @@ export function ChartDisplay() {
     B: boolean
     C: boolean
     D: boolean
-  }>({ A: true, B: true, C: true, D: true })
+  }>({ A: false, B: false, C: false, D: false })
   const arcResetVersion = 0
 
   const lineStrokeWidth = 1.5
@@ -2113,6 +2142,26 @@ export function ChartDisplay() {
     const dailyPalaceIndex = normalizeIndex(monthlyPalaceIndex + selectedDaily)
     return PALACE_CLOCKWISE_BRANCHES[dailyPalaceIndex] || null
   })()
+  const dailySequenceByBranch = (() => {
+    const result: Record<string, string[]> = {}
+    if (selectedMonthlyPalaceBranch === null) return result
+
+    const monthlyPalaceIndex = PALACE_BRANCH_INDEX[selectedMonthlyPalaceBranch]
+    if (monthlyPalaceIndex === undefined) return result
+
+    // 流日起算從當月初一直接起，第1日同流月宮，之後順時針遞進
+    for (let i = 0; i < 30; i++) {
+      const palaceIndex = normalizeIndex(monthlyPalaceIndex + i)
+      const branch = PALACE_CLOCKWISE_BRANCHES[palaceIndex]
+      const dayLabel = CHINESE_DAY_NAMES[i]
+      if (!result[branch]) {
+        result[branch] = []
+      }
+      result[branch].push(dayLabel)
+    }
+
+    return result
+  })()
   const hourlySequenceByBranch = (() => {
     const result: Record<string, string> = {}
     if (selectedDailyPalaceBranch === null || !selectedDailyLabel) return result
@@ -2290,9 +2339,24 @@ export function ChartDisplay() {
           chartType={chartType}
           selectedDecadal={selectedDecadal}
           selectedAnnual={selectedAnnual}
-          monthlySequenceLabels={selectedMonthlyLabel ? [selectedMonthlyLabel] : (monthlySequenceByBranch[palace.branch] || [])}
-          selectedDailyLabel={palace.branch === selectedDailyPalaceBranch ? selectedDailyLabel : ''}
-          selectedHourlyLabel={hourlySequenceByBranch[palace.branch] || ''}
+          selectedMonthly={selectedMonthly}
+          selectedDaily={selectedDaily}
+          selectedHourly={selectedHourly}
+          monthlySequenceLabels={
+            (selectedMonthly !== null && selectedDaily === null)
+              ? (monthlySequenceByBranch[palace.branch] || [])
+              : (selectedMonthlyLabel ? [selectedMonthlyLabel] : [])
+          }
+          selectedDailyLabel={
+            (selectedDaily !== null && selectedHourly === null)
+              ? ((dailySequenceByBranch[palace.branch] && dailySequenceByBranch[palace.branch][0]) || '')
+              : (palace.branch === selectedDailyPalaceBranch ? selectedDailyLabel : '')
+          }
+          selectedHourlyLabel={
+            (selectedHourly !== null)
+              ? (hourlySequenceByBranch[palace.branch] || '')
+              : ''
+          }
           selectedAnnualAge={selectedAnnualAge}
           selectedAnnualYear={selectedAnnualYear}
           selectedAnnualGanZhi={selectedAnnualGanZhi}
@@ -2664,6 +2728,7 @@ export function ChartDisplay() {
             }}
             showFlyGongToolbox={showFlyGongToolbox}
             onToggleFlyGongToolbox={() => setShowFlyGongToolbox((v) => !v)}
+            onTimeTableClick={() => setIsTimeTableModalOpen(true)}
             onHourChange={(hour) => {
               if (birthInfo && birthInfo.year && birthInfo.month && birthInfo.day && birthInfo.gender) {
                 const updatedBirthInfo: BirthInfo = {
@@ -2743,7 +2808,10 @@ export function ChartDisplay() {
 
         {/* 第三部分：ABCD 控制组件 - 飛星盤與四化盤顯示，三合盤隱藏 */}
         {(chartType === 'flying' || chartType === 'transformation') && (
-          <MutagenControls mutagenDisplay={mutagenDisplay} setMutagenDisplay={setMutagenDisplay} />
+          <MutagenControls 
+            mutagenDisplay={mutagenDisplay} 
+            setMutagenDisplay={setMutagenDisplay}
+          />
         )}
         </div>
       </div>
@@ -2814,6 +2882,44 @@ export function ChartDisplay() {
           annualGanZhi={bubblePalace.annualGanZhi}
         />
       )}
+
+      {/* 時間表查詢模態框 */}
+      <TimeTableModal
+        isOpen={isTimeTableModalOpen}
+        onClose={() => setIsTimeTableModalOpen(false)}
+        birthInfo={birthInfo}
+        palaceData={palaceData}
+        language={language}
+        selectedDecadal={selectedDecadal}
+        selectedAnnual={selectedAnnual}
+        onConfirm={(data: any) => {
+          // 根据用户选择更新大限、流年及流月、流日、流时
+          if (data.selectedDecadal !== undefined && data.selectedDecadal !== null) {
+            setSelectedDecadal(data.selectedDecadal)
+            if (data.selectedAnnual !== undefined && data.selectedAnnual !== null) {
+              setSelectedAnnual(data.selectedAnnual)
+              // 设置流月、流日、流时
+              if (data.selectedMonthly !== undefined && data.selectedMonthly !== null) {
+                setSelectedMonthly(data.selectedMonthly)
+              }
+              if (data.selectedDaily !== undefined && data.selectedDaily !== null) {
+                setSelectedDaily(data.selectedDaily)
+              }
+              if (data.selectedHourly !== undefined && data.selectedHourly !== null) {
+                setSelectedHourly(data.selectedHourly)
+              }
+            } else {
+              setSelectedAnnual(null)
+              setSelectedMonthly(null)
+              setSelectedDaily(null)
+              setSelectedHourly(null)
+            }
+            setIsDecadalExpanded(true)
+          }
+          console.log('[TimeTableModal] User confirmed:', data)
+          setIsTimeTableModalOpen(false)
+        }}
+      />
     </div>
   )
 }

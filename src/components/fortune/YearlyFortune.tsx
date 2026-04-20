@@ -10,12 +10,125 @@ import type FunctionalAstrolabe from 'iztro/lib/astro/FunctionalAstrolabe'
 import { useChartStore, useSettingsStore, useContentCacheStore } from '@/stores'
 import { streamChat, type ChatMessage, type LLMConfig } from '@/lib/llm'
 import { extractKnowledge, buildPromptContext } from '@/knowledge'
-import { Button, Input } from '@/components/ui'
+import { Button, Select } from '@/components/ui'
 import { t, type Language } from '@/lib/i18n'
+import { getShichenOptions } from '@/lib/astro'
+import { toTraditionalChinese } from '@/lib/localize-knowledge'
+import { solar2lunar } from 'iztro/lib/calendar'
 
-/* ------------------------------------------------------------
+/* ============================================================
+   常数和选项生成
+   ============================================================ */
+
+const HEAVENLY_STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
+const EARTHLY_BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
+
+function getGanZhiYear(year: number) {
+  const heavenlyStem = HEAVENLY_STEMS[(year - 4) % 10]
+  const earthlyBranch = EARTHLY_BRANCHES[(year - 4) % 12]
+  return `${heavenlyStem}${earthlyBranch}`
+}
+
+const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => ({
+  value: i + 1,
+  label: `${i + 1}月`,
+}))
+
+const DAY_OPTIONS = Array.from({ length: 31 }, (_, i) => ({
+  value: i + 1,
+  label: `${i + 1}日`,
+}))
+
+const HOUR_SELECT_OPTIONS = Array.from({ length: 24 }, (_, i) => ({
+  value: i,
+  label: String(i).padStart(2, '0'),
+}))
+
+const SHICHEN_OPTIONS = getShichenOptions().map((option) => ({
+  ...option,
+  label: toTraditionalChinese(option.label),
+}))
+
+/* ============================================================
+   日期时间工具函数
+   ============================================================ */
+
+/**
+ * 获取农历月份的中文表示
+ */
+function getLunarMonthLabel(month: number, isLeap: boolean): string {
+  const lunarMonthLabels = ['正月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '冬月', '腊月']
+  const label = lunarMonthLabels[month - 1] || `${month}月`
+  return isLeap ? `閏${label}` : label
+}
+
+/**
+ * 获取农历日期的中文表示
+ */
+function getLunarDayLabel(day: number): string {
+  const lunarDayLabels = [
+    '初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十',
+    '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
+    '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十',
+  ]
+  return lunarDayLabels[day - 1] || `${day}日`
+}
+
+/**
+ * 获取农历时辰的中文表示
+ * 遵循 astro.ts hourToTimeIndex 的转换逻辑
+ * iztro 时辰: 0=早子(00-01), 1=丑(01-03), ..., 6=午(11-13), 7=未(13-15), ..., 11=亥, 12=晚子(23-00)
+ */
+function getLunarHourLabel(hour: number): string {
+  const shichenLabels = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
+  
+  let shichenIndex: number
+  if (hour === 23) {
+    shichenIndex = 0  // 晚子时 23:00-00:00
+  } else if (hour >= 0 && hour < 1) {
+    shichenIndex = 0  // 早子时 00:00-01:00
+  } else {
+    shichenIndex = Math.floor((hour + 1) / 2)  // 其他时辰
+  }
+  
+  return shichenLabels[shichenIndex] || ''
+}
+
+/**
+ * 生成完整的日期时间信息（西历和农历）
+ */
+function formatCompleteDateTime(year: number, month: number, day: number, hour: number): string {
+  const lines: string[] = []
+  
+  // 西历信息
+  lines.push(`【西曆】${year}年${month}月${day}日 ${String(hour).padStart(2, '0')}:00`)
+  
+  // 农历信息
+  try {
+    const lunarResult = solar2lunar(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`)
+    if (lunarResult) {
+      const lunarYear = lunarResult.lunarYear
+      const lunarMonth = lunarResult.lunarMonth
+      const lunarDay = lunarResult.lunarDay
+      const isLeap = lunarResult.isLeapMonth || false
+      
+      const monthLabel = getLunarMonthLabel(lunarMonth, isLeap)
+      const dayLabel = getLunarDayLabel(lunarDay)
+      const hourLabel = getLunarHourLabel(hour)
+      
+      lines.push(`【農曆】${lunarYear}年${monthLabel}${dayLabel} ${hourLabel}時`)
+      lines.push(`【天干地支】${getYearGanZhi(lunarYear)}年 (${getMonthlyGan(lunarYear, lunarMonth)}${getMonthlyZhi(lunarMonth)}月)`)
+    }
+  } catch (e) {
+    console.error('[YearlyFortune] Error converting to lunar:', e)
+  }
+  
+  return lines.join('\n')
+}
+
+/* ============================================================
    运势提示词 - 多语言支持，包含流年数据 JSON
-   ------------------------------------------------------------ */
+   ============================================================ */
 
 interface YearlyDataItem {
   基本資料: {
@@ -264,12 +377,19 @@ function calculateMonthlyScores(
   return monthlyScores
 }
 
-function getForttunePrompt(language: Language, yearlyData?: YearlyDataItem[], monthlyAnalysis?: MonthlyAnalysis[]): string {
-  const yearlyDataJson = yearlyData ? `\n\n【流年数据】\n${JSON.stringify(yearlyData, null, 2)}` : ''
+function getForttunePrompt(language: Language, year?: number, month?: number, day?: number, hour?: number, yearlyData?: YearlyDataItem[], monthlyAnalysis?: MonthlyAnalysis[]): string {
+  // 生成完整的日期时间信息
+  const dateTimeInfo = (year && month && day !== undefined && hour !== undefined) 
+    ? formatCompleteDateTime(year, month, day, hour)
+    : ''
+  
+  const dateTimeJson = dateTimeInfo ? `\n\n【查詢日期時間】\n${dateTimeInfo}` : ''
+  
+  const yearlyDataJson = yearlyData ? `\n\n【流年數據】\n${JSON.stringify(yearlyData, null, 2)}` : ''
   
   let monthlyDataJson = ''
   if (monthlyAnalysis) {
-    monthlyDataJson = `\n\n【流月数据】\n${JSON.stringify(monthlyAnalysis.map(m => ({
+    monthlyDataJson = `\n\n【流月數據】\n${JSON.stringify(monthlyAnalysis.map(m => ({
       月份: m.月份,
       宮位: m.宮位,
       天干: m.天干,
@@ -313,7 +433,7 @@ function getForttunePrompt(language: Language, yearlyData?: YearlyDataItem[], mo
 * **关键提醒**：关于健康或安全的特别嘱咐。
 
 ---
-*注：流年运势受多方因素影响，分析仅供参考，切勿执着。*${yearlyDataJson}${monthlyDataJson}`
+*注：流年运势受多方因素影响，分析仅供参考，切勿执着。*${dateTimeJson}${yearlyDataJson}${monthlyDataJson}`
   } else {
     // zh-TW
     const yearlyDataJsonTw = yearlyData ? `\n\n【流年數據】\n${JSON.stringify(yearlyData.map(item => ({
@@ -370,7 +490,7 @@ function getForttunePrompt(language: Language, yearlyData?: YearlyDataItem[], mo
 * **關鍵提醒**：關於健康或安全的特別囑咐。
 
 ---
-*注：流年運勢受多方因素影響，分析僅供參考，切勿執著。*${yearlyDataJsonTw}${monthlyDataJsonTw}`
+*注：流年運勢受多方因素影響，分析僅供參考，切勿執著。*${dateTimeJson}${yearlyDataJsonTw}${monthlyDataJsonTw}`
   }
 }
 
@@ -549,6 +669,10 @@ export function YearlyFortune() {
   const defaultYear = yearOptions.includes(currentYear) ? currentYear : (yearOptions.length > 0 ? yearOptions[0] : currentYear)
 
   const [year, setYear] = useState<number>(defaultYear)
+  const [month, setMonth] = useState<number>(new Date().getMonth() + 1)
+  const [day, setDay] = useState<number>(new Date().getDate())
+  const [hour, setHour] = useState<number>(13)
+  const [inputMode, setInputMode] = useState<'solar' | 'ganZhi'>('solar')
   const [fortune, setFortune] = useState(yearlyFortune[defaultYear] || '')
   const [monthlyAnalysis, setMonthlyAnalysis] = useState<MonthlyAnalysis[] | null>(null)
   const [yearlyData, setYearlyData] = useState<YearlyDataItem[] | null>(null)
@@ -564,17 +688,9 @@ export function YearlyFortune() {
     }
   }, [defaultYear])
 
-  const handleYearInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const input = e.target.value
-    if (input === '') {
-      return
-    }
-    
-    const inputYear = parseInt(input, 10)
-    
-    // 验证年份是否在有效范围内
-    if (!isNaN(inputYear) && birthInfo && inputYear >= birthInfo.year && inputYear <= currentYear + 20) {
-      setYear(inputYear)
+  const handleYearInput = useCallback((value: number) => {
+    if (birthInfo && value >= birthInfo.year && value <= currentYear + 20) {
+      setYear(value)
     }
   }, [birthInfo, currentYear])
 
@@ -598,7 +714,8 @@ export function YearlyFortune() {
       
       // 同时计算流年数据用于预览
       try {
-        const horoscope = chart.horoscope(new Date(`${year}-6-15`))
+        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+        const horoscope = chart.horoscope(new Date(dateStr))
         const yearly = horoscope.yearly
         const heavenlyStem = String(yearly.heavenlyStem || '')
         const earthlyBranch = String(yearly.earthlyBranch || '')
@@ -633,7 +750,7 @@ export function YearlyFortune() {
       
       console.log(`[YearlyFortune] Calculated analysis:`, analysis)
     }
-  }, [chart, year, yearlyFortune, birthInfo])
+  }, [chart, year, month, day, yearlyFortune, birthInfo])
 
   const handleAnalyze = useCallback(async () => {
     if (!chart || !birthInfo) return
@@ -648,7 +765,8 @@ export function YearlyFortune() {
 
     try {
       // 获取流年运限数据
-      const horoscope = chart.horoscope(new Date(`${year}-6-15`))
+      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+      const horoscope = chart.horoscope(new Date(dateStr))
 
       console.log('[YearlyFortune] Horoscope Object:', {
         yearly: horoscope.yearly,
@@ -733,7 +851,7 @@ ${yearlyContext}
 请结合本命盘、流年盘和月份分析数据，给出详细的 ${year} 年运势分析。`
 
       const messages: ChatMessage[] = [
-        { role: 'system', content: getForttunePrompt(language, yearlyDataArray, monthlyData) },
+        { role: 'system', content: getForttunePrompt(language, year, month, day, hour, yearlyDataArray, monthlyData) },
         { role: 'user', content: userMessage },
       ]
 
@@ -760,10 +878,10 @@ ${yearlyContext}
     } finally {
       setLoading(false)
     }
-  }, [chart, birthInfo, year, provider, currentSettings, enableThinking, enableWebSearch, searchApiKey, setYearlyFortune, language, monthlyAnalysis])
+  }, [chart, birthInfo, year, month, day, hour, provider, currentSettings, enableThinking, enableWebSearch, searchApiKey, setYearlyFortune, language, monthlyAnalysis])
 
   const handleCopyPrompt = useCallback(() => {
-    const prompt = monthlyAnalysis && yearlyData ? getForttunePrompt(language, yearlyData, monthlyAnalysis) : getForttunePrompt(language)
+    const prompt = monthlyAnalysis && yearlyData ? getForttunePrompt(language, year, month, day, hour, yearlyData, monthlyAnalysis) : getForttunePrompt(language)
     navigator.clipboard.writeText(prompt).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
@@ -795,39 +913,140 @@ ${yearlyContext}
         />
 
         {/* 标题和控制区 */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-          <h2
-            className="
-              text-xl lg:text-2xl font-semibold
-              bg-gradient-to-r from-gold via-gold-light to-gold
-              bg-clip-text text-transparent
-            "
-            style={{ fontFamily: 'var(--font-serif)' }}
-          >
-            {t('nav.fortune', language)}
-          </h2>
+        <div className="flex flex-col gap-4 mb-8">
+          <div className="flex items-center justify-between">
+            <h2
+              className="
+                text-xl lg:text-2xl font-semibold
+                bg-gradient-to-r from-gold via-gold-light to-gold
+                bg-clip-text text-transparent
+              "
+              style={{ fontFamily: 'var(--font-serif)' }}
+            >
+              {t('nav.fortune', language)}
+            </h2>
+          </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-            {/* 年份选择 - 输入框 */}
-            <div className="flex items-center gap-2">
-              <Input
-                type="number"
-                value={year}
-                onChange={handleYearInput}
-                placeholder={String(currentYear)}
-                min={birthInfo?.year || 1900}
-                max={currentYear + 20}
-                className="w-20 text-center"
-                style={{ fontSize: '13px' }}
-              />
-              <span className="text-text-muted text-xs sm:text-xs">年</span>
+          {/* 输入模式切换 */}
+          <div className="space-y-1.5">
+            <span className="text-xs sm:text-sm text-text-secondary font-medium">{t('form.inputMode', language)}</span>
+            <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setInputMode('solar')
+                  setError(null)
+                }}
+                className={`
+                  rounded-lg sm:rounded-xl px-3 py-2 text-xs sm:text-sm font-medium transition-all duration-200
+                  ${inputMode === 'solar'
+                    ? 'bg-gradient-to-r from-star to-star-dark text-white shadow-[0_4px_20px_rgba(124,58,237,0.25)]'
+                    : 'bg-white/[0.04] border border-white/[0.08] text-text-secondary hover:bg-white/[0.08] hover:border-white/[0.12]'
+                  }
+                `}
+              >
+                西曆
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setInputMode('ganZhi')
+                  setError(null)
+                }}
+                className={`
+                  rounded-lg sm:rounded-xl px-3 py-2 text-xs sm:text-sm font-medium transition-all duration-200
+                  ${inputMode === 'ganZhi'
+                    ? 'bg-gradient-to-r from-gold to-gold-dark text-night shadow-[0_4px_20px_rgba(245,158,11,0.25)]'
+                    : 'bg-white/[0.04] border border-white/[0.08] text-text-secondary hover:bg-white/[0.08] hover:border-white/[0.12]'
+                  }
+                `}
+              >
+                干支
+              </button>
             </div>
+          </div>
 
+          {/* 日期输入 */}
+          {inputMode === 'solar' ? (
+            <div className="space-y-1.5">
+              <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+                <Select
+                  options={Array.from({ length: currentYear + 20 - (birthInfo?.year || 1900) + 1 }, (_, i) => ({
+                    value: (birthInfo?.year || 1900) + i,
+                    label: `${(birthInfo?.year || 1900) + i}年`,
+                  })).reverse()}
+                  value={year}
+                  onChange={(e) => handleYearInput(Number(e.target.value))}
+                />
+                <Select
+                  options={MONTH_OPTIONS}
+                  value={month}
+                  onChange={(e) => setMonth(Number(e.target.value))}
+                />
+                <Select
+                  options={DAY_OPTIONS}
+                  value={day}
+                  onChange={(e) => setDay(Number(e.target.value))}
+                />
+                <Select
+                  options={HOUR_SELECT_OPTIONS}
+                  value={hour}
+                  onChange={(e) => setHour(Number(e.target.value))}
+                />
+              </div>
+              <p className="text-xs text-text-muted">{t('form.dateHint', language)}</p>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <div>
+                <Select
+                  options={Array.from({ length: currentYear + 20 - (birthInfo?.year || 1900) + 1 }, (_, i) => {
+                    const y = (birthInfo?.year || 1900) + i
+                    return {
+                      value: y,
+                      label: `${y}年 ${getGanZhiYear(y)}`,
+                    }
+                  }).reverse()}
+                  value={year}
+                  onChange={(e) => handleYearInput(Number(e.target.value))}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
+                <Select
+                  options={MONTH_OPTIONS}
+                  value={month}
+                  onChange={(e) => setMonth(Number(e.target.value))}
+                />
+                <Select
+                  options={DAY_OPTIONS}
+                  value={day}
+                  onChange={(e) => setDay(Number(e.target.value))}
+                />
+              </div>
+              <Select
+                options={SHICHEN_OPTIONS}
+                value={hour}
+                onChange={(e) => setHour(Number(e.target.value))}
+              />
+              <p className="text-xs text-text-muted">{t('form.lunarDateHint', language)}</p>
+            </div>
+          )}
+
+          {/* 显示完整日期时间信息 */}
+          <div className="p-3 rounded-lg bg-white/[0.08] border border-gold/20">
+            <div className="text-xs font-semibold text-gold mb-2">📅 查詢日期時間</div>
+            <pre className="text-xs text-text-secondary whitespace-pre-wrap break-words font-mono">
+              {formatCompleteDateTime(year, month, day, hour)}
+            </pre>
+          </div>
+
+          {/* 操作按钮组 */}
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
             {/* 显示Prompt按钮 */}
             <button
               type="button"
               onClick={() => setShowYearlyFortunePrompt(!showYearlyFortunePrompt)}
-              className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors whitespace-nowrap"
+              className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-xs font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors whitespace-nowrap"
             >
               {showYearlyFortunePrompt ? t('fortune.hidePrompt', language) : t('fortune.showPrompt', language)}
             </button>
@@ -837,7 +1056,7 @@ ${yearlyContext}
               type="button"
               onClick={handleCopyPrompt}
               disabled={!monthlyAnalysis || !yearlyData}
-              className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-xs font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {copied ? t('fortune.copied', language) : t('fortune.copyPrompt', language)}
             </button>
@@ -871,7 +1090,7 @@ ${yearlyContext}
           <div className="mb-6 p-4 rounded-lg bg-white/[0.08] border border-gold/20">
             <div className="text-xs font-semibold text-gold mb-3 uppercase">📋 System Prompt</div>
             <pre className="text-xs text-text-secondary overflow-auto max-h-64 whitespace-pre-wrap break-words font-mono bg-white/5 p-3 rounded">
-              {monthlyAnalysis && yearlyData ? getForttunePrompt(language, yearlyData, monthlyAnalysis) : getForttunePrompt(language)}
+              {monthlyAnalysis && yearlyData ? getForttunePrompt(language, year, month, day, hour, yearlyData, monthlyAnalysis) : getForttunePrompt(language)}
             </pre>
           </div>
         )}

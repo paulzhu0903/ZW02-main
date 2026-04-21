@@ -706,7 +706,7 @@ function StarTag({ star, isMajorStar = false, forceTextColorClass = '', chartTyp
 
 function PalaceCard({
   name, stem, branch, majorStars, minorStars, adjectiveStars,
-  boshi12Deity, longlifeDeity, isLife, isBody, isCausePalace, isSelected, onClick, chartType = 'flying', selectedDecadal = null, selectedAnnual = null, monthlySequenceLabels = [], selectedDailyLabel = '', selectedHourlyLabel = '', selectedAnnualAge = null, selectedAnnualYear = null, selectedAnnualGanZhi = null, selectedAnnualLabel = '', selectedDecadalLabel = '', yearGan = '', gender = 'male', birthInfo = null, palaceData = null, decadalLifePalaceStem = null, annualLifePalaceStem = null, directionMark = null, directionFocus = null, selectedMonthly = null, selectedDaily = null, selectedHourly = null
+  boshi12Deity, longlifeDeity, isLife, isBody, isCausePalace, isSelected, onClick, chartType = 'flying', selectedDecadal = null, selectedAnnual = null, monthlySequenceLabels = [], selectedDailyLabel = '', selectedHourlyLabel = '', selectedAnnualAge = null, selectedAnnualYear = null, selectedAnnualGanZhi = null, selectedAnnualLabel = '', selectedDecadalLabel = '', yearGan = '', gender = 'male', birthInfo = null, palaceData = null, decadalLifePalaceStem = null, annualLifePalaceStem = null, directionMark = null, directionFocus = null, selectedMonthly = null, selectedDaily = null, selectedHourly = null, selectedMonthlyPalaceBranch = null, selectedDailyPalaceBranch = null, selectedHourlyPalaceBranch = null
 }: PalaceCardProps) {
   const { language, transformationShowGods, flyingShowGods, transformationShowCausePalace, transformationHideMinorStars } = useSettingsStore()
   const hasMergedDailyHourly = !!selectedDailyLabel && !!selectedHourlyLabel && selectedHourlyLabel.startsWith(selectedDailyLabel)
@@ -777,39 +777,20 @@ function PalaceCard({
   let isCurrentDecadalPalace = false
   let isCurrentAnnualPalace = false
   
-  const EARTHLY_BRANCHES_ARR = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
-  
   if (selectedAnnual !== null && selectedAnnual !== undefined && selectedAnnualGanZhi) {
     // 有選流年時的邏輯
     const yearlyBranch = selectedAnnualGanZhi.slice(-1)
-    const yearlyBranchIndex = EARTHLY_BRANCHES_ARR.indexOf(yearlyBranch)
     
     // 流年命宮判定（用於 getMutagenColors）
     isCurrentAnnualPalace = branch === yearlyBranch
     
     // 高亮宮位判定（優先最細粒度）
-    if (selectedHourly !== null && selectedHourly !== undefined) {
-      // 優先判斷流時
-      if (selectedMonthly !== null && selectedDaily !== null) {
-        const monthlyBranchIndex = (yearlyBranchIndex + selectedMonthly) % 12
-        const dailyBranchIndex = (monthlyBranchIndex + selectedDaily) % 12
-        const hourlyBranchIndex = (dailyBranchIndex + selectedHourly) % 12
-        const hourlyBranch = EARTHLY_BRANCHES_ARR[hourlyBranchIndex]
-        isCurrentHighlightPalace = branch === hourlyBranch
-      }
-    } else if (selectedDaily !== null && selectedDaily !== undefined && selectedHourly === null) {
-      // 判斷流日
-      if (selectedMonthly !== null) {
-        const monthlyBranchIndex = (yearlyBranchIndex + selectedMonthly) % 12
-        const dailyBranchIndex = (monthlyBranchIndex + selectedDaily) % 12
-        const dailyBranch = EARTHLY_BRANCHES_ARR[dailyBranchIndex]
-        isCurrentHighlightPalace = branch === dailyBranch
-      }
-    } else if (selectedMonthly !== null && selectedMonthly !== undefined) {
-      // 判斷流月
-      const monthlyBranchIndex = (yearlyBranchIndex + selectedMonthly) % 12
-      const monthlyBranch = EARTHLY_BRANCHES_ARR[monthlyBranchIndex]
-      isCurrentHighlightPalace = branch === monthlyBranch
+    if (selectedHourlyPalaceBranch) {
+      isCurrentHighlightPalace = branch === selectedHourlyPalaceBranch
+    } else if (selectedDailyPalaceBranch) {
+      isCurrentHighlightPalace = branch === selectedDailyPalaceBranch
+    } else if (selectedMonthlyPalaceBranch) {
+      isCurrentHighlightPalace = branch === selectedMonthlyPalaceBranch
     } else {
       // 流月、流日、流時都為 null 時，顯示流年命宮高亮
       isCurrentHighlightPalace = branch === yearlyBranch
@@ -858,10 +839,10 @@ function PalaceCard({
         ${isCurrentHighlightPalace ? 'ring-2 sm:ring-[3px] ring-blue-400/60 border-blue-400/80 shadow-[0_0_12px_rgba(96,165,250,0.4)]' : ''}
       `}
     >
-      {/* 星耀水平排列 - 统一容器处理所有星曜 */}
-      <div className={`relative flex flex-row flex-wrap mb-0 flex-1 justify-start items-start gap-0 overflow-visible ${chartType === 'transformation' && transformationShowCausePalace && isCausePalace ? 'pr-1 sm:pr-2' : ''}`}>
-        {/* 統一主星、輔星、雜曜字體大小與排列 */}
-        <div className="flex flex-row flex-wrap items-start gap-x-0 gap-y-0 w-full">
+      {/* 星曜排列 - 主星/輔星與雜曜並排容器 */}
+      <div className={`relative flex flex-row mb-0 flex-1 justify-start items-start gap-x-0.5 overflow-visible ${chartType === 'transformation' && transformationShowCausePalace && isCausePalace ? 'pr-1 sm:pr-2' : ''}`}>
+        {/* 主星 + 輔星容器 */}
+        <div className="flex flex-row flex-wrap items-start gap-x-0 gap-y-0 flex-1 min-w-0">
           {/* 主星 */}
           {majorStars.map((star, i) => (
             <div key={`major-wrap-${i}`} className={`${STAR_SLOT_WIDTH_CLASS} flex justify-center items-start`}>
@@ -906,26 +887,31 @@ function PalaceCard({
               </div>
             )
           })}
-          {/* 雜曜 - 使用 StarTag 以確保與主星/輔星完全一致的容器與間距 */}
-          {(chartType === 'flying' || chartType === 'trireme') && adjectiveStars.map((name, i) => (
-            <div key={`adj-wrap-${i}`} className={`${STAR_SLOT_WIDTH_CLASS} flex justify-center items-start`}>
-              <StarTag
-                key={`adj-${i}`}
-                star={{ name }}
-                isMajorStar={false}
-                showBrightness={false}
-                forceTextColorClass="text-text-muted/70"
-                chartType={chartType}
-                selectedDecadal={selectedDecadal}
-                selectedAnnual={selectedAnnual}
-                isCurrentDecadalPalace={isCurrentDecadalPalace}
-                isCurrentAnnualPalace={isCurrentAnnualPalace}
-                decadalLifePalaceStem={decadalLifePalaceStem}
-                annualLifePalaceStem={annualLifePalaceStem}
-              />
-            </div>
-          ))}
         </div>
+
+        {/* 雜曜獨立容器 */}
+        {(chartType === 'flying' || chartType === 'trireme') && adjectiveStars.length > 0 && (
+          <div className="flex flex-row flex-wrap justify-end items-start content-start gap-x-0 gap-y-0 w-[48px] sm:w-[60px] lg:w-[70px] shrink-0">
+            {adjectiveStars.map((name, i) => (
+              <div key={`adj-wrap-${i}`} className={`${STAR_SLOT_WIDTH_CLASS} flex justify-center items-start`}>
+                <StarTag
+                  key={`adj-${i}`}
+                  star={{ name }}
+                  isMajorStar={false}
+                  showBrightness={false}
+                  forceTextColorClass="text-text-muted/70"
+                  chartType={chartType}
+                  selectedDecadal={selectedDecadal}
+                  selectedAnnual={selectedAnnual}
+                  isCurrentDecadalPalace={isCurrentDecadalPalace}
+                  isCurrentAnnualPalace={isCurrentAnnualPalace}
+                  decadalLifePalaceStem={decadalLifePalaceStem}
+                  annualLifePalaceStem={annualLifePalaceStem}
+                />
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* 来因标签 - 星耀区右上角 */}
         {chartType === 'transformation' && transformationShowCausePalace && isCausePalace && (
@@ -1427,6 +1413,37 @@ function parsePalaces(chart: FunctionalAstrolabe): PalaceData[] {
   })
 }
 
+function getDefaultDecadalAnnualSelection(
+  chart: FunctionalAstrolabe,
+  birthYear: number,
+  currentYear: number,
+): { decadal: number; annual: number } {
+  const decadalData = parsePalaces(chart)
+    .filter((p) => p.decadal?.range)
+    .map((p) => ({
+      ageStart: p.decadal.range[0],
+      ageEnd: p.decadal.range[1],
+    }))
+    .sort((a, b) => a.ageStart - b.ageStart)
+
+  if (decadalData.length === 0) {
+    return { decadal: 0, annual: 0 }
+  }
+
+  const currentAge = currentYear - birthYear + 1
+  let decadalIndex = decadalData.findIndex((item) => currentAge >= item.ageStart && currentAge <= item.ageEnd)
+
+  if (decadalIndex < 0) {
+    decadalIndex = currentAge < decadalData[0].ageStart ? 0 : decadalData.length - 1
+  }
+
+  const target = decadalData[decadalIndex]
+  const maxAnnualOffset = Math.max(0, target.ageEnd - target.ageStart)
+  const annualIndex = Math.max(0, Math.min(currentAge - target.ageStart, maxAnnualOffset))
+
+  return { decadal: decadalIndex, annual: annualIndex }
+}
+
 /* ============================================================
    大限-流年-流月-流日-流時表格組件（支持展開/收闔）
    ============================================================ */
@@ -1859,8 +1876,14 @@ export function ChartDisplay() {
   const { language, defaultChartType, monthlyArrangementMethod } = useSettingsStore()
   const [selectedPalace, setSelectedPalace] = useState<string | null>(null)
   const [chartType, setChartType] = useState<'flying' | 'trireme' | 'transformation'>(defaultChartType)
-  const [selectedDecadal, setSelectedDecadal] = useState<number | null>(null)
-  const [selectedAnnual, setSelectedAnnual] = useState<number | null>(null)
+  const [selectedDecadal, setSelectedDecadal] = useState<number | null>(() => {
+    if (!chart || !birthInfo) return null
+    return getDefaultDecadalAnnualSelection(chart, birthInfo.year, new Date().getFullYear()).decadal
+  })
+  const [selectedAnnual, setSelectedAnnual] = useState<number | null>(() => {
+    if (!chart || !birthInfo) return null
+    return getDefaultDecadalAnnualSelection(chart, birthInfo.year, new Date().getFullYear()).annual
+  })
   const [selectedMonthly, setSelectedMonthly] = useState<number | null>(null)
   const [selectedDaily, setSelectedDaily] = useState<number | null>(null)
   const [selectedHourly, setSelectedHourly] = useState<number | null>(null)
@@ -1912,16 +1935,18 @@ export function ChartDisplay() {
     const currentBirthInfoKey = `${birthInfo.year}-${birthInfo.month}-${birthInfo.day}-${birthInfo.hour}`
     if (currentBirthInfoKey !== birthInfoKeyRef.current) {
       birthInfoKeyRef.current = currentBirthInfoKey
-      setSelectedDecadal(0)
-      setSelectedAnnual(0)
+      const defaults = getDefaultDecadalAnnualSelection(chart, birthInfo.year, new Date().getFullYear())
+      setSelectedDecadal(defaults.decadal)
+      setSelectedAnnual(defaults.annual)
       setSelectedMonthly(null)
       setSelectedDaily(null)
       setSelectedHourly(null)
       initializedRef.current = true
     } else if (!initializedRef.current) {
       // 首次掛載時初始化
-      setSelectedDecadal(0)
-      setSelectedAnnual(0)
+      const defaults = getDefaultDecadalAnnualSelection(chart, birthInfo.year, new Date().getFullYear())
+      setSelectedDecadal(defaults.decadal)
+      setSelectedAnnual(defaults.annual)
       initializedRef.current = true
     }
     
@@ -2179,6 +2204,13 @@ export function ChartDisplay() {
 
     return result
   })()
+  const selectedHourlyPalaceBranch = (() => {
+    if (selectedDailyPalaceBranch === null || selectedHourly === null) return null
+    const dailyPalaceIndex = PALACE_BRANCH_INDEX[selectedDailyPalaceBranch]
+    if (dailyPalaceIndex === undefined) return null
+    const hourlyPalaceIndex = normalizeIndex(dailyPalaceIndex + selectedHourly)
+    return PALACE_CLOCKWISE_BRANCHES[hourlyPalaceIndex] || null
+  })()
 
   // 計算大限標籤映射 - 根據選中大限找出大命宮位
   let decadalLabelsByPalaceName: Record<string, string> = {}
@@ -2342,6 +2374,9 @@ export function ChartDisplay() {
           selectedMonthly={selectedMonthly}
           selectedDaily={selectedDaily}
           selectedHourly={selectedHourly}
+          selectedMonthlyPalaceBranch={selectedMonthlyPalaceBranch}
+          selectedDailyPalaceBranch={selectedDailyPalaceBranch}
+          selectedHourlyPalaceBranch={selectedHourlyPalaceBranch}
           monthlySequenceLabels={
             (selectedMonthly !== null && selectedDaily === null)
               ? (monthlySequenceByBranch[palace.branch] || [])

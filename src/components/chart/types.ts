@@ -75,6 +75,9 @@ export interface PalaceCardProps extends PalaceData {
   selectedAnnual?: number | null
   selectedMonthly?: number | null
   selectedDaily?: number | null
+    selectedMonthlyPalaceBranch?: string | null
+    selectedDailyPalaceBranch?: string | null
+    selectedHourlyPalaceBranch?: string | null
   selectedHourly?: number | null
   monthlySequenceLabels?: string[]
   selectedDailyLabel?: string

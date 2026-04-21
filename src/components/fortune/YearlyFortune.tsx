@@ -44,6 +44,11 @@ const HOUR_SELECT_OPTIONS = Array.from({ length: 24 }, (_, i) => ({
   label: String(i).padStart(2, '0'),
 }))
 
+const MINUTE_SELECT_OPTIONS = Array.from({ length: 60 }, (_, i) => ({
+  value: i,
+  label: String(i).padStart(2, '0'),
+}))
+
 const SHICHEN_OPTIONS = getShichenOptions().map((option) => ({
   ...option,
   label: toTraditionalChinese(option.label),
@@ -97,11 +102,12 @@ function getLunarHourLabel(hour: number): string {
 /**
  * 生成完整的日期时间信息（西历和农历）
  */
-function formatCompleteDateTime(year: number, month: number, day: number, hour: number): string {
+function formatCompleteDateTime(year: number, month: number, day: number, hour: number, minute: number): string {
   const lines: string[] = []
   
   // 西历信息
-  lines.push(`【西曆】${year}年${month}月${day}日 ${String(hour).padStart(2, '0')}:00`)
+  lines.push(`【西曆】${year}年${month}月${day}日`)
+  lines.push(`【時間】${String(hour).padStart(2, '0')}時${String(minute).padStart(2, '0')}分`)
   
   // 农历信息
   try {
@@ -116,7 +122,8 @@ function formatCompleteDateTime(year: number, month: number, day: number, hour: 
       const dayLabel = getLunarDayLabel(lunarDay)
       const hourLabel = getLunarHourLabel(hour)
       
-      lines.push(`【農曆】${lunarYear}年${monthLabel}${dayLabel} ${hourLabel}時`)
+      lines.push(`【農曆】${lunarYear}年${monthLabel}${dayLabel}`)
+      lines.push(`【農曆時辰】${hourLabel}時`)
       lines.push(`【天干地支】${getYearGanZhi(lunarYear)}年 (${getMonthlyGan(lunarYear, lunarMonth)}${getMonthlyZhi(lunarMonth)}月)`)
     }
   } catch (e) {
@@ -377,10 +384,10 @@ function calculateMonthlyScores(
   return monthlyScores
 }
 
-function getForttunePrompt(language: Language, year?: number, month?: number, day?: number, hour?: number, yearlyData?: YearlyDataItem[], monthlyAnalysis?: MonthlyAnalysis[]): string {
+function getForttunePrompt(language: Language, year?: number, month?: number, day?: number, hour?: number, minute?: number, yearlyData?: YearlyDataItem[], monthlyAnalysis?: MonthlyAnalysis[]): string {
   // 生成完整的日期时间信息
-  const dateTimeInfo = (year && month && day !== undefined && hour !== undefined) 
-    ? formatCompleteDateTime(year, month, day, hour)
+  const dateTimeInfo = (year && month && day !== undefined && hour !== undefined && minute !== undefined) 
+    ? formatCompleteDateTime(year, month, day, hour, minute)
     : ''
   
   const dateTimeJson = dateTimeInfo ? `\n\n【查詢日期時間】\n${dateTimeInfo}` : ''
@@ -671,7 +678,8 @@ export function YearlyFortune() {
   const [year, setYear] = useState<number>(defaultYear)
   const [month, setMonth] = useState<number>(new Date().getMonth() + 1)
   const [day, setDay] = useState<number>(new Date().getDate())
-  const [hour, setHour] = useState<number>(13)
+  const [hour, setHour] = useState<number>(new Date().getHours())
+  const [minute, setMinute] = useState<number>(new Date().getMinutes())
   const [inputMode, setInputMode] = useState<'solar' | 'ganZhi'>('solar')
   const [fortune, setFortune] = useState(yearlyFortune[defaultYear] || '')
   const [monthlyAnalysis, setMonthlyAnalysis] = useState<MonthlyAnalysis[] | null>(null)
@@ -851,7 +859,7 @@ ${yearlyContext}
 请结合本命盘、流年盘和月份分析数据，给出详细的 ${year} 年运势分析。`
 
       const messages: ChatMessage[] = [
-        { role: 'system', content: getForttunePrompt(language, year, month, day, hour, yearlyDataArray, monthlyData) },
+        { role: 'system', content: getForttunePrompt(language, year, month, day, hour, minute, yearlyDataArray, monthlyData) },
         { role: 'user', content: userMessage },
       ]
 
@@ -878,17 +886,17 @@ ${yearlyContext}
     } finally {
       setLoading(false)
     }
-  }, [chart, birthInfo, year, month, day, hour, provider, currentSettings, enableThinking, enableWebSearch, searchApiKey, setYearlyFortune, language, monthlyAnalysis])
+  }, [chart, birthInfo, year, month, day, hour, minute, provider, currentSettings, enableThinking, enableWebSearch, searchApiKey, setYearlyFortune, language, monthlyAnalysis])
 
   const handleCopyPrompt = useCallback(() => {
-    const prompt = monthlyAnalysis && yearlyData ? getForttunePrompt(language, year, month, day, hour, yearlyData, monthlyAnalysis) : getForttunePrompt(language)
+    const prompt = monthlyAnalysis && yearlyData ? getForttunePrompt(language, year, month, day, hour, minute, yearlyData, monthlyAnalysis) : getForttunePrompt(language)
     navigator.clipboard.writeText(prompt).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }).catch(() => {
       setError(language === 'zh-TW' ? '複製失敗' : '复制失败')
     })
-  }, [monthlyAnalysis, yearlyData, language])
+  }, [monthlyAnalysis, yearlyData, language, year, month, day, hour, minute])
 
   if (!chart) return null
 
@@ -969,7 +977,7 @@ ${yearlyContext}
           {/* 日期输入 */}
           {inputMode === 'solar' ? (
             <div className="space-y-1.5">
-              <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                 <Select
                   options={Array.from({ length: currentYear + 20 - (birthInfo?.year || 1900) + 1 }, (_, i) => ({
                     value: (birthInfo?.year || 1900) + i,
@@ -988,10 +996,17 @@ ${yearlyContext}
                   value={day}
                   onChange={(e) => setDay(Number(e.target.value))}
                 />
+              </div>
+              <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                 <Select
                   options={HOUR_SELECT_OPTIONS}
                   value={hour}
                   onChange={(e) => setHour(Number(e.target.value))}
+                />
+                <Select
+                  options={MINUTE_SELECT_OPTIONS}
+                  value={minute}
+                  onChange={(e) => setMinute(Number(e.target.value))}
                 />
               </div>
               <p className="text-xs text-text-muted">{t('form.dateHint', language)}</p>
@@ -1023,11 +1038,18 @@ ${yearlyContext}
                   onChange={(e) => setDay(Number(e.target.value))}
                 />
               </div>
-              <Select
-                options={SHICHEN_OPTIONS}
-                value={hour}
-                onChange={(e) => setHour(Number(e.target.value))}
-              />
+              <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
+                <Select
+                  options={SHICHEN_OPTIONS}
+                  value={hour}
+                  onChange={(e) => setHour(Number(e.target.value))}
+                />
+                <Select
+                  options={MINUTE_SELECT_OPTIONS}
+                  value={minute}
+                  onChange={(e) => setMinute(Number(e.target.value))}
+                />
+              </div>
               <p className="text-xs text-text-muted">{t('form.lunarDateHint', language)}</p>
             </div>
           )}
@@ -1036,7 +1058,7 @@ ${yearlyContext}
           <div className="p-3 rounded-lg bg-white/[0.08] border border-gold/20">
             <div className="text-xs font-semibold text-gold mb-2">📅 查詢日期時間</div>
             <pre className="text-xs text-text-secondary whitespace-pre-wrap break-words font-mono">
-              {formatCompleteDateTime(year, month, day, hour)}
+              {formatCompleteDateTime(year, month, day, hour, minute)}
             </pre>
           </div>
 
@@ -1090,7 +1112,7 @@ ${yearlyContext}
           <div className="mb-6 p-4 rounded-lg bg-white/[0.08] border border-gold/20">
             <div className="text-xs font-semibold text-gold mb-3 uppercase">📋 System Prompt</div>
             <pre className="text-xs text-text-secondary overflow-auto max-h-64 whitespace-pre-wrap break-words font-mono bg-white/5 p-3 rounded">
-              {monthlyAnalysis && yearlyData ? getForttunePrompt(language, year, month, day, hour, yearlyData, monthlyAnalysis) : getForttunePrompt(language)}
+              {monthlyAnalysis && yearlyData ? getForttunePrompt(language, year, month, day, hour, minute, yearlyData, monthlyAnalysis) : getForttunePrompt(language)}
             </pre>
           </div>
         )}

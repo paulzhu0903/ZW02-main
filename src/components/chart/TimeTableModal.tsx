@@ -2,7 +2,7 @@
    時間表查詢模態框 - 大限、流年、流月、流日、流時
    ============================================================ */
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Select } from '@/components/ui'
 import { type Language } from '@/lib/i18n'
 import { solar2lunar } from 'iztro/lib/calendar'
@@ -72,25 +72,21 @@ export function TimeTableModal({
   onConfirm,
 }: TimeTableModalProps) {
   const currentYear = new Date().getFullYear()
-  const isFirstOpenRef = useRef(true)
   const [year, setYear] = useState<number>(currentYear)
   const [month, setMonth] = useState<number>(1)
   const [day, setDay] = useState<number>(1)
-  const [hour, setHour] = useState<number>(13)
+  const [hour, setHour] = useState<number>(() => new Date().getHours())
   const [selectedDecadal, setSelectedDecadal] = useState<number | null>(initialDecadal || null)
   const [selectedAnnual, setSelectedAnnual] = useState<number | null>(initialAnnual || null)
 
   useEffect(() => {
     if (isOpen) {
-      // 只在第一次打開時初始化日期，之後保留用戶輸入
-      if (isFirstOpenRef.current) {
-        const today = new Date()
-        setYear(today.getFullYear())
-        setMonth(today.getMonth() + 1)
-        setDay(today.getDate())
-        setHour(13)
-        isFirstOpenRef.current = false
-      }
+      // 每次開啟都同步系統當前時間，避免固定在 13:00
+      const today = new Date()
+      setYear(today.getFullYear())
+      setMonth(today.getMonth() + 1)
+      setDay(today.getDate())
+      setHour(today.getHours())
       setSelectedDecadal(initialDecadal || null)
       setSelectedAnnual(initialAnnual || null)
     }

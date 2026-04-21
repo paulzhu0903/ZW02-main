@@ -29,6 +29,7 @@ interface TimeTableModalProps {
     month: number
     day: number
     hour: number
+    minute?: number
     selectedDecadal?: number | null
     selectedAnnual?: number | null
     selectedMonthly?: number | null
@@ -61,6 +62,11 @@ const HOUR_SELECT_OPTIONS = Array.from({ length: 24 }, (_, i) => ({
   label: String(i).padStart(2, '0'),
 }))
 
+const MINUTE_SELECT_OPTIONS = Array.from({ length: 60 }, (_, i) => ({
+  value: i,
+  label: String(i).padStart(2, '0'),
+}))
+
 export function TimeTableModal({
   isOpen,
   onClose,
@@ -76,6 +82,7 @@ export function TimeTableModal({
   const [month, setMonth] = useState<number>(1)
   const [day, setDay] = useState<number>(1)
   const [hour, setHour] = useState<number>(() => new Date().getHours())
+  const [minute, setMinute] = useState<number>(() => new Date().getMinutes())
   const [selectedDecadal, setSelectedDecadal] = useState<number | null>(initialDecadal || null)
   const [selectedAnnual, setSelectedAnnual] = useState<number | null>(initialAnnual || null)
 
@@ -87,6 +94,7 @@ export function TimeTableModal({
       setMonth(today.getMonth() + 1)
       setDay(today.getDate())
       setHour(today.getHours())
+      setMinute(today.getMinutes())
       setSelectedDecadal(initialDecadal || null)
       setSelectedAnnual(initialAnnual || null)
     }
@@ -127,6 +135,7 @@ export function TimeTableModal({
         month: lunarMonth,
         day: lunarDay,
         hour,
+        minute,
         selectedDecadal,
         selectedAnnual,
         selectedMonthly: selectedMonthlyIndex,
@@ -231,12 +240,12 @@ export function TimeTableModal({
         
         {/* 日期時間輸入 */}
         {selectedAnnual !== null ? (
-          // 流年已選擇：只需要選擇月、日、時
+          // 流年已選擇：只需要選擇月、日、時、分
           <div className="mb-6">
             <label className="text-sm font-semibold text-gray-700 mb-3 block">
-              {language === 'zh-TW' ? `年份自動設定為 ${year}，請選擇月、日、時` : `年份已自动设定为 ${year}，请选择月、日、时`}
+              {language === 'zh-TW' ? `年份自動設定為 ${year}，請選擇月、日、時、分` : `年份已自动设定为 ${year}，请选择月、日、时、分`}
             </label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 gap-3">
               <Select
                 options={MONTH_OPTIONS}
                 value={month}
@@ -252,6 +261,11 @@ export function TimeTableModal({
                 value={hour}
                 onChange={(e) => setHour(Number(e.target.value))}
               />
+              <Select
+                options={MINUTE_SELECT_OPTIONS}
+                value={minute}
+                onChange={(e) => setMinute(Number(e.target.value))}
+              />
             </div>
           </div>
         ) : (
@@ -262,7 +276,7 @@ export function TimeTableModal({
             </label>
 
             {/* 日期輸入框 */}
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-5 gap-3">
               <div>
                 <div className="text-xs text-gray-600 mb-1 font-semibold">{language === 'zh-TW' ? '年' : '年'}</div>
                 <Select
@@ -295,6 +309,14 @@ export function TimeTableModal({
                   onChange={(e) => setHour(Number(e.target.value))}
                 />
               </div>
+              <div>
+                <div className="text-xs text-gray-600 mb-1 font-semibold">{language === 'zh-TW' ? '分' : '分'}</div>
+                <Select
+                  options={MINUTE_SELECT_OPTIONS}
+                  value={minute}
+                  onChange={(e) => setMinute(Number(e.target.value))}
+                />
+              </div>
             </div>
           </div>
         )}
@@ -306,7 +328,7 @@ export function TimeTableModal({
             📅 {language === 'zh-TW' ? '查詢日期時間' : '查询日期时间'}
           </div>
           <div className="text-xs text-gray-700 font-mono space-y-2">
-            <div>【西曆】{year}年{String(month).padStart(2, '0')}月{String(day).padStart(2, '0')}日 {String(hour).padStart(2, '0')}:00</div>
+            <div>【西曆】{year}年{String(month).padStart(2, '0')}月{String(day).padStart(2, '0')}日 {String(hour).padStart(2, '0')}:{String(minute).padStart(2, '0')}</div>
             {(() => {
               try {
                 const lunarResult = solar2lunar(

@@ -1288,7 +1288,8 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
         
       </div>
 
-      {/* 三方四正與 Bubble Hint 開關 */}
+
+      {/* 三方四正 與 宮位提示 開關 */}
       {(onToggleSanFangSiZheng !== undefined || onToggleBubbleHint !== undefined) && (
         <div className="w-full mt-2.5 pt-2.5 border-t border-white/[0.07] flex items-center justify-center gap-2.5 flex-wrap">
           <HoverHint content="三方四正" position="bottom">
@@ -2851,35 +2852,35 @@ export function ChartDisplay() {
         </div>
       </div>
 
-      {/* 三方四正反背檢測結果：三方談整體，四正談空間 */}
+      {/* 三方四正反背檢測*/}
       {showReversalCheck && sanFangSiZhengResult && (
-        <div className="mb-2 px-2 sm:px-0">
-          <div className="text-[10px] sm:text-[12px] text-text-secondary bg-white/[0.06] border border-white/[0.12] rounded-md px-2 py-1.5 flex flex-wrap gap-x-3 gap-y-1 items-center">
-            <span className="font-semibold">三方四正統計：</span>
-            <span>
-              三方(整體)&nbsp;
-              <span className="text-emerald-300 font-semibold">得{sanFangSiZhengResult.sanFang.getCount}</span>
+        <div className="mb-2 px-1 sm:px-0">
+          <div className="text-[11px] sm:text-[12px] text-gray-400 bg-white/[0.06] border border-white/[0.12] rounded-md px-0 py-0 flex flex-wrap gap-x-2 gap-y-1 items-center">
+            <span className="font-semibold">反背統計：</span>
+            
+            <span className="flex items-center gap-x-1">
+              三方&nbsp;
+              <span className="text-gray-400 font-semibold">得{sanFangSiZhengResult.sanFang.getCount}</span>
               <span className="mx-0.5">/</span>
-              <span className="text-rose-300 font-semibold">失{sanFangSiZhengResult.sanFang.lossCount}</span>
-              <span className="text-white/40">（{sanFangSiZhengResult.sanFang.total}宮）</span>
+              <span className="text-gray-400 font-semibold">失{sanFangSiZhengResult.sanFang.lossCount}</span>
+              <span className="text-gray-400 font-semibold ml-2">
+                三方反背{sanFangSiZhengResult.sanFang.hasReversal ? '✓' : '✗'}
+              </span>
+
             </span>
-            <span>
-              四正(空間)&nbsp;
-              <span className="text-emerald-300 font-semibold">得{sanFangSiZhengResult.siZheng.getCount}</span>
+            
+            <span className="flex items-center gap-x-1">
+              四正&nbsp;
+              <span className="text-gray-400 font-semibold">得{sanFangSiZhengResult.siZheng.getCount}</span>
               <span className="mx-0.5">/</span>
-              <span className="text-rose-300 font-semibold">失{sanFangSiZhengResult.siZheng.lossCount}</span>
-              <span className="text-white/40">（{sanFangSiZhengResult.siZheng.total}宮）</span>
+              <span className="text-gray-400 font-semibold">失{sanFangSiZhengResult.siZheng.lossCount}</span>
+              <span className="text-gray-400 font-semibold ml-2">
+                四正反背{sanFangSiZhengResult.siZheng.hasReversal ? '✓' : '✗'}
+              </span>
+            
             </span>
-            <span className={`font-semibold ${
-              sanFangSiZhengResult.sanFang.hasReversal ? 'text-emerald-300' : 'text-amber-300'
-            }`}>
-              三方反背{sanFangSiZhengResult.sanFang.hasReversal ? '✓' : '✗'}
-            </span>
-            <span className={`font-semibold ${
-              sanFangSiZhengResult.siZheng.hasReversal ? 'text-emerald-300' : 'text-amber-300'
-            }`}>
-              四正反背{sanFangSiZhengResult.siZheng.hasReversal ? '✓' : '✗'}
-            </span>
+            
+            
           </div>
         </div>
       )}
@@ -2903,7 +2904,7 @@ export function ChartDisplay() {
         />
       </div>
 
-      {/* 宮位 AI 氣泡提示 */}
+      {/* 宮位 AI 提示 */}
       {showBubbleHint && bubblePalace && (
         <PalaceHintBubble
           palace={bubblePalace.palace}
@@ -2918,7 +2919,7 @@ export function ChartDisplay() {
         />
       )}
 
-      {/* 時間表查詢模態框 */}
+      {/* 時間表查詢 */}
       <TimeTableModal
         isOpen={isTimeTableModalOpen}
         onClose={() => setIsTimeTableModalOpen(false)}

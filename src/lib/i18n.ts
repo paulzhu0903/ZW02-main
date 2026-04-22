@@ -53,11 +53,11 @@ const translations: Record<Language, Record<string, any>> = {
 
     // AI Prompt (User Message)s
     'ai.prompt.readChart': '請解讀以下命盤：',
-    'ai.prompt.keyIndicators': '關鍵指標 JSON\n- 離心/向心自化\n- 哪些宮位有「同性質四化串聯」\n- 哪些宮位有「祿忌串聯」',
+    'ai.prompt.keyIndicators': '關鍵指標\n- 離心/向心自化\n- 哪些宮位有「同性質四化串聯」\n- 哪些宮位有「祿忌串聯」',
     'ai.prompt.indicatorsHint': '以下是程式自動整理的關鍵指標，**優先依此做結構判讀**，再參考補充上下文交叉驗證。',
-    'ai.prompt.basicInfo': '基本資訊',
-    'ai.prompt.analyzeOrder': '先建立座標系（各宮干地支、生年四化、自化、男女星、我宮/他宮），再說明體用與能量流動，最後白話解讀。',
+    'ai.prompt.basicInfo': '基本資訊\n-',
 
+    // 'ai.prompt.analyzeOrder': '先建立座標系（各宮干地支、生年四化、自化、男女星、我宮/他宮），再說明體用與能量流動，最後白話解讀。',
     // AI Prompt Context (JSON Labels)
     'ai.context.complete': '【命盤完整信息】',
     'ai.context.lifePalaceStars': '## 命宮主星',
@@ -450,11 +450,11 @@ const translations: Record<Language, Record<string, any>> = {
 
     // AI Prompt (User Message)
     'ai.prompt.readChart': '请解读以下命盘：',
-    'ai.prompt.keyIndicators': '关键指标 JSON\n- 离心/向心自化\n- 哪些宫位有“同性质四化串联”\n- 哪些宫位有“禄忌串联”',
-    'ai.prompt.indicatorsHint': '以下 JSON 是程序自动整理的关键指标，**优先依此做结构判读**，再参考补充上下文交叉验证。',
+    'ai.prompt.keyIndicators': '关键指标\n- 离心/向心自化\n- 哪些宫位有“同性质四化串联”\n- 哪些宫位有“禄忌串联”',
+    'ai.prompt.indicatorsHint': '以下是程序自动整理的关键指标，**优先依此做结构判读**，再参考补充上下文交叉验证。',
     'ai.prompt.basicInfo': '基本信息',
-    'ai.prompt.supplementContext': '补充盘面上下文',
-    'ai.prompt.analyzeOrder': '先建立坐标系（各宫干地支、生年四化、自化、男女星、我宫/他宫），再说明体用与能量流动，最后白话解读。',
+    // 'ai.prompt.supplementContext': '补充盘面上下文',
+    // 'ai.prompt.analyzeOrder': '先建立坐标系（各宫干地支、生年四化、自化、男女星、我宫/他宫），再说明体用与能量流动，最后白话解读。',
 
     // AI Prompt Context (JSON Labels)
     'ai.context.complete': '【命盘完整信息】',

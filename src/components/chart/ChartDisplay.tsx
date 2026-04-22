@@ -1137,60 +1137,29 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
       {/* 出生八字信息 - 按用户指定的格式 */}
       <div className="text-[10px] sm:text-[11px] lg:text-[12pt] text-gray-500 space-y-0.5 sm:space-y-1 w-full px-1 sm:px-2 text-left" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10 }}>
         
-        {/* 第一行：真太陽時 */}
-        <div className="flex flex-wrap items-center justify-start gap-x-1 sm:gap-x-1.5 gap-y-0">
-          <span className="text-gray-500 whitespace-nowrap">{t('chart.solarTime', language)}:</span>
-          <span className="text-gray-500 font-mono break-all">{solarDate}</span>
-        </div>
-        
-        {/* 第二行：出生時間 */}
-        <div className="flex flex-wrap items-center justify-start gap-x-2 sm:gap-x-1.5 gap-y-0" style={{ pointerEvents: 'auto' }}>
-          <span className="text-gray-500 whitespace-nowrap">{t('chart.birthTime', language)}:</span>
-          <div className="flex items-center gap-0" style={{ pointerEvents: 'auto' }}>
-            {/* 時間顯示 */}
-            <span className="text-gray-500 font-mono break-all px-2 py-0.5">
-              {birthInfo?.year && birthInfo?.month && birthInfo?.day
-                ? `${String(birthInfo.year).padStart(4, '0')}-${String(birthInfo.month).padStart(2, '0')}-${String(birthInfo.day).padStart(2, '0')} ${birthTime}`
-                : birthTime
-              }
-            </span>
-            {/* 按鈕組 */}
-            <div className="flex items-center gap-2 ml-2">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  console.log('减按钮被点击', onHourChange, birthInfo?.hour)
-                  if (onHourChange && birthInfo?.hour !== undefined) {
-                    // 計算當前時辰索引
-                    let currentShichenIndex: number
-                    if (birthInfo.hour === 23) {
-                      currentShichenIndex = 12  // 晚子時
-                    } else if (birthInfo.hour === 0) {
-                      currentShichenIndex = 0   // 早子時
-                    } else {
-                      currentShichenIndex = Math.floor((birthInfo.hour + 1) / 2)
-                    }
-                    
-                    // 上一個時辰
-                    let prevShichenIndex = (currentShichenIndex - 1 + 13) % 13
-                    if (prevShichenIndex === 12) prevShichenIndex = 11  // 從晚子時回退到亥時
-                    
-                    // 時辰索引轉換回小時
-                    const newHour = 
-                      prevShichenIndex === 0 ? 0 :
-                      prevShichenIndex === 12 ? 23 :
-                      prevShichenIndex * 2 - 1
-                    
-                    onHourChange(newHour)
-                  }
-                }}
-                style={{ pointerEvents: 'auto' }}
-                className="px-3.5 py-0 text-sm font-medium bg-gray-200 hover:bg-gray-300 active:bg-gray-400 rounded transition cursor-pointer"
-              >
-                −
-              </button>
+        {/* 真太陽時 + 出生時間 與 調整按鈕 左右並排 */}
+        <div className="flex items-center gap-3" style={{ pointerEvents: 'auto' }}>
+          {/* 左側：真太陽時 + 出生時間 */}
+          <div className="flex flex-col gap-y-0.5">
+            {/* 第一行：真太陽時 */}
+            <div className="flex flex-wrap items-center justify-start gap-x-1 sm:gap-x-1.5 gap-y-0">
+              <span className="text-gray-500 whitespace-nowrap">{t('chart.solarTime', language)}:</span>
+              <span className="text-gray-500 font-mono break-all">{solarDate}</span>
+            </div>
+            {/* 第二行：出生時間 */}
+            <div className="flex flex-wrap items-center justify-start gap-x-1 sm:gap-x-1.5 gap-y-0">
+              <span className="text-gray-500 whitespace-nowrap">{t('chart.birthTime', language)}:</span>
+              <span className="text-gray-500 font-mono break-all">
+                {birthInfo?.year && birthInfo?.month && birthInfo?.day
+                  ? `${String(birthInfo.year).padStart(4, '0')}-${String(birthInfo.month).padStart(2, '0')}-${String(birthInfo.day).padStart(2, '0')} ${birthTime}`
+                  : birthTime
+                }
+              </span>
+            </div>
+          </div>
+
+          {/* 右側：調整出生時間按鈕（上+下−） */}
+          <div className="flex flex-col items-center gap-1">
               <button
                 type="button"
                 onClick={(e) => {
@@ -1228,8 +1197,42 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
               >
                 +
               </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  console.log('减按钮被点击', onHourChange, birthInfo?.hour)
+                  if (onHourChange && birthInfo?.hour !== undefined) {
+                    // 計算當前時辰索引
+                    let currentShichenIndex: number
+                    if (birthInfo.hour === 23) {
+                      currentShichenIndex = 12  // 晚子時
+                    } else if (birthInfo.hour === 0) {
+                      currentShichenIndex = 0   // 早子時
+                    } else {
+                      currentShichenIndex = Math.floor((birthInfo.hour + 1) / 2)
+                    }
+                    
+                    // 上一個時辰
+                    let prevShichenIndex = (currentShichenIndex - 1 + 13) % 13
+                    if (prevShichenIndex === 12) prevShichenIndex = 11  // 從晚子時回退到亥時
+                    
+                    // 時辰索引轉換回小時
+                    const newHour = 
+                      prevShichenIndex === 0 ? 0 :
+                      prevShichenIndex === 12 ? 23 :
+                      prevShichenIndex * 2 - 1
+                    
+                    onHourChange(newHour)
+                  }
+                }}
+                style={{ pointerEvents: 'auto' }}
+                className="px-3.5 py-0 text-sm font-medium bg-gray-200 hover:bg-gray-300 active:bg-gray-400 rounded transition cursor-pointer"
+              >
+                −
+              </button>
             </div>
-          </div>
         </div>
         
         {/* 第三行：農曆 - 完整年月日時 */}
@@ -1246,43 +1249,35 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
           </span>
         </div>
         
-        {/* 第五行：五行局 + 性别 */}
-        <div className="flex flex-wrap items-center justify-start gap-1 sm:gap-2">
-          <span className="text-gray-500">{chart.fiveElementsClass}</span>
-          <span className="text-gray-500">
-            {yinYangLabel}{genderText}
-          </span>
-        </div>
-        
-        {/* 第六行：納音 */}
-        {nayin && (
-          <div className="flex flex-wrap items-center justify-start gap-x-1 sm:gap-x-1.5 gap-y-0">
-            <span className="text-gray-500 whitespace-nowrap">{t('chart.nayin', language)}:</span>
-            <span className="text-gray-500 break-words">{nayin}</span>
+        {/* 第五到第八行：2 欄 3 列資訊容器 */}
+        <div className="grid w-[160px] grid-cols-2 gap-x-4 gap-y-0.5 text-[10px] sm:text-[11px] lg:text-[12pt] text-gray-500">
+          <div className="whitespace-nowrap">
+            <span className="text-gray-500">{chart.fiveElementsClass}</span>
+            <span className="text-gray-500 ml-0.5">{yinYangLabel}{genderText}</span>
           </div>
-        )}
-        
-        {/* 第七行：命主 + 身主 */}
-        <div className="text-[10px] sm:text-[11px] lg:text-[12pt] text-gray-500 flex items-center justify-start gap-2 sm:gap-4 text-[7px] sm:text-[8px] lg:text-[9pt]">
+          <div className="whitespace-nowrap text-left">
+            {nayin && (
+              <>
+                <span className="text-gray-500">{t('chart.nayin', language)}:</span>
+                <span className="text-gray-500 ml-0.5">{nayin}</span>
+              </>
+            )}
+          </div>
           <div className="whitespace-nowrap">
             <span className="text-gray-500">{t('chart.soul', language)}:</span>
             <span className="text-gray-500 ml-0.5">{getLocalizedStarName(chart.soul, language)}</span>
           </div>
-          <div className="whitespace-nowrap">
+          <div className="whitespace-nowrap text-left">
             <span className="text-gray-500">{t('chart.body', language)}:</span>
             <span className="text-gray-500 ml-0.5">{getLocalizedStarName(chart.body, language)}</span>
           </div>
-        </div>
-        
-        {/* 第八行：生肖 + 星座 */}
-        <div className="flex items-center justify-start gap-2 sm:gap-4 text-[10px] sm:text-[11px] lg:text-[12pt]">
           <div className="whitespace-nowrap">
             <span className="text-gray-500">{t('chart.zodiac', language)}:</span>
             <span className="text-gray-500 ml-0.5">{getLocalizedZodiacName(chart.zodiac, language)}</span>
           </div>
-          <div className="whitespace-nowrap">
+          <div className="whitespace-nowrap text-left">
             <span className="text-gray-500">{t('chart.astroSign', language)}:</span>
-            <span className="text-gray-500 ml-1">{getLocalizedAstroSign(chart.sign, language)}</span>
+            <span className="text-gray-500 ml-0.5">{getLocalizedAstroSign(chart.sign, language)}</span>
           </div>
         </div>
         

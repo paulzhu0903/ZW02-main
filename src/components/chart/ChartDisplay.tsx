@@ -931,7 +931,7 @@ function PalaceCard({
 
       {/* 十二神显示 - 由 i18n.ts 中的定义完全控制显示内容和语言 */}
       {((chartType === 'flying' && flyingShowGods) || (chartType === 'transformation' && transformationShowGods)) && (
-        <div className="flex justify-between text-[9px] sm:text-[10px] lg:text-[13px] text-text-muted mb-0.5 border-t border-white/[0.04] pt-0.5">
+        <div className="flex justify-between text-[9px] sm:text-[10px] lg:text-[13px] text-text-muted mb-0.5 border-t border-white/[0.04] pt-0.5 px-1 sm:px-1.5">
           <span>{t(`longlifeDeity.${longlifeDeity}`, language) || longlifeDeity}</span>
           <span>{t(`boshi12Deity.${boshi12Deity}`, language) || boshi12Deity}</span>
         </div>
@@ -956,7 +956,7 @@ function PalaceCard({
 
 
       {/* 底部布局: 左下(干支) + 中間(西元+虛歲/流月) + 右下(流年/大限/宮位名) */}
-      <div className="relative flex items-center justify-between w-full gap-0.5 py-0.5">
+      <div className="relative flex items-center justify-between w-full gap-1 py-0.5">
         {/* 左下: 干支(縱排) */}
         <div className="flex flex-col gap-0.5" style={{ writingMode: 'vertical-rl', minWidth: '14px' }}>
           <span className="text-[11px] sm:text-[12px] lg:text-[15px] text-text-secondary leading-none">{stem}{branch}</span>
@@ -1015,7 +1015,7 @@ function PalaceCard({
         </div>
 
         {/* 右下: 流年 + 大限 + 宮位名 */}
-        <div className="flex flex-col items-end justify-end gap-0.5 pr-1" style={{ minWidth: '24px', marginRight: 0, boxSizing: 'border-box' }}>
+        <div className="flex flex-col items-end justify-end gap-0.5 pr-0.5" style={{ minWidth: '24px', marginRight: 0, boxSizing: 'border-box' }}>
           {selectedAnnualLabel && (
             <span className="text-[11px] sm:text-[12px] lg:text-[15px] font-medium text-center leading-none inline-block" style={{ color: '#00aeff', minWidth: 24, maxWidth: 36 }}>
               {selectedAnnualLabel}
@@ -1118,7 +1118,7 @@ function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, 
       w-full
       rounded-[2px]
     "
-    style={{ boxShadow: 'inset 4px 3px 12px rgba(148,163,184,0.4), 0 0 0 1px rgba(148,163,184,0.18)', pointerEvents: 'auto' }}>
+    style={{ boxShadow: 'inset 3px 3px 12px rgba(148,163,184,0.4), 0 0 0 1px rgba(148,163,184,0.18)', pointerEvents: 'auto' }}>
 
       {/* 标题 */}
       <h3 className="

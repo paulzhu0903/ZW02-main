@@ -1,4 +1,4 @@
-import { cloneElement, isValidElement, useId, useRef, type ReactElement } from 'react'
+import { cloneElement, isValidElement, useId, useRef, useState, useEffect, type ReactElement } from 'react'
 
 interface HoverHintProps {
   content: string
@@ -15,30 +15,45 @@ export function HoverHint({
 }: HoverHintProps) {
   const tooltipId = useId()
   const triggerRef = useRef<HTMLSpanElement>(null)
+  const [isVisible, setIsVisible] = useState(false)
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   
   const tooltipPositionClass = position === 'bottom'
     ? 'top-full mt-1.5'
     : 'bottom-full mb-1.5'
 
   const showTooltip = () => {
-    if (triggerRef.current) {
-      const bubble = triggerRef.current.querySelector('.hover-hint-bubble') as HTMLElement
-      if (bubble) {
-        bubble.style.opacity = '1'
-        bubble.style.visibility = 'visible'
-      }
+    setIsVisible(true)
+    // 清除之前的計時器
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current)
     }
+    // 2秒後自動隱藏
+    hideTimeoutRef.current = setTimeout(() => {
+      setIsVisible(false)
+    }, 2000)
   }
 
   const hideTooltip = () => {
-    if (triggerRef.current) {
-      const bubble = triggerRef.current.querySelector('.hover-hint-bubble') as HTMLElement
-      if (bubble) {
-        bubble.style.opacity = '0'
-        bubble.style.visibility = 'hidden'
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current)
+    }
+    setIsVisible(false)
+  }
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.stopPropagation()
+    showTooltip()
+  }
+
+  // 清理計時器
+  useEffect(() => {
+    return () => {
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current)
       }
     }
-  }
+  }, [])
 
   if (!isValidElement(children)) {
     return children
@@ -50,8 +65,7 @@ export function HoverHint({
       className={`hover-hint-trigger ${className}`.trim()}
       onMouseEnter={showTooltip}
       onMouseLeave={hideTooltip}
-      onTouchStart={showTooltip}
-      onTouchEnd={hideTooltip}
+      onTouchStart={handleTouchStart}
     >
       {cloneElement(children, {
         'aria-describedby': tooltipId,
@@ -59,7 +73,12 @@ export function HoverHint({
       <span
         id={tooltipId}
         role="tooltip"
-        className={`hover-hint-bubble ${tooltipPositionClass}`}
+        className={`hover-hint-bubble ${tooltipPositionClass} transition-opacity duration-200`}
+        style={{
+          opacity: isVisible ? 1 : 0,
+          visibility: isVisible ? 'visible' : 'hidden',
+          pointerEvents: isVisible ? 'auto' : 'none',
+        }}
       >
         {content}
       </span>

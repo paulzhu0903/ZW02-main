@@ -31,6 +31,7 @@ import {
   getNayin,
   isMajorStarName,
   getPalaceEdgePointTowardCenterWithDOM,
+  getCenterBoundaryPointForPalace,
   collectMutagenLines,
   getDecadalPalaceIndex,
   markSelfMutagens,
@@ -2596,19 +2597,37 @@ export function ChartDisplay() {
               {lines
                 .filter(line => line.isCounterMutagen)
                 .map((line, idx) => {
+                  // 向心線：起點在fromPalace的邊界，終點在中宮的邊界對應toPalace的位置
                   const fromPos = getPalaceEdgePointTowardCenterWithDOM(line.fromPalace, gridRef.current)
-                  const toPos = getPalaceEdgePointTowardCenterWithDOM(line.toPalace, gridRef.current)
+                  const toPos = getCenterBoundaryPointForPalace(line.toPalace, gridRef.current)
                   
                   if (!fromPos || !toPos) return null
+                  
+                  // 計算線段長度的2%作為偏移量以避免重疊線條
+                  const lineLength = Math.sqrt((toPos.x - fromPos.x) ** 2 + (toPos.y - fromPos.y) ** 2)
+                  const offsetAmount = lineLength * 0.02
+                  
+                  // 根據偏移方向應用垂直或水平偏移
+                  const yOffsetAmount = (line.yOffset || 0) * offsetAmount
+                  const xOffsetAmount = (line.xOffset || 0) * offsetAmount
+                  
+                  const adjustedFromPos = { 
+                    x: fromPos.x + xOffsetAmount, 
+                    y: fromPos.y + yOffsetAmount 
+                  }
+                  const adjustedToPos = { 
+                    x: toPos.x + xOffsetAmount, 
+                    y: toPos.y + yOffsetAmount 
+                  }
                   
                   return (
                     <g key={`counter-${idx}`}>
                       {/* 向心自化虛線箭頭 */}
                       <line
-                        x1={fromPos.x + gridOffset.x}
-                        y1={fromPos.y + gridOffset.y}
-                        x2={toPos.x + gridOffset.x}
-                        y2={toPos.y + gridOffset.y}
+                        x1={adjustedFromPos.x + gridOffset.x}
+                        y1={adjustedFromPos.y + gridOffset.y}
+                        x2={adjustedToPos.x + gridOffset.x}
+                        y2={adjustedToPos.y + gridOffset.y}
                         stroke={line.color}
                         strokeWidth={lineStrokeWidth}
                         strokeDasharray={lineDashArray}
@@ -2620,8 +2639,8 @@ export function ChartDisplay() {
                         <>
                           {/* 標籤背景 - 跟中間區域相同的透明白色 */}
                           <rect
-                            x={fromPos.x + (toPos.x - fromPos.x) * 0.9 + gridOffset.x - (isCompactMobile ? 8 : 10)}
-                            y={fromPos.y + (toPos.y - fromPos.y) * 0.9 + gridOffset.y - (isCompactMobile ? 13 : 16)}
+                            x={adjustedFromPos.x + (adjustedToPos.x - adjustedFromPos.x) * 0.9 + gridOffset.x - (isCompactMobile ? 8 : 10)}
+                            y={adjustedFromPos.y + (adjustedToPos.y - adjustedFromPos.y) * 0.9 + gridOffset.y - (isCompactMobile ? 13 : 16)}
                             width={isCompactMobile ? '16' : '20'}
                             height={isCompactMobile ? '16' : '20'}
                             fill="rgba(255, 255, 255, 0.9)"
@@ -2630,8 +2649,8 @@ export function ChartDisplay() {
                           />
                           {/* 標籤文字 */}
                           <text
-                            x={fromPos.x + (toPos.x - fromPos.x) * 0.9 + gridOffset.x}
-                            y={fromPos.y + (toPos.y - fromPos.y) * 0.9 + gridOffset.y }
+                            x={adjustedFromPos.x + (adjustedToPos.x - adjustedFromPos.x) * 0.9 + gridOffset.x}
+                            y={adjustedFromPos.y + (adjustedToPos.y - adjustedFromPos.y) * 0.9 + gridOffset.y }
                             fill={line.color}
                             fontSize={isCompactMobile ? '14' : '18'}
                             fontWeight="medium"

@@ -108,13 +108,6 @@ export function UserDatabaseModal({ isOpen, onClose, onSelect, onAdd, onEdit }: 
                 <table className="w-full border-collapse min-w-full">
                   <thead className="bg-star text-white sticky top-0">
                     <tr>
-                      <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-medium w-10 text-[10px] sm:text-[12pt]">
-                        <input
-                          type="checkbox"
-                          className="w-4 h-4"
-                          disabled
-                        />
-                      </th>
                       <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-medium w-16 sm:w-24 text-[10px] sm:text-[12pt]">{t('modal.name', language)}</th>
                       <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-medium w-10 text-[10px] sm:text-[12pt]">{t('modal.gender', language)}</th>
                       <th className="hidden sm:table-cell px-2 sm:px-4 py-2 sm:py-3 text-left font-medium w-16 sm:w-20 text-[10px] sm:text-[12pt]">{t('modal.birthLocation', language)}</th>
@@ -136,14 +129,6 @@ export function UserDatabaseModal({ isOpen, onClose, onSelect, onAdd, onEdit }: 
                           hover:bg-star/5
                         `}
                       >
-                        <td className="px-2 sm:px-4 py-2 sm:py-3">
-                          <input
-                            type="checkbox"
-                            checked={selectedId === record.id}
-                            onChange={() => setSelectedId(record.id)}
-                            className="w-4 h-4 cursor-pointer"
-                          />
-                        </td>
                         <td className="px-2 sm:px-4 py-2 sm:py-3 font-medium text-text-primary text-[10px] sm:text-[12pt]">
                           {record.name}
                         </td>

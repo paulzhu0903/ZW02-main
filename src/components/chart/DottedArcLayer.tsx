@@ -361,15 +361,58 @@ export function DottedArcLayer({
 
           // 只有自化（同宮）使用邊緣停靠，其他傳播線使用中心點
           const isSelfMutagen = currentPalace.branch === targetPalace.branch
-          const toAnchor = isSelfMutagen
+          let toAnchor = isSelfMutagen
             ? getDestinationEdgeAnchor(targetPalace.branch)
             : getCardCenter(targetPalace.branch)
           if (!toAnchor) return null
 
           const pairKey = getUnorderedPairKey(currentPalace.branch, targetPalace.branch)
-          const laneIndex = allArcTrails
+          const existingLaneCount = allArcTrails
             .filter(item => getUnorderedPairKey(item.fromBranch, item.toBranch) === pairKey)
             .length
+          
+          // 當選擇 M 時，檢查是否有多條 ABCD 弧線指向同一終點
+          // 如果是，根據順序 A(0), B(1), C(2), D(3) 來增加弧度避免疊層
+          let laneIndex = existingLaneCount
+          let endpointOffsetMultiplier = 0
+          if (state.selectedArcLabel === 'M') {
+            // 檢查在同一批 mutagenKeys 中，有多少條弧線已經指向同一終點
+            const sameBatchLanesForTarget = mutagenKeys
+              .slice(0, keyIdx)
+              .reduce((count, mk) => {
+                const targetMutagenStar = sihuaMap[mk]
+                if (!targetMutagenStar) return count
+                const targetCandidates = getChineseVariantCandidates(targetMutagenStar)
+                let targetPalaceCheck: PalaceData | null = null
+                for (const palace of palaceData) {
+                  const allStars = [...palace.majorStars, ...palace.minorStars]
+                  if (allStars.some(s => targetCandidates.includes(s.name))) {
+                    targetPalaceCheck = palace
+                    break
+                  }
+                }
+                if (targetPalaceCheck && getUnorderedPairKey(currentPalace.branch, targetPalaceCheck.branch) === pairKey) {
+                  return count + 1
+                }
+                return count
+              }, 0)
+            laneIndex = existingLaneCount + sameBatchLanesForTarget
+            endpointOffsetMultiplier = sameBatchLanesForTarget
+          }
+          
+          // 當終點相同時，向外偏移（只在X方向）
+          if (endpointOffsetMultiplier > 0 && fromCenter) {
+            const dx = toAnchor.x - fromCenter.x
+            if (dx !== 0) {
+              const offsetDistance = 8 * endpointOffsetMultiplier
+              const offsetDirection = dx > 0 ? 1 : -1
+              toAnchor = {
+                x: toAnchor.x + offsetDirection * offsetDistance,
+                y: toAnchor.y,
+              }
+            }
+          }
+
           const pathD = buildArcPath(
             fromCenter,
             toAnchor,

@@ -47,6 +47,8 @@ export interface MutagenLine {
   starName?: string  // star耀名称（用于查找DOM）
   palaceRow?: number  // palace行位置
   palaceCol?: number  // palace列位置
+  yOffset?: number  // 垂直偏移方向標記（col 0,3 時使用）：1 = 向上，-1 = 向下
+  xOffset?: number  // 水平偏移方向標記（col 1,2 時使用）：1 = 向右，-1 = 向左
 }
 
 /* ============================================================

@@ -138,6 +138,77 @@ export function getPalaceEdgePointTowardCenterWithDOM(palace: string, gridElemen
   return { x, y }
 }
 
+/**
+ * 獲取中宮邊界上的對應點（根據宮位地支）
+ * 用於向心線的起終點都在中宮邊界上
+ * @param insetAmount 內縮距離（px），防止箭頭超過邊界
+ */
+export function getCenterBoundaryPointForPalace(branch: string, gridElement: HTMLElement | null, insetAmount: number = 6): { x: number; y: number } | null {
+  const pos = PALACE_POSITIONS[branch]
+  if (!pos || !gridElement) return null
+
+  // 直接從 DOM 中獲取中央區域的實際位置
+  const centerElement = gridElement.querySelector('[data-centerinfo]') as HTMLElement
+  let centerLeft: number, centerRight: number, centerTop: number, centerBottom: number
+  
+  if (centerElement) {
+    // 找到中央信息區域的實際位置
+    const centerRect = centerElement.getBoundingClientRect()
+    const gridRect = gridElement.getBoundingClientRect()
+    
+    centerLeft = centerRect.left - gridRect.left
+    centerRight = centerRect.right - gridRect.left
+    centerTop = centerRect.top - gridRect.top
+    centerBottom = centerRect.bottom - gridRect.top
+  } else {
+    // 降級：使用計算方式（動態讀取 gap）
+    const gridRect = gridElement.getBoundingClientRect()
+    const gridWidth = gridRect.width
+    
+    // 動態讀取 gap 值
+    const gapSize = parseFloat(window.getComputedStyle(gridElement).gap) || 6
+    const cellSize = (gridWidth - 3 * gapSize) / 4
+    
+    centerLeft = cellSize + gapSize
+    centerRight = centerLeft + cellSize + gapSize + cellSize
+    centerTop = cellSize + gapSize
+    centerBottom = centerTop + cellSize + gapSize + cellSize
+  }
+  
+  const col = pos.col
+  const row = pos.row
+  
+  let x: number
+  let y: number
+  
+  // 根據宮位所在的邊，計算中宮邊界上內縮後的對應點
+  if (row === 0) {
+    // 上方邊界：巳(0%) → 午(25%) → 未(75%) → 申(100%)
+    y = centerTop + insetAmount  // 內縮向下
+    const percent = col / 3
+    x = centerLeft + (centerRight - centerLeft) * percent
+  } else if (row === 3) {
+    // 下方邊界：寅(0%) → 丑(25%) → 子(75%) → 亥(100%)
+    y = centerBottom - insetAmount  // 內縮向上
+    const percent = (3 - col) / 3
+    x = centerLeft + (centerRight - centerLeft) * (1 - percent)
+  } else if (col === 0) {
+    // 左方邊界：寅(100%) → 卯(75%) → 辰(25%) → 巳(0%)
+    x = centerLeft + insetAmount  // 內縮向右
+    const percent = (3 - row) / 3
+    y = centerTop + (centerBottom - centerTop) * (1 - percent)
+  } else if (col === 3) {
+    // 右方邊界：申(0%) → 酉(25%) → 戌(75%) → 亥(100%)
+    x = centerRight - insetAmount  // 內縮向左
+    const percent = row / 3
+    y = centerTop + (centerBottom - centerTop) * percent
+  } else {
+    return null
+  }
+  
+  return { x, y }
+}
+
 /* ============================================================
    四化飛行線收集
    ============================================================ */
@@ -258,6 +329,63 @@ export function collectMutagenLines(palaceData: PalaceData[]): MutagenLine[] {
       }
     })
   })
+
+  // === 檢測並標記重疊的向心線，並設置偏移 ===
+  const counterLines = lines.filter(line => line.isCounterMutagen)
+  const processedPairs = new Set<string>()
+  
+  for (let i = 0; i < counterLines.length; i++) {
+    const line = counterLines[i]
+    const pairKey = `${line.fromPalace}|${line.toPalace}`
+    const reversePairKey = `${line.toPalace}|${line.fromPalace}`
+    
+    // 如果這對線已經處理過，跳過
+    if (processedPairs.has(pairKey)) {
+      continue
+    }
+    
+    // 查找反向的對應線（任何反向方向的線，不限制type）
+    for (let j = i + 1; j < counterLines.length; j++) {
+      const otherLine = counterLines[j]
+      
+      if (
+        otherLine.fromPalace === line.toPalace &&
+        otherLine.toPalace === line.fromPalace
+      ) {
+        // 找到反向對應的線，設置偏移方向標記
+        processedPairs.add(pairKey)
+        processedPairs.add(reversePairKey)
+        
+        // 根據起始宮的 col 決定偏移方向
+        const fromPalacePos = PALACE_POSITIONS[line.fromPalace]
+        const col = fromPalacePos?.col
+        
+        const lineIndexInAll = lines.indexOf(line)
+        const otherLineIndexInAll = lines.indexOf(otherLine)
+        
+        // col 0,3（左右邊界）：使用垂直偏移 (yOffset)
+        // col 1,2（上下邊界）：使用水平偏移 (xOffset)
+        if (col === 0 || col === 3) {
+          // 左右邊界：上下錯開
+          if (lineIndexInAll !== -1) {
+            lines[lineIndexInAll].yOffset = 1.5  // 向上偏移
+          }
+          if (otherLineIndexInAll !== -1) {
+            lines[otherLineIndexInAll].yOffset = -1.5  // 向下偏移
+          }
+        } else if (col === 1 || col === 2) {
+          // 上下邊界：左右錯開
+          if (lineIndexInAll !== -1) {
+            lines[lineIndexInAll].xOffset = 1.5  // 向右偏移
+          }
+          if (otherLineIndexInAll !== -1) {
+            lines[otherLineIndexInAll].xOffset = -1.5  // 向左偏移
+          }
+        }
+        break
+      }
+    }
+  }
 
   return lines
 }

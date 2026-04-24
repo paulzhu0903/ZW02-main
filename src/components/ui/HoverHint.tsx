@@ -16,7 +16,7 @@ export function HoverHint({
   const tooltipId = useId()
   const triggerRef = useRef<HTMLSpanElement>(null)
   const [isVisible, setIsVisible] = useState(false)
-  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   
   const tooltipPositionClass = position === 'bottom'
     ? 'top-full mt-1.5'

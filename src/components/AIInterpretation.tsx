@@ -7,10 +7,11 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useChartStore, useSettingsStore, useContentCacheStore } from '@/stores'
 import { extractKnowledge, buildChartIndicators, buildPromptContext } from '@/knowledge'
+import type { ChartIndicators } from '@/knowledge'
 import { streamChat, type ChatMessage, type LLMConfig } from '@/lib/llm'
-import { getSystemPrompt, buildUserPrompt } from '@/lib/prompts'
+import { getSystemPrompt, buildUserPrompt, mapUIChartTypeToPromptChartType } from '@/lib/prompts'
 import { Button, HoverHint } from '@/components/ui'
-import { t } from '@/lib/i18n'
+import { t, BRIGHTNESS_MAP } from '@/lib/i18n'
 
 /* ------------------------------------------------------------
    Markdown 自定义样式组件
@@ -48,6 +49,23 @@ const MarkdownComponents = {
       {children}
     </blockquote>
   ),
+}
+
+/* ============================================================
+   輔助函數
+   ============================================================ */
+
+/**
+ * 獲取本地化的亮度顯示名稱
+ * 將中文亮度名稱（如"廟"）轉換為國際化的顯示字符
+ */
+function getBrightnessDisplay(brightness: string | undefined, language: 'zh-TW' | 'zh-CN'): string {
+  if (!brightness) return ''
+  
+  const englishKey = BRIGHTNESS_MAP[brightness]
+  if (!englishKey) return brightness
+  
+  return t(`brightness.${englishKey}`, language)
 }
 
 /* ------------------------------------------------------------
@@ -105,9 +123,185 @@ export function AIInterpretation() {
     }
   }, [])
 
+  /**
+   * 轉換輔星及雜曜的英文字段為中文
+   * 將 type/scope 等字段轉換為中文對應值
+   * 
+   * iztro 庫中的星曜類型：
+   * - helper: 輔星（六吉）
+   * - soft: 柔和星（文昌、文曲、天魁、天鉞）
+   * - tough: 剛硬星（六煞：地空、地劫、火星、鈴星、擎羊、陀羅）
+   * - lucun: 祿存
+   * - tianma: 天馬
+   * - flower: 花曜（紅鸞、天喜）
+   * - adjective: 雜曜
+   */
+  const convertHelperStarsToChineseFields = (helperStars: any[]): any[] => {
+    if (!Array.isArray(helperStars)) return []
+
+    // 星曜類型映射
+    const typeMap: Record<string, string> = {
+      // iztro 原生類型
+      'helper': '輔星',           // 六吉（左輔、右弼、文昌、文曲、天魁、天鉞）
+      'soft': '柔星',             // 柔和星（文昌、文曲、天魁、天鉞）
+      'tough': '煞星',            // 六煞（地空、地劫、火星、鈴星、擎羊、陀羅）
+      'lucun': '祿存',            // 祿存星
+      'tianma': '天馬',           // 天馬星
+      'flower': '花曜',           // 花曜類（紅鸞、天喜等）
+      'adjective': '雜曜',        // 一般雜曜
+      // 備用類型
+      'positive': '吉曜',         // 吉利曜星
+      'negative': '凶曜',         // 不利曜星
+      'neutral': '中性曜',        // 中性曜星
+    }
+
+    // 範圍/來源映射
+    const scopeMap: Record<string, string> = {
+      'origin': '本宮',           // 本宮固有
+      'origin-opposite': '對宮',  // 對宮傳來
+      'target': '他宮',           // 其他宮位
+      'self': '本身',
+      'palace': '宮位',
+    }
+
+    return helperStars.map((star: any) => {
+      // 如果是字符串，直接返回（向後相容）
+      if (typeof star === 'string') {
+        return {
+          名稱: star,
+          類型: '雜曜',
+          範圍: '本宮',
+        }
+      }
+
+      // 否則處理對象
+      return {
+        名稱: star.名稱 || star.name || '',
+        類型: typeMap[star.類型 || star.type] || star.類型 || star.type || '雜曜',
+        範圍: scopeMap[star.範圍 || star.scope] || star.範圍 || star.scope || '本宮',
+      }
+    })
+  }
+
+  /**
+   * 為三合派轉換指標 JSON 格式
+   * 從標準指標轉換為三合派所需的星曜清單與廟旺狀態
+   */
+  const convertToTripleHarmonyFormat = (indicators: ChartIndicators, chart: any, language: 'zh-TW' | 'zh-CN') => {
+    const triremeIndicators: any[] = []
+
+    // 遍歷 論命座標系 中的每個宮位
+    if (indicators.論命座標系 && Array.isArray(indicators.論命座標系)) {
+      indicators.論命座標系.forEach((palace: any) => {
+        const palaceName = palace.宮位
+        
+        // 計算三方四正：子午卯酉方位
+        // 寅午戌 (三合) / 巳酉丑 (三合) 等
+        const sanFangSiZheng = calculateSanFangSiZheng(palace.地支, indicators.論命座標系)
+        
+        // 構建該宮位的指標
+        const palaceIndicator = {
+          宮位: palaceName,
+          主星: palace.主星 || [],
+          亮度: extractBrightness(chart, palaceName, language), // 從命盤中提取廟旺狀態
+          輔星: convertHelperStarsToChineseFields(palace.輔星及雜曜 || []), // 轉換英文字段為中文
+          三方四正會照: sanFangSiZheng,
+          四化引動: {
+            生年: extractBirthYearMutagen(indicators.基本資料?.生年四化 || [], palaceName),
+            大限: extractDecadalMutagen(indicators.運限焦點?.當前大限)
+          }
+        }
+        triremeIndicators.push(palaceIndicator)
+      })
+    }
+
+    return triremeIndicators
+  }
+
+  /**
+   * 計算三方四正宮位
+   */
+  const calculateSanFangSiZheng = (currentBranch: string, allPalaces: any[]) => {
+    const branchOrder = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
+    const currentIndex = branchOrder.indexOf(currentBranch)
+    if (currentIndex === -1) return {}
+
+    // 計算三合：+4、+8（120度間隔）
+    const trine1Index = (currentIndex + 4) % 12
+    const trine2Index = (currentIndex + 8) % 12
+
+    const result: Record<string, string[]> = {}
+
+    // 找到三方四正宮位對應的星曜
+    allPalaces.forEach((palace: any) => {
+      const idx = branchOrder.indexOf(palace.地支)
+      if (idx === trine1Index || idx === trine2Index) {
+        result[palace.宮位] = palace.主星 || []
+      }
+    })
+
+    return result
+  }
+
+  /**
+   * 從命盤中提取宮位的廟旺狀態
+   */
+  const extractBrightness = (chart: any, palaceName: string, language: 'zh-TW' | 'zh-CN'): string => {
+    const palaces = (chart as any)?.palaces || []
+    const palace = palaces.find((p: any) => p?.name === palaceName)
+    if (!palace) return ''
+
+    // 取第一個主星的亮度
+    const majorStars = (palace as any)?.majorStars || []
+    if (majorStars.length > 0 && majorStars[0]?.brightness) {
+      return getBrightnessDisplay(majorStars[0].brightness, language)
+    }
+    return ''
+  }
+
+
+
+  /**
+   * 提取該宮位的生年四化
+   */
+  const extractBirthYearMutagen = (birthYearMutagens: any[], palaceName: string): string => {
+    if (!Array.isArray(birthYearMutagens)) return ''
+    
+    const mutagensInPalace = birthYearMutagens.filter((m: any) => m.宮位 === palaceName)
+    if (mutagensInPalace.length === 0) return ''
+
+    const groupedByGan = new Map<string, string[]>()
+    mutagensInPalace.forEach((m: any) => {
+      // 從四化類型反推干（需要從命盤數據中提取）
+      // 暫時使用簡化版本
+      const mutagenType = m.四化
+      if (!groupedByGan.has(m.星曜)) groupedByGan.set(m.星曜, [])
+      groupedByGan.get(m.星曜)!.push(mutagenType)
+    })
+
+    // 格式化為 "干(星曜四化、星曜四化...)"
+    return Array.from(groupedByGan.entries())
+      .map(([star, mutagens]) => `${star}(${mutagens.join('、')})`)
+      .join(' ')
+  }
+
+  /**
+   * 提取該宮位的大限四化
+   */
+  const extractDecadalMutagen = (decadalInfo: any): string => {
+    if (!decadalInfo) return ''
+    
+    // 大限信息中包含四化列表
+    const mutagens = decadalInfo.四化 || []
+    if (mutagens.length === 0) return ''
+
+    return `${decadalInfo.天干}干(${mutagens.join('、')})`
+  }
+
   const buildPromptPreview = useCallback(() => {
     if (!chart || !birthInfo) return null
 
+    const { currentChartType } = useSettingsStore.getState()
     const knowledge = extractKnowledge(chart, birthInfo.year)
     const indicators = buildChartIndicators(chart, {
       year: birthInfo.year,
@@ -122,16 +316,26 @@ export function AIInterpretation() {
       console.log('[AIInterpretation] current indicators index:', indicators)
     }
 
-    const indicatorsJson = JSON.stringify(indicators, null, 2)
+    // 根據盤面類型選擇 JSON 格式
+    let indicatorsData: any = indicators
+    if (currentChartType === 'trireme') {
+      // 三合派：轉換為星曜清單與廟旺狀態格式
+      indicatorsData = convertToTripleHarmonyFormat(indicators, chart, language)
+    }
+
+    const indicatorsJson = JSON.stringify(indicatorsData, null, 2)
     const contextStr = buildPromptContext(knowledge, language)
+
+    const promptChartType = mapUIChartTypeToPromptChartType(currentChartType)
 
     const userMessage = buildUserPrompt({
       language,
       indicatorsJson,
       contextStr,
+      chartType: promptChartType,
     })
 
-    const systemMessage = getSystemPrompt(language)
+    const systemMessage = getSystemPrompt(language, promptChartType)
 
     const promptText = [
       '===== System Prompt =====',

@@ -144,6 +144,7 @@ interface SettingsState {
   // 新设置选项
   language: 'zh-CN' | 'zh-TW'   // 介面語言: 简体中文 | 繁體中文
   defaultChartType: 'flying' | 'trireme' | 'transformation'  // 預設盤面: 飛星 | 三合 | 四化
+  currentChartType: 'flying' | 'trireme' | 'transformation'  // 當前選中的盤面類型（動態改變）
   starPlacementMethod: 'yearBranch' | 'lunarMonth' | 'standardArrangement'  // 安星法
   monthlyArrangementMethod: 'yuanYuePositioning' | 'douJun'  // 排流月: 正月定位法 | 斗君法
 
@@ -179,6 +180,7 @@ interface SettingsState {
   setSearchApiKey: (key: string) => void
   setLanguage: (language: 'zh-CN' | 'zh-TW') => void
   setDefaultChartType: (type: 'flying' | 'trireme' | 'transformation') => void
+  setCurrentChartType: (type: 'flying' | 'trireme' | 'transformation') => void
   setStarPlacementMethod: (method: 'yearBranch' | 'lunarMonth' | 'standardArrangement') => void
   setMonthlyArrangementMethod: (method: 'yuanYuePositioning' | 'douJun') => void
 
@@ -227,6 +229,7 @@ export const useSettingsStore = create<SettingsState>()(
       searchApiKey: '',
       language: 'zh-TW',
       defaultChartType: 'flying',
+      currentChartType: 'flying',
       starPlacementMethod: 'yearBranch',
       monthlyArrangementMethod: 'douJun',
 
@@ -272,6 +275,7 @@ export const useSettingsStore = create<SettingsState>()(
       setSearchApiKey: (key) => set({ searchApiKey: key }),
       setLanguage: (language) => set({ language }),
       setDefaultChartType: (type) => set({ defaultChartType: type }),
+      setCurrentChartType: (type) => set({ currentChartType: type }),
       setStarPlacementMethod: (method) => set({ starPlacementMethod: method }),
       setMonthlyArrangementMethod: (method) => set({ monthlyArrangementMethod: method }),
 

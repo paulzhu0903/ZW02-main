@@ -1870,9 +1870,14 @@ function DecadalAnnualMonthlyTable({
 
 export function ChartDisplay() {
   const { chart, birthInfo, setBirthInfo, setChart } = useChartStore()
-  const { language, defaultChartType, monthlyArrangementMethod } = useSettingsStore()
+  const { language, defaultChartType, monthlyArrangementMethod, setCurrentChartType } = useSettingsStore()
   const [selectedPalace, setSelectedPalace] = useState<string | null>(null)
   const [chartType, setChartType] = useState<'flying' | 'trireme' | 'transformation'>(defaultChartType)
+
+  // 初始化時設置全局狀態
+  useEffect(() => {
+    setCurrentChartType(chartType)
+  }, [chartType, setCurrentChartType])
   const [selectedDecadal, setSelectedDecadal] = useState<number | null>(() => {
     if (!chart || !birthInfo) return null
     return getDefaultDecadalAnnualSelection(chart, birthInfo.year, new Date().getFullYear()).decadal
@@ -2813,6 +2818,7 @@ export function ChartDisplay() {
       <div className="mt-4 sm:mt-10 mb-2 sm:mb-3 w-full overflow-x-auto px-0.5 sm:px-0">
         <div className="flex items-center justify-between gap-1 sm:gap-3 w-full min-w-max">
         {/* 第一部分：盤面類型按鈕（左邊） */}
+        {/* 選擇盤面之後 prompt 會隨著改變 */}
         <div className="flex flex-nowrap justify-start gap-1 sm:gap-1.5 items-center shrink-0">
           {[
             { value: 'flying', label: '飛星' },
@@ -2821,7 +2827,11 @@ export function ChartDisplay() {
           ].map((item) => (
             <button
               key={item.value}
-              onClick={() => setChartType(item.value as 'flying' | 'trireme' | 'transformation')}
+              onClick={() => {
+                setChartType(item.value as 'flying' | 'trireme' | 'transformation')
+                // 同步更新全局狀態，以便 AIInterpretation 可以讀取
+                useSettingsStore.getState().setCurrentChartType(item.value as 'flying' | 'trireme' | 'transformation')
+              }}
               className={`
                 h-6 sm:h-7 px-2 sm:px-3 rounded-md sm:rounded-lg font-medium transition-all duration-200 text-[10px] sm:text-[13px] whitespace-nowrap inline-flex items-center justify-center shrink-0
                 ${chartType === item.value

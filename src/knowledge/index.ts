@@ -126,6 +126,11 @@ export interface ChartIndicators {
     我宮他宮: '我宮' | '他宮' | ''
     主星: string[]
     男女星: string[]
+    輔星及雜曜: Array<{
+      名稱: string
+      類型: string        // helper / adjective / flower / etc
+      範圍: string        // origin / origin-opposite / etc
+    }>
   }>
   
   運限焦點: {
@@ -376,6 +381,25 @@ export function buildChartIndicators(
     const normalizedPalaceName = normalizePalaceName(palace.name)
     const normalizedOppositeName = oppositePalace ? normalizePalaceName(oppositePalace.name) : ''
 
+    // 提取輔星和雜曜（保留完整的對象信息）
+    const minorStars = (palace.minorStars as Array<Record<string, unknown>> | undefined) || []
+    const adjectiveStars = (palace.adjectiveStars as Array<Record<string, unknown>> | undefined) || []
+    
+    // 構建完整的輔星及雜曜對象
+    const minorStarObjects = minorStars.map(s => ({
+      名稱: normalizeStar(s.name),
+      類型: s.type ? String(s.type) : 'helper',  // 默認為輔星
+      範圍: s.scope ? String(s.scope) : 'origin',  // 默認為本宮
+    }))
+    
+    const adjectiveStarObjects = adjectiveStars.map(s => ({
+      名稱: normalizeStar(s.name),
+      類型: s.type ? String(s.type) : 'adjective',  // 默認為雜曜
+      範圍: s.scope ? String(s.scope) : 'origin',  // 默認為本宮
+    }))
+    
+    const allHelperStars = [...minorStarObjects, ...adjectiveStarObjects]
+
     return {
       宮位: normalizedPalaceName,
       天干: summary.天干,
@@ -384,6 +408,7 @@ export function buildChartIndicators(
       對宮: normalizedOppositeName,
       主星: summary.主星,
       男女星標記: summary.男女星,
+      輔星及雜曜: allHelperStars,
       離心自化: summary.離心,
       向心自化: summary.向心,
       大限: summary.大限,
@@ -588,6 +613,7 @@ export function buildChartIndicators(
       我宮他宮: item.宮位屬性,
       主星: item.主星,
       男女星: item.男女星標記,
+      輔星及雜曜: item.輔星及雜曜,
     })),
 
     運限焦點: {

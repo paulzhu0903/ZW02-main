@@ -213,6 +213,17 @@ export const MAJOR_STARS: Record<string, StarInfo> = {
   },
 }
 
+/* 繁體到簡體的映射（反向查表） */
+const STAR_TRADITIONAL_TO_SIMPLIFIED: Record<string, string> = {
+  '廉貞': '廉贞', '破軍': '破军', '太陽': '太阳', '天機': '天机',
+  '太陰': '太阴', '貪狼': '贪狼', '巨門': '巨门', '七殺': '七杀',
+  '左輔': '左辅', '龍池': '龙池', '鳳閣': '凤阁', '華蓋': '华盖',
+  '陰煞': '阴煞', '封誥': '封诰', '天貴': '天贵', '天壽': '天寿',
+  '天傷': '天伤', '龍德': '龙德', '天鑰': '天钺', '天虛': '天虚',
+  '陀羅': '陀罗', '鈴星': '铃星', '祿存': '禄存', '紅鸞': '红鸾',
+  '天馬': '天马',
+}
+
 /* ------------------------------------------------------------
    根据星曜名称获取信息
    ------------------------------------------------------------ */
@@ -220,7 +231,19 @@ export const MAJOR_STARS: Record<string, StarInfo> = {
 export function getStarInfo(starName: string): StarInfo | undefined {
   // 移除可能的四化后缀
   const cleanName = starName.replace(/化[禄权科忌]/, '')
-  return MAJOR_STARS[cleanName]
+  
+  // 先尝试直接查找（简体）
+  if (MAJOR_STARS[cleanName]) {
+    return MAJOR_STARS[cleanName]
+  }
+  
+  // 如果不存在，尝试将繁体转换为简体后查找
+  const simplified = STAR_TRADITIONAL_TO_SIMPLIFIED[cleanName]
+  if (simplified && MAJOR_STARS[simplified]) {
+    return MAJOR_STARS[simplified]
+  }
+  
+  return undefined
 }
 
 /* ------------------------------------------------------------

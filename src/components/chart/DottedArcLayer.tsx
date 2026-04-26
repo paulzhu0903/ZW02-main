@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { SIHUA_BY_GAN } from '@/knowledge/sihua'
 import { getChineseVariantCandidates } from '@/lib/localize-knowledge'
 import { HoverHint } from '@/components/ui'
-import { MUTAGEN_COLORS, PALACE_POSITIONS, type PalaceData } from './types'
+import { MUTAGEN_COLORS, OPPOSITE_PALACE, PALACE_POSITIONS, type PalaceData } from './types'
 import { getMutagenType } from './mutagenLines'
 import UndoIcon from '@/icons/undo.svg'
 import DeleteIcon from '@/icons/delete.svg'
@@ -23,15 +23,16 @@ interface ArcTrailItem {
   fromBranch: string
   toBranch: string
   label: 'A' | 'B' | 'C' | 'D'
+  createdAt: number
 }
 
 interface ArcStateItem {
   selectedPalaceName: string | null
   selectedPalaceBranch: string | null
-  selectedArcLabel: 'A' | 'B' | 'C' | 'D' | 'M' | null
+  selectedArcLabel: 'A' | 'B' | 'C' | 'D' | null
 }
 
-type ArcLabel = 'A' | 'B' | 'C' | 'D' | 'M' | null
+type ArcLabel = 'A' | 'B' | 'C' | 'D' | null
 
 interface BranchState {
   selectedArcLabel: ArcLabel
@@ -39,22 +40,26 @@ interface BranchState {
   currentPalaceBranch: string | null
   arcTrail: ArcTrailItem[]
   arcStateStack: ArcStateItem[]
+  selectedLabelsPerBranch: Record<string, Record<'A' | 'B' | 'C' | 'D', boolean>> // 每个宫位有独立的ABCD状态
+  selectedLabelTime: number | null // 用于待选弧线动画
 }
 
 interface ArcMenuState {
-  branch: string
-  rootBranch: string
-  targetPalaceName?: string
-  targetBranch?: string
-  fromPalaceName?: string
-  fromBranch?: string
-  currentArcLabel?: 'A' | 'B' | 'C' | 'D'
+  branch: string // 菜单显示的位置（当前宫位）
+  rootBranch: string // 链条的所有者（发出弧线的起点）
+  isFromArc?: boolean // 标记是否从已完成的弧线触发
+}
+
+interface TransientOppositeLine {
+  id: string
+  fromBranch: string
+  toBranch: string
+  createdAt: number
 }
 
 export function DottedArcLayer({
   palaceData,
   selectedPalace,
-  setSelectedPalace,
   gridRef,
   gridOffset,
   isCompactMobile,
@@ -62,9 +67,9 @@ export function DottedArcLayer({
   lineDashArray,
   resetVersion,
 }: DottedArcLayerProps) {
-  const [palaceRootMap, setPalaceRootMap] = useState<Record<string, string>>({})
   const [branchStates, setBranchStates] = useState<Record<string, BranchState>>({})
   const [arcMenu, setArcMenu] = useState<ArcMenuState | null>(null)
+  const [transientOppositeLines, setTransientOppositeLines] = useState<TransientOppositeLine[]>([])
 
   const EMPTY_BRANCH_STATE: BranchState = {
     selectedArcLabel: null,
@@ -72,6 +77,8 @@ export function DottedArcLayer({
     currentPalaceBranch: null,
     arcTrail: [],
     arcStateStack: [],
+    selectedLabelsPerBranch: {},
+    selectedLabelTime: null,
   }
 
   const mutagenKeyByLabel: Record<'A' | 'B' | 'C' | 'D', string> = {
@@ -99,32 +106,68 @@ export function DottedArcLayer({
 
   const resetAllArcChains = () => {
     setArcMenu(null)
-    setPalaceRootMap({})
     setBranchStates({})
   }
 
-  const resetSingleBranch = (rootBranch: string) => {
+  const cleanCurrentChain = () => {
+    // 清除当前链条的所有 branchStates
+    setBranchStates((prev) => {
+      const updated = { ...prev }
+      // 清除当前打开的菜单对应的 root branch 的所有状态
+      if (arcMenu) {
+        delete updated[arcMenu.rootBranch]
+        
+        // 如果是 branch menu（isFromArc=true），还需要清除该 root branch 相关的所有其他 branch
+        if (arcMenu.isFromArc) {
+          // 由于 branch 本身就是 root（每个宫位都是自己的 root），所以只需删除该 root 即可
+          // 其他链条的 branch 是不同的 root，不会被影响
+        }
+      }
+      return updated
+    })
+    
     setArcMenu(null)
-    setBranchStates((prev) => ({
-      ...prev,
-      [rootBranch]: EMPTY_BRANCH_STATE,
-    }))
   }
 
   const undoOneArcStep = (rootBranch: string) => {
     const current = branchStates[rootBranch] || EMPTY_BRANCH_STATE
-    if (current.arcStateStack.length <= 0) return
+    
+    if (current.arcTrail.length <= 0) return
 
-    const prevState = current.arcStateStack[current.arcStateStack.length - 1]
-    updateBranchState(rootBranch, (state) => ({
-      ...state,
-      arcStateStack: state.arcStateStack.slice(0, -1),
-      arcTrail: state.arcTrail.slice(0, -1),
-      selectedArcLabel: prevState.selectedArcLabel,
-      currentPalaceName: prevState.selectedPalaceName,
-      currentPalaceBranch: prevState.selectedPalaceBranch,
-    }))
-    setSelectedPalace(prevState.selectedPalaceName)
+    // 找出被移除的弧线
+    const removedArcTrail = current.arcTrail[current.arcTrail.length - 1]
+    const removedLabel = removedArcTrail?.label as 'A' | 'B' | 'C' | 'D' | undefined
+    const removedFromBranch = removedArcTrail?.fromBranch
+    const newArcTrail = current.arcTrail.slice(0, -1)
+    
+    // 更新状态：移除最后一条弧线，并从该宫位的selectedLabelsPerBranch中移除该label
+    updateBranchState(rootBranch, (state) => {
+      const newSelectedLabelsPerBranch = { ...state.selectedLabelsPerBranch }
+      if (removedFromBranch && removedLabel) {
+        newSelectedLabelsPerBranch[removedFromBranch] = {
+          ...(newSelectedLabelsPerBranch[removedFromBranch] || { A: false, B: false, C: false, D: false }),
+          [removedLabel]: false,
+        }
+      }
+      return {
+        ...state,
+        arcTrail: newArcTrail,
+        selectedLabelsPerBranch: newSelectedLabelsPerBranch,
+      }
+    })
+
+    // 如果还有弧线，菜单移动到最后弧线的终点
+    if (newArcTrail.length > 0) {
+      const lastArcTrail = newArcTrail[newArcTrail.length - 1]
+      setArcMenu({
+        branch: lastArcTrail.toBranch,
+        rootBranch: rootBranch,
+        isFromArc: true,
+      })
+    } else {
+      // 如果没有弧线了，关闭菜单（不跳回 root menu）
+      setArcMenu(null)
+    }
   }
 
   const getArcColorInfoByLabel = (label: 'A' | 'B' | 'C' | 'D') => {
@@ -136,6 +179,22 @@ export function DottedArcLayer({
   useEffect(() => {
     resetAllArcChains()
   }, [resetVersion])
+
+  // 清理過期的臨時對宮直線（3 秒後消失）、並觸發動畫重繪
+  useEffect(() => {
+    let animationFrameId: number
+    
+    const animate = () => {
+      const now = Date.now()
+      setTransientOppositeLines((prev) =>
+        prev.filter((line) => now - line.createdAt < 3000)
+      )
+      animationFrameId = requestAnimationFrame(animate)
+    }
+    
+    animationFrameId = requestAnimationFrame(animate)
+    return () => cancelAnimationFrame(animationFrameId)
+  }, [])
 
   const gridElement = gridRef.current
   const gridRect = gridElement?.getBoundingClientRect() ?? null
@@ -218,7 +277,9 @@ export function DottedArcLayer({
     ? palaceData.find(p => p.name === selectedPalace) || null
     : null
 
-  const allArcTrails = Object.values(branchStates).flatMap(branch => branch.arcTrail)
+  const allArcTrails = Object.entries(branchStates).flatMap(([rootBranch, branch]) =>
+    branch.arcTrail.map(arc => ({ ...arc, rootBranch }))
+  )
 
   useEffect(() => {
     if (!selectedPalaceData) {
@@ -226,40 +287,45 @@ export function DottedArcLayer({
       return
     }
 
-    const rootBranch = palaceRootMap[selectedPalaceData.branch] || selectedPalaceData.branch
-    const activeLabel = (branchStates[rootBranch] || EMPTY_BRANCH_STATE).selectedArcLabel
+    const rootBranch = selectedPalaceData.branch
 
-    if (activeLabel !== null) {
-      setArcMenu(null)
-      return
-    }
-
-    setArcMenu({
-      branch: selectedPalaceData.branch,
-      rootBranch,
+    // 使用 updater 函数，处理菜单切换
+    setArcMenu((prevMenu) => {
+      // 如果是 Root Menu 且不是当前宫位，切换到新宫位
+      if (prevMenu && !prevMenu.isFromArc && prevMenu.branch !== rootBranch) {
+        return {
+          branch: rootBranch,
+          rootBranch,
+        }
+      }
+      
+      // 如果菜单关闭，打开新宫位的菜单
+      if (!prevMenu) {
+        return {
+          branch: rootBranch,
+          rootBranch,
+        }
+      }
+      
+      // 保持现有菜单（Branch Menu 或同宫位 Root Menu）
+      return prevMenu
     })
-  }, [selectedPalaceData, palaceRootMap, branchStates])
-
-  const openArcMenu = (
-    rootBranch: string,
-    targetPalaceName: string,
-    targetBranch: string,
-    fromPalaceName: string,
-    fromBranch: string,
-    currentArcLabel: 'A' | 'B' | 'C' | 'D',
-  ) => {
-    setArcMenu({
-      branch: targetBranch,
-      rootBranch,
-      targetPalaceName,
-      targetBranch,
-      fromPalaceName,
-      fromBranch,
-      currentArcLabel,
-    })
-  }
+  }, [selectedPalaceData])
 
   const getUnorderedPairKey = (a: string, b: string) => (a < b ? `${a}-${b}` : `${b}-${a}`)
+
+  // 計算二次貝塞爾曲線上給定參數t的點
+  const getQuadraticBezierPoint = (
+    start: { x: number; y: number },
+    control: { x: number; y: number },
+    end: { x: number; y: number },
+    t: number,
+  ) => {
+    const t1 = 1 - t
+    const x = t1 * t1 * start.x + 2 * t1 * t * control.x + t * t * end.x
+    const y = t1 * t1 * start.y + 2 * t1 * t * control.y + t * t * end.y
+    return { x, y }
+  }
 
   const buildArcPath = (
     from: { x: number; y: number },
@@ -293,9 +359,27 @@ export function DottedArcLayer({
 
   return (
     <>
+      <svg width="0" height="0">
+        <defs>
+          <marker
+            id="arrowOrange"
+            markerWidth="10"
+            markerHeight="10"
+            refX="9"
+            refY="3"
+            orient="auto"
+            markerUnits="strokeWidth"
+          >
+            <path d="M0,0 L0,6 L9,3 z" fill="#fb923c" />
+          </marker>
+        </defs>
+      </svg>
       {allArcTrails.map((trail, trailIdx) => {
         const fromCenter = getCardCenter(trail.fromBranch)
-        const toCenter = getCardCenter(trail.toBranch)
+        // 自化情況：起點和終點相同，終點使用邊緣位置
+        const toCenter = trail.fromBranch === trail.toBranch 
+          ? getDestinationEdgeAnchor(trail.toBranch)
+          : getCardCenter(trail.toBranch)
         if (!fromCenter || !toCenter) return null
 
         const pairKey = getUnorderedPairKey(trail.fromBranch, trail.toBranch)
@@ -307,137 +391,104 @@ export function DottedArcLayer({
         if (!pathD) return null
         const colorInfo = getArcColorInfoByLabel(trail.label)
 
-        return (
-          <path
-            key={`trail-${trailIdx}-${trail.fromBranch}-${trail.toBranch}-${trail.label}`}
-            d={pathD}
-            stroke={colorInfo.color}
-            strokeWidth={lineStrokeWidth}
-            strokeDasharray={lineDashArray}
-            opacity={isCompactMobile ? 0.45 : 0.55}
-            fill="none"
-            markerEnd={`url(#${colorInfo.marker})`}
-          />
-        )
-      })}
+        // 找到 fromBranch 和 toBranch 对应的宫位信息
+        const fromPalace = palaceData.find(p => p.branch === trail.fromBranch)
+        const toPalace = palaceData.find(p => p.branch === trail.toBranch)
 
-      {Object.entries(branchStates).flatMap(([rootBranch, state]) => {
-        if (state.selectedArcLabel === null || !state.currentPalaceName || !state.currentPalaceBranch) {
-          return []
+        // 计算弧线延伸动画
+        const dx = toCenter.x - fromCenter.x
+        const dy = toCenter.y - fromCenter.y
+        const distance = Math.hypot(dx, dy)
+        const elapsedTime = Date.now() - (trail.createdAt || Date.now())
+        const drawDuration = 1200
+        const drawProgress = Math.min(1, Math.max(0, elapsedTime) / drawDuration)
+        
+        // 虚线 offset：延伸阶段用实线从起点漸進延伸，完成后改為流动虚线
+        let strokeDasharray: string
+        let strokeDashoffset: number | string
+        if (drawProgress < 1) {
+          // 延伸阶段：实线从起点漸進延伸到终点
+          const extensionLength = distance * drawProgress
+          strokeDasharray = `${extensionLength},${distance}`
+          strokeDashoffset = 0
+        } else {
+          // 完成后：4:2 虚线流动动画，更平順的循環
+          strokeDasharray = "4,2"
+          const flowSpeed = 40  // px/s 流動速度
+          const timeAfterCompletion = elapsedTime - drawDuration
+          const flowDistance = (timeAfterCompletion * flowSpeed) / 1000  // 轉換為毫秒
+          strokeDashoffset = -(flowDistance % 6) // 6 = 4 (dash) + 2 (gap)，負值反向流動
         }
+        
+        // 虚线箭头：沿着弧线轨迹移动，使用 drawProgress 直接同步
+        const arrowProgressOnCurve = drawProgress
+        
+        // 首先计算控制点（重复buildArcPath的逻辑）
+        const nx = -dy / distance
+        const ny = dx / distance
+        const baseCurveOffset = Math.min(90, Math.max(32, distance * 0.18))
+        const laneGap = isCompactMobile ? 12 : 16
+        const curveOffset = baseCurveOffset + laneIndex * laneGap
+        const orientationSign = trail.fromBranch < trail.toBranch ? 1 : -1
+        const labelSign = trail.label === 'A' || trail.label === 'C' ? 1 : -1
+        const direction = orientationSign * labelSign
+        const controlX = (fromCenter.x + toCenter.x) / 2 + nx * curveOffset * direction
+        const controlY = (fromCenter.y + toCenter.y) / 2 + ny * curveOffset * direction
 
-        const currentPalace = palaceData.find(p => p.name === state.currentPalaceName)
-        if (!currentPalace) return []
+        // 使用二次贝塞尔曲线计算箭头位置
+        const arrowPoint = getQuadraticBezierPoint(
+          fromCenter,
+          { x: controlX, y: controlY },
+          toCenter,
+          arrowProgressOnCurve,
+        )
+        const arrowEndX = arrowPoint.x
+        const arrowEndY = arrowPoint.y
 
-        const sihuaMap = SIHUA_BY_GAN[currentPalace.stem]
-        if (!sihuaMap) return []
+        // 计算箭头指向的方向（切线方向）
+        // 贝塞尔曲线的导数：B'(t) = 2(1-t)(P1-P0) + 2t(P2-P1)
+        const t = arrowProgressOnCurve
+        const t1 = 1 - t
+        const derivX = 2 * t1 * (controlX - fromCenter.x) + 2 * t * (toCenter.x - controlX)
+        const derivY = 2 * t1 * (controlY - fromCenter.y) + 2 * t * (toCenter.y - controlY)
+        const derivLen = Math.hypot(derivX, derivY)
+        
+        // 箭头长度
+        const arrowLen = Math.min(12, distance * 0.08)
+        const arrowStartX = arrowEndX - (derivX / derivLen) * arrowLen
+        const arrowStartY = arrowEndY - (derivY / derivLen) * arrowLen
+        const arrowPathD = `M ${arrowStartX + gridOffset.x} ${arrowStartY + gridOffset.y} L ${arrowEndX + gridOffset.x} ${arrowEndY + gridOffset.y}`
 
-        const fromCenter = getCardCenter(currentPalace.branch)
-        if (!fromCenter) return []
-
-        const mutagenKeys = state.selectedArcLabel === 'M'
-          ? ['化禄', '化权', '化科', '化忌']
-          : [mutagenKeyByLabel[state.selectedArcLabel as 'A' | 'B' | 'C' | 'D']]
-
-        return mutagenKeys.map((mutagenKey, keyIdx) => {
-          const mutagenStar = sihuaMap[mutagenKey]
-          if (!mutagenStar) return null
-
-          const mutagenStarCandidates = getChineseVariantCandidates(mutagenStar)
-          const currentArcLabel = mutagenLabelByKey[mutagenKey]
-          if (!currentArcLabel) return null
-
-          let targetPalace: PalaceData | null = null
-          for (const palace of palaceData) {
-            const allStars = [...palace.majorStars, ...palace.minorStars]
-            const targetStarIndex = allStars.findIndex(s => mutagenStarCandidates.includes(s.name))
-            if (targetStarIndex !== -1) {
-              targetPalace = palace
-              break
-            }
-          }
-
-          if (!targetPalace) return null
-
-          // 只有自化（同宮）使用邊緣停靠，其他傳播線使用中心點
-          const isSelfMutagen = currentPalace.branch === targetPalace.branch
-          let toAnchor = isSelfMutagen
-            ? getDestinationEdgeAnchor(targetPalace.branch)
-            : getCardCenter(targetPalace.branch)
-          if (!toAnchor) return null
-
-          const pairKey = getUnorderedPairKey(currentPalace.branch, targetPalace.branch)
-          const existingLaneCount = allArcTrails
-            .filter(item => getUnorderedPairKey(item.fromBranch, item.toBranch) === pairKey)
-            .length
-          
-          // 當選擇 M 時，檢查是否有多條 ABCD 弧線指向同一終點
-          // 如果是，根據順序 A(0), B(1), C(2), D(3) 來增加弧度避免疊層
-          let laneIndex = existingLaneCount
-          let endpointOffsetMultiplier = 0
-          if (state.selectedArcLabel === 'M') {
-            // 檢查在同一批 mutagenKeys 中，有多少條弧線已經指向同一終點
-            const sameBatchLanesForTarget = mutagenKeys
-              .slice(0, keyIdx)
-              .reduce((count, mk) => {
-                const targetMutagenStar = sihuaMap[mk]
-                if (!targetMutagenStar) return count
-                const targetCandidates = getChineseVariantCandidates(targetMutagenStar)
-                let targetPalaceCheck: PalaceData | null = null
-                for (const palace of palaceData) {
-                  const allStars = [...palace.majorStars, ...palace.minorStars]
-                  if (allStars.some(s => targetCandidates.includes(s.name))) {
-                    targetPalaceCheck = palace
-                    break
-                  }
-                }
-                if (targetPalaceCheck && getUnorderedPairKey(currentPalace.branch, targetPalaceCheck.branch) === pairKey) {
-                  return count + 1
-                }
-                return count
-              }, 0)
-            laneIndex = existingLaneCount + sameBatchLanesForTarget
-            endpointOffsetMultiplier = sameBatchLanesForTarget
-          }
-          
-          // 當終點相同時，向外偏移（只在X方向）
-          if (endpointOffsetMultiplier > 0 && fromCenter) {
-            const dx = toAnchor.x - fromCenter.x
-            if (dx !== 0) {
-              const offsetDistance = 8 * endpointOffsetMultiplier
-              const offsetDirection = dx > 0 ? 1 : -1
-              toAnchor = {
-                x: toAnchor.x + offsetDirection * offsetDistance,
-                y: toAnchor.y,
-              }
-            }
-          }
-
-          const pathD = buildArcPath(
-            fromCenter,
-            toAnchor,
-            currentPalace.branch,
-            targetPalace.branch,
-            currentArcLabel,
-            laneIndex,
-          )
-          if (!pathD) return null
-
-          const mutagenType = getMutagenType(mutagenKey)
-          const colorInfo = MUTAGEN_COLORS[mutagenType] || MUTAGEN_COLORS[mutagenKey]
-
-          return (
-            <g key={`selected-palace-line-${rootBranch}-${keyIdx}`}>
+        return (
+          <g key={`trail-${trailIdx}-${trail.fromBranch}-${trail.toBranch}-${trail.label}`}>
+            {/* 虛線主線：與虛線箭頭一起出發到終點，延伸時就是虛線，完成後流動虛線 */}
+            {drawProgress > 0 && (
               <path
                 d={pathD}
                 stroke={colorInfo.color}
                 strokeWidth={lineStrokeWidth}
-                strokeDasharray={lineDashArray}
-                opacity={isCompactMobile ? 0.6 : 0.7}
+                strokeDasharray={strokeDasharray}
+                strokeDashoffset={strokeDashoffset}
+                opacity={drawProgress < 1 ? drawProgress : (isCompactMobile ? 0.45 : 0.55)}
                 fill="none"
+              />
+            )}
+            {/* 虚线箭头，跟随虚线延伸和流动 */}
+            {drawProgress > 0 && (
+              <path
+                d={arrowPathD}
+                stroke={colorInfo.color}
+                strokeWidth={lineStrokeWidth}
+                strokeDasharray={strokeDasharray}
+                strokeDashoffset={strokeDashoffset}
+                fill="none"
+                opacity={drawProgress < 1 ? drawProgress : (isCompactMobile ? 0.45 : 0.55)}
+                strokeLinecap="round"
                 markerEnd={`url(#${colorInfo.marker})`}
               />
-              {/* 擴大弧線點擊區，改為點選弧線觸發選單，避免長按箭頭誤觸 */}
+            )}
+            {/* 点击弧线触发菜单，可从终点继续发出弧线 */}
+            {fromPalace && toPalace && (
               <path
                 d={pathD}
                 stroke="transparent"
@@ -445,20 +496,86 @@ export function DottedArcLayer({
                 fill="transparent"
                 style={{ pointerEvents: 'all', cursor: 'pointer' }}
                 onClick={() => {
-                  openArcMenu(
-                    rootBranch,
-                    targetPalace.name,
-                    targetPalace.branch,
-                    currentPalace.name,
-                    currentPalace.branch,
-                    currentArcLabel,
-                  )
+                  // 从弧线打开菜单：保持原始的 rootBranch，不改变链条所有权
+                  setArcMenu({
+                    branch: trail.toBranch, // 菜单显示位置 = 弧线终点
+                    rootBranch: trail.rootBranch, // 保持原始 root，整条链属于同一个 root
+                    isFromArc: true, // 标记这是从弧线触发
+                  })
                 }}
               />
-            </g>
-          )
-        })
+            )}
+          </g>
+        )
       })}
+
+      {/* 渲染臨時對宮直線 */}
+      {transientOppositeLines.map((line) => {
+        const fromCenter = getCardCenter(line.fromBranch)
+        // 自化情況：起點和終點相同，終點使用邊緣位置
+        const toCenter = line.fromBranch === line.toBranch
+          ? getDestinationEdgeAnchor(line.toBranch)
+          : getCardCenter(line.toBranch)
+        if (!fromCenter || !toCenter) return null
+
+        const pathD = `M ${fromCenter.x + gridOffset.x} ${fromCenter.y + gridOffset.y} L ${toCenter.x + gridOffset.x} ${toCenter.y + gridOffset.y}`
+        const elapsedTime = Date.now() - line.createdAt
+        const opacity = Math.max(0, 1 - elapsedTime / 3000) // 3秒內從1逐漸降到0
+        
+        // 計算直線長度（用於 stroke-dasharray 動畫）
+        const dx = toCenter.x - fromCenter.x
+        const dy = toCenter.y - fromCenter.y
+        const lineLength = Math.hypot(dx, dy)
+        
+        // 虛線延遲 1.2 秒後才開始延伸（虛線完成後，橙線才開始）
+        const arcCompletionDuration = 1200 // 虛線（弧線）完成需要 1.2 秒
+        const orangeLineDuration = 1200 // 橙線延伸也需要 1.2 秒
+        const elapsedAfterArcCompletion = Math.max(0, elapsedTime - arcCompletionDuration)
+        const orangeDrawProgress = Math.min(1, elapsedAfterArcCompletion / orangeLineDuration)
+        
+        // 計算箭頭應該出現的位置：根據動畫進度從起點延伸到終點
+        // 箭頭應該緊跟線條末端
+        const arrowLength = Math.min(14, lineLength * 0.12)
+        // 當前繪製到的位置：動畫完成後，終點應該是 toCenter
+        const arrowEndX = orangeDrawProgress < 1 ? fromCenter.x + dx * orangeDrawProgress : toCenter.x
+        const arrowEndY = orangeDrawProgress < 1 ? fromCenter.y + dy * orangeDrawProgress : toCenter.y
+        // 箭頭從當前位置向後延伸 arrowLength 距離
+        const arrowStartX = arrowEndX - (dx / lineLength) * arrowLength
+        const arrowStartY = arrowEndY - (dy / lineLength) * arrowLength
+        const arrowPathD = `M ${arrowStartX + gridOffset.x} ${arrowStartY + gridOffset.y} L ${arrowEndX + gridOffset.x} ${arrowEndY + gridOffset.y}`
+
+        return (
+          <g key={`opposite-line-${line.id}`}>
+            {/* 橘線主線：延伸到終點，實線不虛線 */}
+            {orangeDrawProgress > 0 && (
+              <path
+                d={pathD}
+                stroke="#fb923c" // 橘色
+                strokeWidth={lineStrokeWidth}
+                fill="none"
+                opacity={opacity}
+                strokeLinecap="round"
+                strokeDasharray={`${orangeDrawProgress * lineLength},${lineLength}`}
+                strokeDashoffset={0}
+              />
+            )}
+            {/* 橘線箭頭線段：與橘線一起延伸 */}
+            {orangeDrawProgress > 0 && (
+              <path
+                d={arrowPathD}
+                stroke="#fb923c" // 橘色
+                strokeWidth={lineStrokeWidth}
+                fill="none"
+                opacity={opacity}
+                strokeLinecap="round"
+                markerEnd="url(#arrowOrange)"
+              />
+            )}
+          </g>
+        )
+      })}
+
+      {/* 隱藏待選弧線（實線），只显示已完成的虛線弧線 */}
 
       {arcMenu && (() => {
         const center = getCardCenter(arcMenu.branch)
@@ -467,7 +584,7 @@ export function DottedArcLayer({
         
         const panelWidth = Math.round(cardRect.width * 0.9)
         const panelHeight = isCompactMobile ? 90 : 130
-        const hasArcs = (branchStates[arcMenu.rootBranch] || EMPTY_BRANCH_STATE).arcStateStack.length > 0
+        const hasArcs = (branchStates[arcMenu.rootBranch] || EMPTY_BRANCH_STATE).arcTrail.length > 0
         
         return (
         <foreignObject
@@ -478,103 +595,286 @@ export function DottedArcLayer({
           style={{ overflow: 'visible', pointerEvents: 'none' }}
         >
           <div 
-            className="inline-flex w-full flex-col gap-2 rounded-xl border border-slate-300/70 bg-gray-200/90 p-2 text-slate-700 shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-md"
+            className={`relative inline-flex w-full flex-col gap-2 rounded-xl border text-slate-700 shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-md p-2 ${
+              arcMenu.isFromArc 
+                ? 'border-slate-400/70 bg-slate-400/85' 
+                : 'border-slate-300/70 bg-gray-200/90'
+            }`}
             style={{ pointerEvents: 'auto' }}
           >
-            <div className="grid grid-cols-3 gap-1">
-              {(['A', 'B', 'C', 'D', 'M'] as const).map((label) => (
+            {/* 关闭按钮 */}
+            <button
+              type="button"
+              className="absolute -right-1 -top-1 h-5 w-5 flex items-center justify-center rounded-full bg-slate-600 text-white hover:bg-slate-700 transition-colors"
+              onClick={() => {
+                // 關閉菜單時，也清除宮位選擇，下次點擊才能重新打開菜單
+                setArcMenu(null)
+                setSelectedPalace(null)
+              }}
+              title="Close menu"
+            >
+              <span className="text-xs font-bold leading-none">×</span>
+            </button>
+            <div className="grid grid-cols-2 gap-1">
+              {(['A', 'B', 'C', 'D'] as const).map((label) => {
+                const currentBranch = arcMenu.branch
+                const isSelected = (branchStates[arcMenu.rootBranch]?.selectedLabelsPerBranch?.[currentBranch]?.[label] ?? false)
+                return (
                 <button
                   key={label}
                   type="button"
-                  className="h-6 w-6 rounded border border-white/50 bg-white/60 text-[13px] font-semibold leading-none text-slate-700 transition-colors hover:bg-white/85"
+                  className={`h-6 w-6 rounded border text-[13px] font-semibold leading-none transition-colors ${
+                    isSelected
+                      ? 'border-blue-400/80 bg-blue-200/80 text-blue-700 hover:bg-blue-300/80'
+                      : 'border-white/50 bg-white/60 text-slate-700 hover:bg-white/85'
+                  }`}
                   onClick={() => {
                     const rootBranch = arcMenu.rootBranch
                     
-                    // 如果是从弧线触发，记录前一个状态
-                    if (arcMenu.fromBranch !== undefined && arcMenu.targetBranch !== undefined && arcMenu.currentArcLabel !== undefined && arcMenu.targetPalaceName !== undefined && selectedPalace) {
-                      const fromBranch = arcMenu.fromBranch as string
-                      const targetBranch = arcMenu.targetBranch as string
-                      const currentArcLabel = arcMenu.currentArcLabel as 'A' | 'B' | 'C' | 'D'
-                      const targetPalaceName = arcMenu.targetPalaceName as string
+                    // 如果是从弧线触发，从终点创建新弧线（新 branch）
+                    if (arcMenu.isFromArc) {
+                      // 从菜单所在的宫位（终点）出发
+                      const currentBranch = arcMenu.branch // 菜单显示的位置 = 弧线终点
+                      const targetPalaceFromMenu = palaceData.find(p => p.branch === currentBranch)
+                      if (!targetPalaceFromMenu) return
                       
-                      updateBranchState(rootBranch, (state) => ({
-                        ...state,
-                        arcStateStack: [
-                          ...state.arcStateStack,
-                          {
-                            selectedPalaceName: selectedPalace,
-                            selectedPalaceBranch: fromBranch,
-                            selectedArcLabel: state.selectedArcLabel,
-                          },
-                        ],
-                        arcTrail: [
-                          ...state.arcTrail,
-                          {
-                            fromBranch,
-                            toBranch: targetBranch,
-                            label: currentArcLabel,
-                          },
-                        ],
-                        selectedArcLabel: label,
-                        currentPalaceName: targetPalaceName,
-                        currentPalaceBranch: targetBranch,
-                      }))
-                      setPalaceRootMap(prev => ({
-                        ...prev,
-                        [fromBranch]: rootBranch,
-                        [targetBranch]: rootBranch,
-                      }))
-                      setSelectedPalace(targetPalaceName)
+                      const sihuaMap = SIHUA_BY_GAN[targetPalaceFromMenu.stem]
+                      if (!sihuaMap) return
+                      
+                      // 检查该宫位的该 label 是否已被选中（每个宫位独立）
+                      const currentBranchLabels = branchStates[rootBranch]?.selectedLabelsPerBranch?.[currentBranch] || { A: false, B: false, C: false, D: false }
+                      const isCurrentlySelected = currentBranchLabels[label as 'A' | 'B' | 'C' | 'D']
+                      
+                      if (isCurrentlySelected) {
+                        // 移除从该宫位出发的该 label 的弧线
+                        const newArcTrail = (branchStates[rootBranch]?.arcTrail || []).filter(
+                          arc => !(arc.fromBranch === currentBranch && arc.label === label)
+                        )
+                        updateBranchState(rootBranch, (state) => {
+                          const newSelectedLabelsPerBranch = { ...state.selectedLabelsPerBranch }
+                          newSelectedLabelsPerBranch[currentBranch] = {
+                            ...(newSelectedLabelsPerBranch[currentBranch] || { A: false, B: false, C: false, D: false }),
+                            [label]: false,
+                          }
+                          return {
+                            ...state,
+                            arcTrail: newArcTrail,
+                            selectedLabelsPerBranch: newSelectedLabelsPerBranch,
+                          }
+                        })
+                        // 保持菜单打开以支持继续复选
+                        setArcMenu({
+                          branch: currentBranch,
+                          rootBranch,
+                          isFromArc: true,
+                        })
+                      } else {
+                        // 添加该 label 的新弧线
+                        const mutagenKeyMap: Record<'A' | 'B' | 'C' | 'D', string> = {
+                          'A': '化禄',
+                          'B': '化权',
+                          'C': '化科',
+                          'D': '化忌',
+                        }
+                        const mutagenKey = mutagenKeyMap[label as 'A' | 'B' | 'C' | 'D']
+                        const mutagenStar = sihuaMap[mutagenKey]
+                        if (!mutagenStar) return
+                        
+                        const mutagenStarCandidates = getChineseVariantCandidates(mutagenStar)
+                        
+                        // 找到目标宫位
+                        let targetPalace: PalaceData | null = null
+                        for (const palace of palaceData) {
+                          const allStars = [...palace.majorStars, ...palace.minorStars]
+                          if (allStars.some(s => mutagenStarCandidates.includes(s.name))) {
+                            targetPalace = palace
+                            break
+                          }
+                        }
+                        
+                        if (targetPalace) {
+                          const newArcTrail = [
+                            ...(branchStates[rootBranch]?.arcTrail || []),
+                            {
+                              fromBranch: currentBranch,
+                              toBranch: targetPalace.branch,
+                              label: label as 'A' | 'B' | 'C' | 'D',
+                              createdAt: Date.now(),
+                            },
+                          ]
+                          
+                          updateBranchState(rootBranch, (state) => {
+                            const newSelectedLabelsPerBranch = { ...state.selectedLabelsPerBranch }
+                            newSelectedLabelsPerBranch[currentBranch] = {
+                              ...(newSelectedLabelsPerBranch[currentBranch] || { A: false, B: false, C: false, D: false }),
+                              [label]: true,
+                            }
+                            return {
+                              ...state,
+                              arcTrail: newArcTrail,
+                              selectedLabelsPerBranch: newSelectedLabelsPerBranch,
+                            }
+                          })
+                          
+                          // 添加臨時對宮直線（3秒後自動消失）
+                          const oppositeToMerge = targetPalace.branch in OPPOSITE_PALACE 
+                            ? OPPOSITE_PALACE[targetPalace.branch as keyof typeof OPPOSITE_PALACE]
+                            : null
+                          if (oppositeToMerge) {
+                            setTransientOppositeLines((prev) => [
+                              ...prev,
+                              {
+                                id: `${Date.now()}-${Math.random()}`,
+                                fromBranch: targetPalace.branch,
+                                toBranch: oppositeToMerge,
+                                createdAt: Date.now(),
+                              },
+                            ])
+                          }
+                          
+                          // 保持菜单打开以支持继续复选
+                          setArcMenu({
+                            branch: currentBranch,
+                            rootBranch,
+                            isFromArc: true,
+                          })
+                        }
+                      }
                     } else {
-                      // 从宫位触发，开始新链
+                      // 从宫位触发（Root Menu）：toggle label（添加或移除弧线）
                       if (!selectedPalaceData) return
-                      updateBranchState(rootBranch, (state) => ({
-                        ...state,
-                        arcStateStack: [
-                          ...state.arcStateStack,
-                          {
-                            selectedPalaceName: state.currentPalaceName,
-                            selectedPalaceBranch: state.currentPalaceBranch,
-                            selectedArcLabel: state.selectedArcLabel,
-                          },
-                        ],
-                        selectedArcLabel: label,
-                        currentPalaceName: selectedPalaceData.name,
-                        currentPalaceBranch: selectedPalaceData.branch,
-                      }))
-                      setPalaceRootMap(prev => ({
-                        ...prev,
-                        [selectedPalaceData.branch]: rootBranch,
-                      }))
+                      const currentBranch = selectedPalaceData.branch
+                      const sihuaMap = SIHUA_BY_GAN[selectedPalaceData.stem]
+                      if (!sihuaMap) return
+                      
+                      // 检查该宫位的该 label 是否已被选中（每个宫位独立）
+                      const currentBranchLabels = branchStates[rootBranch]?.selectedLabelsPerBranch?.[currentBranch] || { A: false, B: false, C: false, D: false }
+                      const isCurrentlySelected = currentBranchLabels[label as 'A' | 'B' | 'C' | 'D']
+                      
+                      if (isCurrentlySelected) {
+                        // Root Menu toggle off：只清除該標籤的 chain，菜單保持開啟
+                        const newArcTrail = (branchStates[rootBranch]?.arcTrail || []).filter(
+                          arc => !(arc.fromBranch === currentBranch && arc.label === label)
+                        )
+                        updateBranchState(rootBranch, (state) => {
+                          const newSelectedLabelsPerBranch = { ...state.selectedLabelsPerBranch }
+                          newSelectedLabelsPerBranch[currentBranch] = {
+                            ...(newSelectedLabelsPerBranch[currentBranch] || { A: false, B: false, C: false, D: false }),
+                            [label]: false,
+                          }
+                          return {
+                            ...state,
+                            arcTrail: newArcTrail,
+                            selectedLabelsPerBranch: newSelectedLabelsPerBranch,
+                          }
+                        })
+                        // 保持菜單開啟在 Root Menu（isFromArc: false）
+                        setArcMenu({
+                          branch: currentBranch,
+                          rootBranch,
+                          isFromArc: false,
+                        })
+                      } else {
+                        // 添加该 label 的弧线
+                        const mutagenKeyMap: Record<'A' | 'B' | 'C' | 'D', string> = {
+                          'A': '化禄',
+                          'B': '化权',
+                          'C': '化科',
+                          'D': '化忌',
+                        }
+                        const mutagenKey = mutagenKeyMap[label as 'A' | 'B' | 'C' | 'D']
+                        const mutagenStar = sihuaMap[mutagenKey]
+                        if (!mutagenStar) return
+                        
+                        const mutagenStarCandidates = getChineseVariantCandidates(mutagenStar)
+                        
+                        // 找到目标宫位
+                        let targetPalace: PalaceData | null = null
+                        for (const palace of palaceData) {
+                          const allStars = [...palace.majorStars, ...palace.minorStars]
+                          if (allStars.some(s => mutagenStarCandidates.includes(s.name))) {
+                            targetPalace = palace
+                            break
+                          }
+                        }
+                        
+                        if (targetPalace) {
+                          const newArcTrail = [
+                            ...(branchStates[rootBranch]?.arcTrail || []),
+                            {
+                              fromBranch: currentBranch,
+                              toBranch: targetPalace.branch,
+                              label: label as 'A' | 'B' | 'C' | 'D',
+                              createdAt: Date.now(),
+                            },
+                          ]
+                          
+                          updateBranchState(rootBranch, (state) => {
+                            const newSelectedLabelsPerBranch = { ...state.selectedLabelsPerBranch }
+                            newSelectedLabelsPerBranch[currentBranch] = {
+                              ...(newSelectedLabelsPerBranch[currentBranch] || { A: false, B: false, C: false, D: false }),
+                              [label]: true,
+                            }
+                            return {
+                              ...state,
+                              arcTrail: newArcTrail,
+                              selectedLabelsPerBranch: newSelectedLabelsPerBranch,
+                            }
+                          })
+                          
+                          // 添加臨時對宮直線（3秒後自動消失）
+                          const oppositeToMerge = targetPalace.branch in OPPOSITE_PALACE 
+                            ? OPPOSITE_PALACE[targetPalace.branch as keyof typeof OPPOSITE_PALACE]
+                            : null
+                          if (oppositeToMerge) {
+                            setTransientOppositeLines((prev) => [
+                              ...prev,
+                              {
+                                id: `${Date.now()}-${Math.random()}`,
+                                fromBranch: targetPalace.branch,
+                                toBranch: oppositeToMerge,
+                                createdAt: Date.now(),
+                              },
+                            ])
+                          }
+                          
+                          // 保持菜单打开以支持继续复选
+                          setArcMenu({
+                            branch: currentBranch,
+                            rootBranch,
+                            isFromArc: false,
+                          })
+                        }
+                      }
                     }
-                    setArcMenu(null)
                   }}
                 >
                   {label}
                 </button>
-              ))}
+              )
+              })}
             </div>
+            {arcMenu.isFromArc && (
             <div className="flex items-center justify-between gap-1">
-              <HoverHint content="Back" className="flex-1">
+              <HoverHint content="Undo" className="flex-1">
                 <button
                   type="button"
                   disabled={!hasArcs}
                   className={`flex-1 flex h-6 items-center justify-center rounded-lg border font-medium transition-colors ${
                     hasArcs
-                      ? 'border-slate-300/60 bg-white/70 text-slate-700 hover:bg-white'
+                      ? 'border-yellow-200/60 bg-yellow-100/70 text-yellow-700 hover:bg-yellow-100'
                       : 'border-slate-200/40 bg-slate-100/40 text-slate-400 cursor-not-allowed'
                   }`}
                   onClick={() => {
                     if (hasArcs) {
                       undoOneArcStep(arcMenu.rootBranch)
-                      setArcMenu(null)
                     }
                   }}
                 >
                   <img src={UndoIcon} alt="Undo" className="w-3.5 h-3.5" />
                 </button>
               </HoverHint>
-              <HoverHint content="Clean All" className="flex-1">
+              <HoverHint content="Clean Chain" className="flex-1">
                 <button
                   type="button"
                   disabled={!hasArcs}
@@ -585,8 +885,7 @@ export function DottedArcLayer({
                   }`}
                   onClick={() => {
                     if (hasArcs) {
-                      resetSingleBranch(arcMenu.rootBranch)
-                      setArcMenu(null)
+                      cleanCurrentChain()
                     }
                   }}
                 >
@@ -594,6 +893,7 @@ export function DottedArcLayer({
                 </button>
               </HoverHint>
             </div>
+            )}
             </div>
           </foreignObject>
         )

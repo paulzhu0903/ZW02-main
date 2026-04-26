@@ -1922,8 +1922,8 @@ export function ChartDisplay() {
   }>({ A: false, B: false, C: false, D: false })
   const arcResetVersion = 0
 
-  const lineStrokeWidth = 1.5
-  const lineDashArray = isCompactMobile ? '1,1' : '2,2'
+  const lineStrokeWidth = 2
+  const lineDashArray = isCompactMobile ? '6,3' : '8,4'
   const arrowMarkerSize = isCompactMobile ? 7 : 10
   const arrowRefX = isCompactMobile ? 6.3 : 9
   const arrowRefY = isCompactMobile ? 2.2 : 3
@@ -2636,8 +2636,10 @@ export function ChartDisplay() {
                         stroke={line.color}
                         strokeWidth={lineStrokeWidth}
                         strokeDasharray={lineDashArray}
+                        strokeDashoffset={0}
                         opacity={isCompactMobile ? 0.6 : 0.7}
                         markerEnd={`url(#${line.markerColor})`}
+                        className="dash-flow"
                       />
                       {/* 向心自化標籤 - 位置在90%處（靠近箭頭） */}
                       {line.label && (
@@ -2737,14 +2739,20 @@ export function ChartDisplay() {
               fill="none"
               stroke="rgba(255, 213, 0, 0.6)"
               strokeWidth="1.5"
-              strokeDasharray="5 3"
+              strokeDasharray="8 4"
+              strokeDashoffset={0}
+              className="dash-flow-slow"
             />
             {/* 四正連線：本宮 ↔ 對宮 */}
             <line x1={p0.x} y1={p0.y} x2={pOpp.x} y2={pOpp.y}
-              stroke="rgba(0, 200, 255, 0.7)" strokeWidth="1.5" strokeDasharray="5 3" />
+              stroke="rgba(0, 200, 255, 0.7)" strokeWidth="1.5" strokeDasharray="8 4"
+              strokeDashoffset={0}
+              className="dash-flow-slow" />
             {/* 四正連線：前3宮 ↔ 後3宮 */}
             <line x1={pFwd3.x} y1={pFwd3.y} x2={pBack3.x} y2={pBack3.y}
-              stroke="rgba(0, 200, 255, 0.7)" strokeWidth="1.5" strokeDasharray="5 3" />
+              stroke="rgba(0, 200, 255, 0.7)" strokeWidth="1.5" strokeDasharray="8 4"
+              strokeDashoffset={0}
+              className="dash-flow-slow" />
           </svg>
         )
       })()}

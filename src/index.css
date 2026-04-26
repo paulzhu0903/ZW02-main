@@ -471,3 +471,27 @@ body {
   height: 0;
   width: 0;
 }
+
+/* ============================================================
+   虚线流动动画
+   ============================================================ */
+
+@keyframes dashFlow {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+@keyframes dashFlowSlow {
+  to {
+    stroke-dashoffset: -40;
+  }
+}
+
+.dash-flow {
+  animation: dashFlow 1.5s linear infinite;
+}
+
+.dash-flow-slow {
+  animation: dashFlowSlow 2s linear infinite;
+}

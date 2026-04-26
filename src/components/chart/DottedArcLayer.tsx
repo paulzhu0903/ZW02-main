@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { SIHUA_BY_GAN } from '@/knowledge/sihua'
 import { getChineseVariantCandidates } from '@/lib/localize-knowledge'
 import { HoverHint } from '@/components/ui'
@@ -60,11 +60,11 @@ interface TransientOppositeLine {
 export function DottedArcLayer({
   palaceData,
   selectedPalace,
+  setSelectedPalace,
   gridRef,
   gridOffset,
   isCompactMobile,
   lineStrokeWidth,
-  lineDashArray,
   resetVersion,
 }: DottedArcLayerProps) {
   const [branchStates, setBranchStates] = useState<Record<string, BranchState>>({})
@@ -86,12 +86,6 @@ export function DottedArcLayer({
     B: '化权',
     C: '化科',
     D: '化忌',
-  }
-  const mutagenLabelByKey: Record<string, 'A' | 'B' | 'C' | 'D'> = {
-    '化禄': 'A',
-    '化权': 'B',
-    '化科': 'C',
-    '化忌': 'D',
   }
 
   const updateBranchState = (rootBranch: string, updater: (state: BranchState) => BranchState) => {

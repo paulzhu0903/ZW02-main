@@ -7,315 +7,43 @@
    - 命主/身主 + 纳音五行
    ============================================================ */
 
-import { useState, useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { useChartStore, useSettingsStore } from '@/stores'
 import { getChineseVariantCandidates } from '@/lib/localize-knowledge'
-import type { FunctionalAstrolabe, BirthInfo } from '@/lib/astro'
-import { calculateSolarTime, generateChart } from '@/lib/astro'
+import type { BirthInfo } from '@/lib/astro'
+import { generateChart } from '@/lib/astro'
 import { SIHUA_BY_GAN } from '@/knowledge/sihua'
 import { 
-  type PalaceData, 
-  type StarData,
-  PALACE_POSITIONS, 
+  type PalaceData,
+  PALACE_POSITIONS,
   PALACE_BRANCH_INDEX,
-  PALACE_ORDER,
   PALACE_NAME_TO_ENGLISH_MAP,
   MUTAGEN_COLORS,
-  type StarTagProps,
 } from './types'
 import {
   getPalaceEdgePointTowardCenterWithDOM,
   getCenterBoundaryPointForPalace,
   collectMutagenLines,
-  markSelfMutagens,
-  markCausePalace,
   getMutagenType,
 } from './mutagenLines'
 import { MutagenControls } from './MutagenControls'
 import { PalaceHintBubble } from './Bubble'
-import { TimeTableModal } from './TimeTableModal' // 時間表查詢模態框
+import { TimeTableModal } from './TimeTableModal'
 import { DottedArcLayer } from './DottedArcLayer'
 import { HoverHint } from '@/components/ui'
 
-// 模块化组件和函数导入
+// 模組化組件和函數導入
 import { PalaceCard } from './components/PalaceCard'
 import { CenterInfo } from './components/CenterInfo'
 import { DecadalAnnualMonthlyTable } from './components/DecadalAnnualMonthlyTable'
-import { getMonthlySequenceLabel } from './utils/lunar'
 
+// 拆分後的輔助函數和常數
+import { 
+  getSanFangSiZhengBranches,
+  hasDirection,
+} from './utils/chartHelpers'
 
-/* ============================================================
-   辅助函数
-   ============================================================ */
-
-/**
- * 根据年份获取天干地支
- * @param year - 年份
- * @returns 干支字符串，如"甲寅"
- */
-function getYearGanZhi(year: number): string {
-  const ganList = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
-  const zhiList = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
-  
-  const gan = ganList[(year - 1900 + 6) % 10]
-  const zhi = zhiList[(year - 1900) % 12]
-  
-  return gan + zhi
-}
-
-const EARTHLY_BRANCH_ORDER = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'] as const
-const LUNAR_MONTH_NAMES = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'] as const
-const PALACE_CLOCKWISE_BRANCHES = ['寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥', '子', '丑'] as const
-const CHINESE_DAY_NAMES = ['初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十', '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十'] as const
-const SHICHEN_NAMES = ['子時', '丑時', '寅時', '卯時', '辰時', '巳時', '午時', '未時', '申時', '酉時', '戌時', '亥時'] as const
-
-function normalizeIndex(value: number): number {
-  return ((value % 12) + 12) % 12
-}
-
-function getLunarMonthNumber(lunarDateText: string | undefined): number | null {
-  if (!lunarDateText) return null
-
-  const match = lunarDateText.match(/年(闰|閏)?(正|一|二|三|四|五|六|七|八|九|十[一二]?|冬|腊|臘)月/)
-  const lunarMonthText = match?.[2]
-  if (!lunarMonthText) return null
-
-  const monthMap: Record<string, number> = {
-    '正': 1, '一': 1,
-    '二': 2,
-    '三': 3,
-    '四': 4,
-    '五': 5,
-    '六': 6,
-    '七': 7,
-    '八': 8,
-    '九': 9,
-    '十': 10,
-    '十一': 11, '冬': 11,
-    '十二': 12, '腊': 12, '臘': 12,
-  }
-
-  return monthMap[lunarMonthText] ?? null
-}
-
-function hasDirection(mark: '得' | '失' | '得失' | undefined, target: '得' | '失'): boolean {
-  if (!mark) return false
-  if (mark === '得失') return true
-  return mark === target
-}
-
-function getSanFangSiZhengBranches(selectedBranch: string): {
-  sanFang: string[]
-  siZheng: string[]
-} {
-  const indexToBranch = ['寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥', '子', '丑']
-  const branchIndex = PALACE_BRANCH_INDEX[selectedBranch]
-
-  if (branchIndex === undefined) {
-    return { sanFang: [], siZheng: [] }
-  }
-
-  const trine1 = indexToBranch[(branchIndex + 4) % 12]
-  const trine2 = indexToBranch[(branchIndex + 8) % 12]
-  const opposite = indexToBranch[(branchIndex + 6) % 12]
-  const forward3 = indexToBranch[(branchIndex + 3) % 12]
-  const backward3 = indexToBranch[(branchIndex + 9) % 12]
-
-  return {
-    sanFang: [selectedBranch, trine1, trine2],
-    siZheng: [selectedBranch, opposite, forward3, backward3],
-  }
-}
-
-function getTimeBranchIndex(timeText: string | undefined): number | null {
-  if (!timeText) return null
-
-  const match = timeText.match(/[子丑寅卯辰巳午未申酉戌亥]/)
-  if (!match) return null
-
-  const index = EARTHLY_BRANCH_ORDER.indexOf(match[0] as typeof EARTHLY_BRANCH_ORDER[number])
-  return index >= 0 ? index : null
-}
-
-/**
- * 五虎遁法則：根據年份天干計算正月天干
- * @param year - 年份
- * @returns 正月天干，如"丙"、"戊"等
- */
-function getFirstMonthGan(year: number): string {
-  const ganList = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
-  const yearGan = ganList[(year - 1900 + 6) % 10]
-  
-  // 五虎遁法則
-  const firstMonthMap: Record<string, string> = {
-    '甲': '丙', '己': '丙',  // 甲己年起丙寅
-    '乙': '戊', '庚': '戊',  // 乙庚年起戊寅
-    '丙': '庚', '辛': '庚',  // 丙辛年起庚寅
-    '丁': '壬', '壬': '壬',  // 丁壬年起壬寅
-    '戊': '甲', '癸': '甲',  // 戊癸年起甲寅
-  }
-  
-  return firstMonthMap[yearGan] || '甲'
-}
-
-/**
- * 計算指定月份的天干
- * @param year - 年份
- * @param lunarMonth - 農曆月份（1-12）
- * @returns 月份天干，如"丙"、"丁"等
- */
-function getMonthlyGan(year: number, lunarMonth: number): string {
-  const ganList = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
-  const firstMonthGan = getFirstMonthGan(year)
-  const firstMonthGanIndex = ganList.indexOf(firstMonthGan)
-  
-  // 正月是firstMonthGan，後續每月遞進一位天干
-  const monthGanIndex = (firstMonthGanIndex + lunarMonth - 1) % 10
-  return ganList[monthGanIndex]
-}
-
-function getMonthlySequenceByBranch(
-  chart: FunctionalAstrolabe,
-  palaceData: PalaceData[],
-  selectedDecadal: number | null,
-  selectedAnnual: number | null,
-  selectedAnnualGanZhi: string | null,
-  selectedAnnualYear: number | null,
-  monthlyArrangementMethod: 'yuanYuePositioning' | 'douJun' = 'yuanYuePositioning',
-): Record<string, string[]> {
-  if (selectedDecadal === null || selectedAnnual === null || !selectedAnnualGanZhi || selectedAnnualYear === null) return {}
-
-  const birthLunarMonth = getLunarMonthNumber((chart as any).lunarDate)
-  const birthTimeBranchIndex = getTimeBranchIndex((chart as any).time)
-
-  if (birthLunarMonth === null || birthTimeBranchIndex === null) return {}
-
-  // 从selectedAnnualGanZhi中提取地支（最后一个字符）
-  const yearlyBranch = selectedAnnualGanZhi.slice(-1)
-  
-  // 获取流年地支在宫位系统中的索引
-  const yearlyIndex = PALACE_BRANCH_INDEX[yearlyBranch] ?? -1
-
-  if (yearlyIndex < 0) return {}
-
-  const monthlyMap: Record<string, string[]> = {}
-
-  LUNAR_MONTH_NAMES.forEach((monthName, idx) => {
-    const lunarMonth = idx + 1
-    
-    // 根据选择的方法计算月份宫位
-    let monthlyIndex: number
-    
-    if (monthlyArrangementMethod === 'yuanYuePositioning') {
-      // 正月定位法：正月所在宮位 = (流年地支 + 出生時支 - 出生月) mod 12
-      // 然后每个月顺序推进
-      const firstMonthIndex = normalizeIndex(yearlyIndex + birthTimeBranchIndex - birthLunarMonth)
-      monthlyIndex = normalizeIndex(firstMonthIndex + lunarMonth - 1)
-    } else {
-      // 斗君法（iztro规则）：monthlyIndex = yearlyIndex - birthLunarMonth + birthTimeBranchIndex + lunarMonth
-      monthlyIndex = normalizeIndex(yearlyIndex - birthLunarMonth + birthTimeBranchIndex + lunarMonth)
-    }
-    
-    const targetPalace = palaceData.find((palace) => (PALACE_BRANCH_INDEX[palace.branch] ?? -1) === monthlyIndex)
-
-    if (targetPalace) {
-      if (!monthlyMap[targetPalace.branch]) {
-        monthlyMap[targetPalace.branch] = []
-      }
-      
-      // 計算流月天干和地支
-      const monthlyGan = getMonthlyGan(selectedAnnualYear, lunarMonth)
-      // 農曆月份對應地支：正月(寅)、二月(卯)、三月(辰)...十一月(子)、十二月(丑)
-      const monthlyZhi = EARTHLY_BRANCH_ORDER[(lunarMonth + 1) % 12]
-      const monthlyGanZhi = `${monthlyGan}${monthlyZhi}`
-      
-      // 合併月份名稱和干支（格式：正月庚寅月）
-      monthlyMap[targetPalace.branch].push(`${monthName}月${monthlyGanZhi}月`)
-    }
-  })
-
-  return monthlyMap
-}
-
-/**
- * 根据语言设置获取亮度显示字符
- * @param brightness - 亮度值（中文字符，如"廟"、"庙"、"望"、"平"、"陷"）
- * @param language - 语言代码
- * @returns 本地化后的亮度字符
- */
-
-function parsePalaces(chart: FunctionalAstrolabe): PalaceData[] {
-  return (chart.palaces || []).map((palace) => {
-    const stem = palace.heavenlyStem as string
-    
-    // 主星（带亮度和四化）
-    const majorStars: StarData[] = (palace.majorStars || []).map((s) => ({
-      name: s.name as string,
-      brightness: s.brightness as string | undefined,
-      mutagen: s.mutagen as string | undefined,
-      palaceStem: stem,  // 添加宮位天干
-    }))
-
-    // 辅星（完整，带亮度）
-    const minorStars: StarData[] = (palace.minorStars || []).map((s) => ({
-      name: s.name as string,
-      brightness: s.brightness as string | undefined,
-      mutagen: s.mutagen as string | undefined,
-      palaceStem: stem,  // 添加宮位天干
-    }))
-
-    // 杂曜
-    const adjectiveStars: string[] = ((palace as any).adjectiveStars || []).map(
-      (s: any) => s.name as string
-    )
-
-    return {
-      name: palace.name as string,
-      stem,
-      branch: palace.earthlyBranch as string,
-      majorStars,
-      minorStars,
-      adjectiveStars,
-      decadal: palace.decadal as { range: [number, number] },
-      boshi12Deity: palace.boshi12 as string || '',
-      longlifeDeity: palace.changsheng12 as string || '',
-      isLife: palace.name === '命宫',
-      isBody: palace.isBodyPalace === true,
-      isCausePalace: false,  // 稍后由 markCausePalace 函数标记
-    }
-  })
-}
-
-function getDefaultDecadalAnnualSelection(
-  chart: FunctionalAstrolabe,
-  birthYear: number,
-  currentYear: number,
-): { decadal: number; annual: number } {
-  const decadalData = parsePalaces(chart)
-    .filter((p) => p.decadal?.range)
-    .map((p) => ({
-      ageStart: p.decadal.range[0],
-      ageEnd: p.decadal.range[1],
-    }))
-    .sort((a, b) => a.ageStart - b.ageStart)
-
-  if (decadalData.length === 0) {
-    return { decadal: 0, annual: 0 }
-  }
-
-  const currentAge = currentYear - birthYear + 1
-  let decadalIndex = decadalData.findIndex((item) => currentAge >= item.ageStart && currentAge <= item.ageEnd)
-
-  if (decadalIndex < 0) {
-    decadalIndex = currentAge < decadalData[0].ageStart ? 0 : decadalData.length - 1
-  }
-
-  const target = decadalData[decadalIndex]
-  const maxAnnualOffset = Math.max(0, target.ageEnd - target.ageStart)
-  const annualIndex = Math.max(0, Math.min(currentAge - target.ageStart, maxAnnualOffset))
-
-  return { decadal: decadalIndex, annual: annualIndex }
-}
+import { useChartDisplay, useChartCalculations } from './hooks/useChartDisplay'
 
 /* ============================================================
    主命盤組件
@@ -324,134 +52,94 @@ function getDefaultDecadalAnnualSelection(
 export function ChartDisplay() {
   const { chart, birthInfo, setBirthInfo, setChart } = useChartStore()
   const { language, defaultChartType, monthlyArrangementMethod, setCurrentChartType } = useSettingsStore()
-  const [selectedPalace, setSelectedPalace] = useState<string | null>(null)
-  const [chartType, setChartType] = useState<'flying' | 'trireme' | 'transformation'>(defaultChartType)
+  
+  // 使用自定義 hook 管理狀態
+  const {
+    selectedPalace,
+    setSelectedPalace,
+    chartType,
+    setChartType,
+    selectedDecadal,
+    setSelectedDecadal,
+    selectedAnnual,
+    setSelectedAnnual,
+    selectedMonthly,
+    setSelectedMonthly,
+    selectedDaily,
+    setSelectedDaily,
+    selectedHourly,
+    setSelectedHourly,
+    isDecadalExpanded,
+    setIsDecadalExpanded,
+    showSanFangSiZheng,
+    setShowSanFangSiZheng,
+    showBubbleHint,
+    setShowBubbleHint,
+    directionFocus,
+    setDirectionFocus,
+    showReversalCheck,
+    setShowReversalCheck,
+    showFlyGongToolbox,
+    setShowFlyGongToolbox,
+    isTimeTableModalOpen,
+    setIsTimeTableModalOpen,
+    gridRef,
+    gridOffset,
+    bubblePalace,
+    setBubblePalace,
+    isCompactMobile,
+    mutagenDisplay,
+    setMutagenDisplay,
+  } = useChartDisplay(chart, birthInfo, defaultChartType, monthlyArrangementMethod)
 
   // 初始化時設置全局狀態
   useEffect(() => {
     setCurrentChartType(chartType)
   }, [chartType, setCurrentChartType])
-  const [selectedDecadal, setSelectedDecadal] = useState<number | null>(() => {
-    if (!chart || !birthInfo) return null
-    return getDefaultDecadalAnnualSelection(chart, birthInfo.year, new Date().getFullYear()).decadal
-  })
-  const [selectedAnnual, setSelectedAnnual] = useState<number | null>(() => {
-    if (!chart || !birthInfo) return null
-    return getDefaultDecadalAnnualSelection(chart, birthInfo.year, new Date().getFullYear()).annual
-  })
-  const [selectedMonthly, setSelectedMonthly] = useState<number | null>(null)
-  const [selectedDaily, setSelectedDaily] = useState<number | null>(null)
-  const [selectedHourly, setSelectedHourly] = useState<number | null>(null)
-  const [isDecadalExpanded, setIsDecadalExpanded] = useState(false)
-  const [showSanFangSiZheng, setShowSanFangSiZheng] = useState(false)
-  const [showBubbleHint, setShowBubbleHint] = useState(false)
-  const [directionFocus, setDirectionFocus] = useState<'得' | '失' | null>(null)
-  const [showReversalCheck, setShowReversalCheck] = useState(false)
-  const [showFlyGongToolbox, setShowFlyGongToolbox] = useState(false)
-  const [isTimeTableModalOpen, setIsTimeTableModalOpen] = useState(false)
-  const gridRef = useRef<HTMLDivElement>(null)
-  const [gridOffset, setGridOffset] = useState({ x: 0, y: 0 })
-  
-  // 宮位氣泡提示狀態
-  const [bubblePalace, setBubblePalace] = useState<{
-    palace: PalaceData
-    rect: DOMRect
-    decadalLabel: string
-    annualLabel: string
-    decadalStem: string | null
-    annualStem: string | null
-    annualGanZhi: string | null
-  } | null>(null)
-  const [isCompactMobile, setIsCompactMobile] = useState(false)
-  const birthInfoKeyRef = useRef<string>('')
-  const initializedRef = useRef(false)
-  
-  // 自化線顯示控制
-  const [mutagenDisplay, setMutagenDisplay] = useState<{
-    A: boolean
-    B: boolean
-    C: boolean
-    D: boolean
-  }>({ A: false, B: false, C: false, D: false })
-  const arcResetVersion = 0
 
+  // 使用計算 hook 獲取衍生資料
+  const {
+    yearGan,
+    gender,
+    palaceData,
+    grid,
+    birthTime,
+    solarDate,
+    genderDisplay,
+    selectedAnnualYear,
+    selectedAnnualAge,
+    selectedAnnualGanZhi,
+    decadalLifePalaceStem,
+    annualLifePalaceStem,
+    monthlySequenceByBranch,
+    selectedDailyLabel,
+    selectedMonthlyLabel,
+    selectedMonthlyPalaceBranch,
+    selectedDailyPalaceBranch,
+    dailySequenceByBranch,
+    hourlySequenceByBranch,
+    selectedHourlyPalaceBranch,
+    decadalLabelsByPalaceName,
+    annualLabelsByPalaceName,
+  } = useChartCalculations(
+    chart,
+    birthInfo,
+    selectedDecadal,
+    selectedAnnual,
+    selectedMonthly,
+    selectedDaily,
+    selectedHourly,
+    monthlyArrangementMethod,
+  )
+
+  // SVG 相關設定
+  const arcResetVersion = 0
   const lineStrokeWidth = 2
   const lineDashArray = isCompactMobile ? '6,3' : '8,4'
   const arrowMarkerSize = isCompactMobile ? 7 : 10
   const arrowRefX = isCompactMobile ? 6.3 : 9
   const arrowRefY = isCompactMobile ? 2.2 : 3
   const arrowPath = isCompactMobile ? 'M0,0 L0,4.4 L6.5,2.2 z' : 'M0,0 L0,6 L9,3 z'
-
-  if (!chart || !birthInfo) return null
-
-  // 動態計算實際的 cellSize 和 grid 的偏移位置
-  useEffect(() => {
-    // 當 birthInfo 改變時重置大限和流年選擇
-    const currentBirthInfoKey = `${birthInfo.year}-${birthInfo.month}-${birthInfo.day}-${birthInfo.hour}`
-    if (currentBirthInfoKey !== birthInfoKeyRef.current) {
-      birthInfoKeyRef.current = currentBirthInfoKey
-      const defaults = getDefaultDecadalAnnualSelection(chart, birthInfo.year, new Date().getFullYear())
-      setSelectedDecadal(defaults.decadal)
-      setSelectedAnnual(defaults.annual)
-      setSelectedMonthly(null)
-      setSelectedDaily(null)
-      setSelectedHourly(null)
-      initializedRef.current = true
-    } else if (!initializedRef.current) {
-      // 首次掛載時初始化
-      const defaults = getDefaultDecadalAnnualSelection(chart, birthInfo.year, new Date().getFullYear())
-      setSelectedDecadal(defaults.decadal)
-      setSelectedAnnual(defaults.annual)
-      initializedRef.current = true
-    }
-    
-    const updateGridLayout = () => {
-      if (!gridRef.current) return
-
-      const gridElement = gridRef.current
-      const parentElement = gridElement.parentElement
-      
-      if (!parentElement) return
-      
-      // 獲取 grid 相對於父容器的位置
-      const gridRect = gridElement.getBoundingClientRect()
-      const parentRect = parentElement.getBoundingClientRect()
-      const gridRelativeX = gridRect.left - parentRect.left
-      const gridRelativeY = gridRect.top - parentRect.top
-      setGridOffset({ x: gridRelativeX, y: gridRelativeY })
-      setIsCompactMobile(window.innerWidth < 640)
-
-    }
-
-    updateGridLayout()
-    
-    // 在窗口 resize 時重新計算
-    const resizeObserver = new ResizeObserver(() => {
-      updateGridLayout()
-    })
-    
-    // 監控grid容器的大小變化
-    if (gridRef.current) {
-      resizeObserver.observe(gridRef.current)
-    }
-    
-    // 監控window resize和scroll
-    window.addEventListener('resize', updateGridLayout)
-    window.addEventListener('scroll', updateGridLayout, true)
-    
-    return () => {
-      resizeObserver.disconnect()
-      window.removeEventListener('resize', updateGridLayout)
-      window.removeEventListener('scroll', updateGridLayout, true)
-    }
-  }, [chartType, birthInfo])
-
-  // 重置流月選擇（當 birthInfo 改變時）
-  useEffect(() => {
-    setSelectedMonthly(null)
-    setSelectedDaily(null)
-    setSelectedHourly(null)
-  }, [birthInfo?.year, birthInfo?.month, birthInfo?.day])
 
   // 處理選中宮位的四化星樣式
   useEffect(() => {
@@ -468,12 +156,8 @@ export function ChartDisplay() {
       return
     }
     
-    // 獲取 palaceData
-    let palaceDataComputed = parsePalaces(chart)
-    palaceDataComputed = markSelfMutagens(palaceDataComputed)
-    
     // 找到選中宮位的詳細信息
-    const selectedPalaceData = palaceDataComputed.find(p => p.name === selectedPalace)
+    const selectedPalaceData = palaceData.find(p => p.name === selectedPalace)
     if (!selectedPalaceData) return
 
     const stem = selectedPalaceData.stem
@@ -527,194 +211,9 @@ export function ChartDisplay() {
         starElement.style.lineHeight = '1'
       }
     })
-  }, [selectedPalace, chart, mutagenDisplay])
+  }, [selectedPalace, chart, mutagenDisplay, palaceData])
 
-  // 計算生年天干
-  const heavenlyStemList = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
-  const yearGan = heavenlyStemList[(birthInfo.year - 1900 + 6) % 10]
-  const gender = birthInfo.gender as 'male' | 'female'
-
-  let palaceData = parsePalaces(chart)
-  // 標記自化（離心自化和向心自化）
-  palaceData = markSelfMutagens(palaceData)
-  // 標記來因宮
-  palaceData = markCausePalace(palaceData, yearGan)
-
-  // 由大限序號定位「大限命宮」天干，供三合盤額外四化顯示使用
-  const decadalLifePalaceStem = (() => {
-    if (selectedDecadal === null) return null
-
-    const sortedDecadalPalaces = palaceData
-      .filter(p => p.decadal?.range)
-      .sort((a, b) => a.decadal.range[0] - b.decadal.range[0])
-
-    return sortedDecadalPalaces[selectedDecadal]?.stem || null
-  })()
-
-  const grid: (PalaceData | null)[][] = Array(4).fill(null).map(() => Array(4).fill(null))
-
-  palaceData.forEach((p) => {
-    const pos = PALACE_POSITIONS[p.branch]
-    if (pos) grid[pos.row][pos.col] = p
-  })
-
-  const hour = String(birthInfo.hour || 0).padStart(2, '0')
-  const minute = String(birthInfo.minute || 0).padStart(2, '0')
-  const birthTime = `${hour}:${minute}`
-  const solarDate = calculateSolarTime(birthInfo)
-  const genderDisplay = gender === 'male' ? '男' : '女'
-
-  // 计算流年信息（如果选择了流年）
-  let selectedAnnualYear: number | null = null
-  let selectedAnnualAge: number | null = null
-  let selectedAnnualGanZhi: string | null = null
-  
-  if (selectedDecadal !== null && selectedAnnual !== null) {
-    // 计算排序后的大限数据（与表格中的排序保持一致）
-    const sortedDecadalDataTemp = palaceData
-      .filter(p => p.decadal?.range)
-      .map((p) => ({
-        ageStart: p.decadal.range[0],
-        ageEnd: p.decadal.range[1],
-      }))
-      .sort((a, b) => a.ageStart - b.ageStart)
-    
-    const decadal = sortedDecadalDataTemp[selectedDecadal]
-    if (decadal !== undefined) {
-      selectedAnnualAge = decadal.ageStart + selectedAnnual
-      selectedAnnualYear = birthInfo.year + (selectedAnnualAge - 1)
-      selectedAnnualGanZhi = getYearGanZhi(selectedAnnualYear)
-    }
-  }
-
-  // 由流年地支定位「年命宮」天干，供三合盤額外四化顯示使用
-  const annualLifePalaceStem = (() => {
-    if (!selectedAnnualGanZhi || selectedAnnual === null) return null
-    const yearlyBranch = selectedAnnualGanZhi.slice(-1)
-    return palaceData.find(p => p.branch === yearlyBranch)?.stem || null
-  })()
-
-  const monthlySequenceByBranch = getMonthlySequenceByBranch(chart, palaceData, selectedDecadal, selectedAnnual, selectedAnnualGanZhi, selectedAnnualYear, monthlyArrangementMethod)
-  const selectedDailyLabel = selectedDaily !== null ? CHINESE_DAY_NAMES[selectedDaily] || '' : ''
-  const selectedMonthlyLabel = (() => {
-    if (selectedAnnualYear === null || selectedMonthly === null) return null
-    return getMonthlySequenceLabel(selectedAnnualYear, selectedMonthly + 1)
-  })()
-  const selectedMonthlyPalaceBranch = (() => {
-    if (selectedAnnualYear === null || selectedMonthly === null) return null
-
-    const selectedMonthlyLabel = getMonthlySequenceLabel(selectedAnnualYear, selectedMonthly + 1)
-    for (const [branch, labels] of Object.entries(monthlySequenceByBranch)) {
-      if (labels.includes(selectedMonthlyLabel)) {
-        return branch
-      }
-    }
-
-    return null
-  })()
-  const selectedDailyPalaceBranch = (() => {
-    if (selectedMonthlyPalaceBranch === null || selectedDaily === null) return null
-
-    const monthlyPalaceIndex = PALACE_BRANCH_INDEX[selectedMonthlyPalaceBranch]
-    if (monthlyPalaceIndex === undefined) return null
-
-    // 規則：流日起算從當月初一直接起，第1日同流月宮，之後順時針遞進。
-    const dailyPalaceIndex = normalizeIndex(monthlyPalaceIndex + selectedDaily)
-    return PALACE_CLOCKWISE_BRANCHES[dailyPalaceIndex] || null
-  })()
-  const dailySequenceByBranch = (() => {
-    const result: Record<string, string[]> = {}
-    if (selectedMonthlyPalaceBranch === null) return result
-
-    const monthlyPalaceIndex = PALACE_BRANCH_INDEX[selectedMonthlyPalaceBranch]
-    if (monthlyPalaceIndex === undefined) return result
-
-    // 流日起算從當月初一直接起，第1日同流月宮，之後順時針遞進
-    for (let i = 0; i < 30; i++) {
-      const palaceIndex = normalizeIndex(monthlyPalaceIndex + i)
-      const branch = PALACE_CLOCKWISE_BRANCHES[palaceIndex]
-      const dayLabel = CHINESE_DAY_NAMES[i]
-      if (!result[branch]) {
-        result[branch] = []
-      }
-      result[branch].push(dayLabel)
-    }
-
-    return result
-  })()
-  const hourlySequenceByBranch = (() => {
-    const result: Record<string, string> = {}
-    if (selectedDailyPalaceBranch === null || !selectedDailyLabel) return result
-
-    const dailyPalaceIndex = PALACE_BRANCH_INDEX[selectedDailyPalaceBranch]
-    if (dailyPalaceIndex === undefined) return result
-
-    // 以流日所在宮位作為子時起點，順時針排滿12宮。
-    for (let i = 0; i < 12; i++) {
-      const palaceIndex = normalizeIndex(dailyPalaceIndex + i)
-      const branch = PALACE_CLOCKWISE_BRANCHES[palaceIndex]
-      const shichen = SHICHEN_NAMES[i]
-      result[branch] = `${selectedDailyLabel}${shichen}`
-    }
-
-    return result
-  })()
-  const selectedHourlyPalaceBranch = (() => {
-    if (selectedDailyPalaceBranch === null || selectedHourly === null) return null
-    const dailyPalaceIndex = PALACE_BRANCH_INDEX[selectedDailyPalaceBranch]
-    if (dailyPalaceIndex === undefined) return null
-    const hourlyPalaceIndex = normalizeIndex(dailyPalaceIndex + selectedHourly)
-    return PALACE_CLOCKWISE_BRANCHES[hourlyPalaceIndex] || null
-  })()
-
-  // 計算大限標籤映射 - 根據選中大限找出大命宮位
-  let decadalLabelsByPalaceName: Record<string, string> = {}
-  if (selectedDecadal !== null) {
-    const decadalLabels = ['大命', '大父', '大福', '大田', '大官', '大友', '大遷', '大疾', '大財', '大子', '大夫', '大兄']
-    const sortedDecadalPalaces = palaceData
-      .filter((p: any) => p.decadal?.range)
-      .sort((a: any, b: any) => a.decadal.range[0] - b.decadal.range[0])
-    const decadalLifePalace = sortedDecadalPalaces[selectedDecadal]
-    if (decadalLifePalace) {
-      const lifeEnglishName = PALACE_NAME_TO_ENGLISH_MAP[decadalLifePalace.name]
-      if (lifeEnglishName) {
-        const lifeIndex = PALACE_ORDER.indexOf(lifeEnglishName)
-        if (lifeIndex !== -1) {
-          for (let i = 0; i < PALACE_ORDER.length; i++) {
-            const palaceEnglishName = PALACE_ORDER[i]
-            const labelIndex = (i - lifeIndex + PALACE_ORDER.length) % PALACE_ORDER.length
-            decadalLabelsByPalaceName[palaceEnglishName] = decadalLabels[labelIndex]
-          }
-        }
-      }
-    }
-  }
-
-  // 計算流年標籤映射 - 根據流年地支找出年命宮位
-  let annualLabelsByPalaceName: Record<string, string> = {}
-  if (selectedAnnualGanZhi && selectedAnnual !== null) {
-    const yearlyBranch = selectedAnnualGanZhi.slice(-1) // 提取地支
-    const annualLabels = ['年命', '年父', '年福', '年田', '年官', '年友', '年遷', '年疾', '年財', '年子', '年夫', '年兄']
-    
-    // 找出流年地支對應的宮位（年命宮）
-    const yearlyLifePalace = palaceData.find(p => p.branch === yearlyBranch)
-    if (yearlyLifePalace) {
-      // 獲取年命宮的英文名稱
-      const lifeEnglishName = PALACE_NAME_TO_ENGLISH_MAP[yearlyLifePalace.name]
-      if (lifeEnglishName) {
-        // 在 PALACE_ORDER 中找出年命宮的位置
-        const lifeIndex = PALACE_ORDER.indexOf(lifeEnglishName)
-        if (lifeIndex !== -1) {
-          // 從年命宮開始，為所有宮位分配標籤（以英文 key 存儲，避免中文字形差異）
-          for (let i = 0; i < PALACE_ORDER.length; i++) {
-            const palaceEnglishName = PALACE_ORDER[i]
-            const labelIndex = (i - lifeIndex + PALACE_ORDER.length) % PALACE_ORDER.length
-            annualLabelsByPalaceName[palaceEnglishName] = annualLabels[labelIndex]
-          }
-        }
-      }
-    }
-  }
+  if (!chart || !birthInfo) return null
 
   // 沿用現有四化飛線，做最小反背接線：先過濾顯示中的線，再交給規格檔判定
   const allMutagenLines = collectMutagenLines(palaceData)
@@ -858,8 +357,8 @@ export function ChartDisplay() {
             const englishKey = PALACE_NAME_TO_ENGLISH_MAP[palace.name] || ''
             return decadalLabelsByPalaceName[englishKey] || ''
           })()}
-          yearGan={yearGan}
-          gender={gender}
+          yearGan={yearGan || ''}
+          gender={gender || 'male'}
           birthInfo={birthInfo}
           palaceData={palaceData}
           decadalLifePalaceStem={decadalLifePalaceStem}
@@ -1220,7 +719,7 @@ export function ChartDisplay() {
         <div className="col-span-2 row-span-2" data-centerinfo>
           <CenterInfo 
             chart={chart} 
-            solarDate={solarDate} 
+            solarDate={solarDate || ''} 
             birthTime={birthTime} 
             birthInfo={birthInfo} 
             gender={genderDisplay} 

@@ -216,7 +216,7 @@ export function getCenterBoundaryPointForPalace(branch: string, gridElement: HTM
 /**
  * 收集所有四化線（根據標準四化飛行表）
  * - 向心自化：本宮天干四化指向對宮
- * - 離心自化：本宮星耀根據天干四化生成
+ * - 離心自化：本宮天干四化生成
  */
 export function collectMutagenLines(palaceData: PalaceData[]): MutagenLine[] {
   const lines: MutagenLine[] = []
@@ -276,7 +276,7 @@ export function collectMutagenLines(palaceData: PalaceData[]): MutagenLine[] {
     })
   })
 
-  // === 收集所有離心自化（本宮星耀根據天干四化生成） ===
+  // === 收集所有離心自化（本宮根據天干四化生成） ===
   palaceData.forEach((palace) => {
     // 獲取本宮天干的四化表
     const sihuaMap = SIHUA_BY_GAN[palace.stem]
@@ -436,7 +436,7 @@ export function getDecadalPalaceIndex(originIndex: number, selectedDecadal: numb
   }
 
   // 判斷是否順時針轉移
-  // 陽男（天干為陽：甲丙戊庚壬）+ 陰女（女性且天干為陰：乙丁己辛癸）= 順時針
+  // 陽男（天干為陽：甲丙戊庚壬）+ 陰女（天干為陰：乙丁己辛癸）= 順時針
   const yangGanList = ['甲', '丙', '戊', '庚', '壬']
   const isYangGan = yangGanList.includes(yearGan)
   const shouldClockwise = (gender === 'male' && !isYangGan) || (gender === 'female' && isYangGan)

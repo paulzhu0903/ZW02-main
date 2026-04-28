@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSettingsStore } from '@/stores'
 import { SIHUA_BY_GAN } from '@/knowledge/sihua'
 import { getChineseVariantCandidates } from '@/lib/localize-knowledge'
 import { HoverHint } from '@/components/ui'
@@ -67,6 +68,7 @@ export function DottedArcLayer({
   lineStrokeWidth,
   resetVersion,
 }: DottedArcLayerProps) {
+  const { arcFlowAnimationEnabled, lineExtensionAnimationEnabled } = useSettingsStore()
   const [branchStates, setBranchStates] = useState<Record<string, BranchState>>({})
   const [arcMenu, setArcMenu] = useState<ArcMenuState | null>(null)
   const [transientOppositeLines, setTransientOppositeLines] = useState<TransientOppositeLine[]>([])
@@ -394,7 +396,7 @@ export function DottedArcLayer({
         const dy = toCenter.y - fromCenter.y
         const distance = Math.hypot(dx, dy)
         const elapsedTime = Date.now() - (trail.createdAt || Date.now())
-        const drawDuration = 1200
+        const drawDuration = lineExtensionAnimationEnabled ? 1200 : 0  // 禁用时立即完成延伸
         const drawProgress = Math.min(1, Math.max(0, elapsedTime) / drawDuration)
         
         // 虚线 offset：延伸阶段用实线从起点漸進延伸，完成后改為流动虚线
@@ -408,10 +410,14 @@ export function DottedArcLayer({
         } else {
           // 完成后：4:2 虚线流动动画，更平順的循環
           strokeDasharray = "4,2"
-          const flowSpeed = 40  // px/s 流動速度
-          const timeAfterCompletion = elapsedTime - drawDuration
-          const flowDistance = (timeAfterCompletion * flowSpeed) / 1000  // 轉換為毫秒
-          strokeDashoffset = -(flowDistance % 6) // 6 = 4 (dash) + 2 (gap)，負值反向流動
+          if (arcFlowAnimationEnabled) {
+            const flowSpeed = 40  // px/s 流動速度
+            const timeAfterCompletion = elapsedTime - drawDuration
+            const flowDistance = (timeAfterCompletion * flowSpeed) / 1000  // 轉換為毫秒
+            strokeDashoffset = -(flowDistance % 6) // 6 = 4 (dash) + 2 (gap)，負值反向流動
+          } else {
+            strokeDashoffset = 0  // 禁用动画时保持静止
+          }
         }
         
         // 虚线箭头：沿着弧线轨迹移动，使用 drawProgress 直接同步
@@ -523,9 +529,9 @@ export function DottedArcLayer({
         
         // 虛線延遲 1.2 秒後才開始延伸（虛線完成後，橙線才開始）
         const arcCompletionDuration = 1200 // 虛線（弧線）完成需要 1.2 秒
-        const orangeLineDuration = 1200 // 橙線延伸也需要 1.2 秒
+        const orangeLineDuration = lineExtensionAnimationEnabled ? 1200 : 0  // 禁用时立即完成延伸
         const elapsedAfterArcCompletion = Math.max(0, elapsedTime - arcCompletionDuration)
-        const orangeDrawProgress = Math.min(1, elapsedAfterArcCompletion / orangeLineDuration)
+        const orangeDrawProgress = Math.min(1, elapsedAfterArcCompletion / (orangeLineDuration || 1))
         
         // 計算箭頭應該出現的位置：根據動畫進度從起點延伸到終點
         // 箭頭應該緊跟線條末端

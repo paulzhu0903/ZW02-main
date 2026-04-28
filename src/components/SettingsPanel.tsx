@@ -63,6 +63,9 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     flyingShowTripleQuaternaryLine,
     // 三合盤面設定
     triremeShowStarBrightness,
+    // 動畫設定
+    arcFlowAnimationEnabled,
+    lineExtensionAnimationEnabled,
     // 方法
     setProvider,
     updateCurrentProvider,
@@ -95,6 +98,9 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     setFlyingShowTripleQuaternaryLine,
     // 三合盤面相關的setter
     setTriremeShowStarBrightness,
+    // 動畫設定相關的setter
+    setArcFlowAnimationEnabled,
+    setLineExtensionAnimationEnabled,
   } = useSettingsStore()
 
   // 当前厂商的配置
@@ -637,9 +643,40 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           </div>
         </div>
 
+        {/* 動畫效果設定 */}
+        <div className="border-t border-white/10 pt-3 space-y-3">
+          <h3 className="text-sm font-medium text-text-secondary mb-2">⑦ {language === 'zh-TW' ? '動畫效果' : '动画效果'}</h3>
+          <div className="space-y-2">
+            {/* 弧線流動效果 */}
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <div
+                className={`w-10 h-6 rounded-full relative transition-colors ${arcFlowAnimationEnabled ? 'bg-star' : 'bg-white/10'}`}
+                onClick={() => setArcFlowAnimationEnabled(!arcFlowAnimationEnabled)}
+              >
+                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${arcFlowAnimationEnabled ? 'left-5' : 'left-1'}`} />
+              </div>
+              <span className="text-sm text-text-secondary group-hover:text-text transition-colors">
+                {language === 'zh-TW' ? '弧線的流動效果' : '弧线的流动效果'}
+              </span>
+            </label>
+            {/* 動畫延伸效果 */}
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <div
+                className={`w-10 h-6 rounded-full relative transition-colors ${lineExtensionAnimationEnabled ? 'bg-star' : 'bg-white/10'}`}
+                onClick={() => setLineExtensionAnimationEnabled(!lineExtensionAnimationEnabled)}
+              >
+                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${lineExtensionAnimationEnabled ? 'left-5' : 'left-1'}`} />
+              </div>
+              <span className="text-sm text-text-secondary group-hover:text-text transition-colors">
+                {language === 'zh-TW' ? '弧線及實線的動畫延伸效果' : '弧线及实线的动画延伸效果'}
+              </span>
+            </label>
+          </div>
+        </div>
+
         {/* AI 提供廠商 */}
         <div className="border-t border-white/10 pt-3 space-y-3">
-          <h3 className="text-sm font-medium text-text-secondary mb-2">⑦ {t('settings.aiProvider', language)}</h3>
+          <h3 className="text-sm font-medium text-text-secondary mb-2">⑧ {t('settings.aiProvider', language)}</h3>
           
           {/* 供應商選擇 */}
           <Select

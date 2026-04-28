@@ -51,7 +51,7 @@ import { useChartDisplay, useChartCalculations } from './hooks/useChartDisplay'
 
 export function ChartDisplay() {
   const { chart, birthInfo, setBirthInfo, setChart } = useChartStore()
-  const { language, defaultChartType, monthlyArrangementMethod, setCurrentChartType } = useSettingsStore()
+  const { language, defaultChartType, monthlyArrangementMethod, setCurrentChartType, arcFlowAnimationEnabled, lineExtensionAnimationEnabled } = useSettingsStore()
   
   // 使用自定義 hook 管理狀態
   const {
@@ -87,6 +87,8 @@ export function ChartDisplay() {
     gridOffset,
     bubblePalace,
     setBubblePalace,
+    bubbleActiveTab,
+    setBubbleActiveTab,
     isCompactMobile,
     mutagenDisplay,
     setMutagenDisplay,
@@ -293,6 +295,17 @@ export function ChartDisplay() {
 
   const effectiveDirectionFocus = showReversalCheck ? directionFocus : null
 
+  const getStemByRoleLabel = (
+    label: string,
+    labelsByPalaceName: Record<string, string>,
+  ): string | null => {
+    if (!label) return null
+    const targetEnglishKey = Object.entries(labelsByPalaceName).find(([, mappedLabel]) => mappedLabel === label)?.[0]
+    if (!targetEnglishKey) return null
+    const targetPalace = palaceData.find((p) => (PALACE_NAME_TO_ENGLISH_MAP[p.name] || '') === targetEnglishKey)
+    return targetPalace?.stem || null
+  }
+
   const renderPalace = (palace: PalaceData | null, key: string) => {
     if (!palace) return <div key={key} />
 
@@ -304,13 +317,18 @@ export function ChartDisplay() {
         onClick={(e) => {
           if (!showBubbleHint) return
           const englishKey = PALACE_NAME_TO_ENGLISH_MAP[palace.name] || ''
+          const clickedDecadalLabel = decadalLabelsByPalaceName[englishKey] || ''
+          const clickedAnnualLabel = annualLabelsByPalaceName[englishKey] || ''
+          const clickedDecadalStem = getStemByRoleLabel(clickedDecadalLabel, decadalLabelsByPalaceName)
+          const clickedAnnualStem = getStemByRoleLabel(clickedAnnualLabel, annualLabelsByPalaceName)
+
           setBubblePalace({
             palace,
             rect: e.currentTarget.getBoundingClientRect(),
-            decadalLabel: decadalLabelsByPalaceName[englishKey] || '',
-            annualLabel: annualLabelsByPalaceName[englishKey] || '',
-            decadalStem: decadalLifePalaceStem,
-            annualStem: annualLifePalaceStem,
+            decadalLabel: clickedDecadalLabel,
+            annualLabel: clickedAnnualLabel,
+            decadalStem: clickedDecadalStem || decadalLifePalaceStem,
+            annualStem: clickedAnnualStem || annualLifePalaceStem,
             annualGanZhi: selectedAnnualGanZhi,
           })
         }}
@@ -591,7 +609,7 @@ export function ChartDisplay() {
                         strokeDashoffset={0}
                         opacity={isCompactMobile ? 0.6 : 0.7}
                         markerEnd={`url(#${line.markerColor})`}
-                        className="dash-flow"
+                        className={arcFlowAnimationEnabled ? "dash-flow" : ""}
                       />
                       {/* 向心自化標籤 - 位置在90%處（靠近箭頭） */}
                       {line.label && (
@@ -693,18 +711,18 @@ export function ChartDisplay() {
               strokeWidth="1.5"
               strokeDasharray="8 4"
               strokeDashoffset={0}
-              className="dash-flow-slow"
+              className={lineExtensionAnimationEnabled ? "dash-flow-slow" : ""}
             />
             {/* 四正連線：本宮 ↔ 對宮 */}
             <line x1={p0.x} y1={p0.y} x2={pOpp.x} y2={pOpp.y}
               stroke="rgba(0, 200, 255, 0.7)" strokeWidth="1.5" strokeDasharray="8 4"
               strokeDashoffset={0}
-              className="dash-flow-slow" />
+              className={lineExtensionAnimationEnabled ? "dash-flow-slow" : ""} />
             {/* 四正連線：前3宮 ↔ 後3宮 */}
             <line x1={pFwd3.x} y1={pFwd3.y} x2={pBack3.x} y2={pBack3.y}
               stroke="rgba(0, 200, 255, 0.7)" strokeWidth="1.5" strokeDasharray="8 4"
               strokeDashoffset={0}
-              className="dash-flow-slow" />
+              className={lineExtensionAnimationEnabled ? "dash-flow-slow" : ""} />
           </svg>
         )
       })()}
@@ -888,14 +906,19 @@ export function ChartDisplay() {
       {showBubbleHint && bubblePalace && (
         <PalaceHintBubble
           palace={bubblePalace.palace}
+          allPalaces={palaceData}
           anchorRect={bubblePalace.rect}
           onClose={() => setBubblePalace(null)}
+          activeTab={bubbleActiveTab}
+          onTabChange={setBubbleActiveTab}
           chartType={chartType}
           decadalLabel={bubblePalace.decadalLabel}
           annualLabel={bubblePalace.annualLabel}
           decadalStem={bubblePalace.decadalStem}
           annualStem={bubblePalace.annualStem}
           annualGanZhi={bubblePalace.annualGanZhi}
+          birthYearStem={yearGan}
+          decadalLabelsByPalaceName={decadalLabelsByPalaceName}
         />
       )}
 

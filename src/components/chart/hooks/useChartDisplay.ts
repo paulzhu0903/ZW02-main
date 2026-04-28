@@ -6,6 +6,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import type { FunctionalAstrolabe, BirthInfo } from '@/lib/astro'
 import { calculateSolarTime } from '@/lib/astro'
 import type { PalaceData } from '../types'
+import type { TabType } from '../Bubble'
 import { PALACE_POSITIONS, PALACE_BRANCH_INDEX, PALACE_NAME_TO_ENGLISH_MAP, PALACE_ORDER } from '../types'
 import { 
   PALACE_CLOCKWISE_BRANCHES,
@@ -52,6 +53,7 @@ export interface ChartDisplayState {
     annualStem: string | null
     annualGanZhi: string | null
   } | null
+  bubbleActiveTab: TabType
   isCompactMobile: boolean
   mutagenDisplay: {
     A: boolean
@@ -90,6 +92,7 @@ export function useChartDisplay(
   const gridRef = useRef<HTMLDivElement>(null)
   const [gridOffset, setGridOffset] = useState({ x: 0, y: 0 })
   const [bubblePalace, setBubblePalace] = useState<ChartDisplayState['bubblePalace']>(null)
+  const [bubbleActiveTab, setBubbleActiveTab] = useState<TabType>('natal')
   const [isCompactMobile, setIsCompactMobile] = useState(false)
   const birthInfoKeyRef = useRef<string>('')
   const initializedRef = useRef(false)
@@ -197,6 +200,8 @@ export function useChartDisplay(
     gridOffset,
     bubblePalace,
     setBubblePalace,
+    bubbleActiveTab,
+    setBubbleActiveTab,
     isCompactMobile,
     mutagenDisplay,
     setMutagenDisplay,

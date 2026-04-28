@@ -173,6 +173,10 @@ interface SettingsState {
   // 三合盤面設定
   triremeShowStarBrightness: boolean
 
+  // 動畫設定
+  arcFlowAnimationEnabled: boolean  // 弧線的流動效果
+  lineExtensionAnimationEnabled: boolean  // 弧線及實線的動畫延伸效果
+
   setProvider: (provider: ModelProvider) => void
   updateCurrentProvider: (settings: Partial<ProviderSettings>) => void
   setEnableThinking: (enable: boolean) => void
@@ -208,6 +212,10 @@ interface SettingsState {
 
   // 三合盤面相關的setter
   setTriremeShowStarBrightness: (value: boolean) => void
+
+  // 動畫設定相關的setter
+  setArcFlowAnimationEnabled: (value: boolean) => void
+  setLineExtensionAnimationEnabled: (value: boolean) => void
 
   // 便捷访问当前厂商配置
   getCurrentSettings: () => ProviderSettings
@@ -258,6 +266,10 @@ export const useSettingsStore = create<SettingsState>()(
       // 三合盤面設定
       triremeShowStarBrightness: true,
 
+      // 動畫設定
+      arcFlowAnimationEnabled: true,
+      lineExtensionAnimationEnabled: true,
+
       setProvider: (provider) => set({ provider }),
 
       updateCurrentProvider: (settings) => set((state) => ({
@@ -303,6 +315,10 @@ export const useSettingsStore = create<SettingsState>()(
 
       // 三合盤面相關的setter
       setTriremeShowStarBrightness: (value) => set({ triremeShowStarBrightness: value }),
+
+      // 動畫設定相關的setter
+      setArcFlowAnimationEnabled: (value) => set({ arcFlowAnimationEnabled: value }),
+      setLineExtensionAnimationEnabled: (value) => set({ lineExtensionAnimationEnabled: value }),
 
       getCurrentSettings: () => {
         const state = get()

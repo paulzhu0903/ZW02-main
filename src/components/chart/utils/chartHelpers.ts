@@ -1,11 +1,7 @@
-/**
- * 命盤輔助函數
- */
-
 import { EARTHLY_BRANCH_ORDER, LUNAR_MONTH_MAP, LUNAR_MONTH_NAMES, PALACE_CLOCKWISE_BRANCHES, HEAVENLY_STEMS, FIRST_MONTH_GAN_MAP } from './chartConstants'
-import type { FunctionalAstrolabe, BirthInfo } from '@/lib/astro'
+import type { FunctionalAstrolabe } from '@/lib/astro'
 import type { PalaceData, StarData } from '../types'
-import { PALACE_BRANCH_INDEX, PALACE_POSITIONS, PALACE_ORDER, PALACE_NAME_TO_ENGLISH_MAP } from '../types'
+import { PALACE_BRANCH_INDEX } from '../types'
 
 /**
  * 根據年份獲取天干地支
@@ -48,17 +44,14 @@ export function getSanFangSiZhengBranches(selectedBranch: string): {
 } {
   const indexToBranch = PALACE_CLOCKWISE_BRANCHES
   const branchIndex = PALACE_BRANCH_INDEX[selectedBranch]
-
   if (branchIndex === undefined) {
     return { sanFang: [], siZheng: [] }
   }
-
   const trine1 = indexToBranch[(branchIndex + 4) % 12]
   const trine2 = indexToBranch[(branchIndex + 8) % 12]
   const opposite = indexToBranch[(branchIndex + 6) % 12]
   const forward3 = indexToBranch[(branchIndex + 3) % 12]
   const backward3 = indexToBranch[(branchIndex + 9) % 12]
-
   return {
     sanFang: [selectedBranch, trine1, trine2],
     siZheng: [selectedBranch, opposite, forward3, backward3],

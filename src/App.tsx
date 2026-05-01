@@ -301,7 +301,7 @@ export default function App() {
                 <BirthForm />
               </div>
             ) : (
-              <div className="animate-fade-in space-y-8">
+              <div className="animate-fade-in space-y-4 sm:space-y-5">
                 {/* 命盘 - 横向展开 */}
                 <div className="w-full">
                   <ChartDisplay />

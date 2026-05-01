@@ -137,7 +137,7 @@ export function ChartDisplay() {
   // SVG 相關設定
   const arcResetVersion = 0
   const lineStrokeWidth = 2
-  const lineDashArray = isCompactMobile ? '6,3' : '8,4'
+  const lineDashArray = isCompactMobile ? '4,2' : '6,3'
   const arrowMarkerSize = isCompactMobile ? 7 : 10
   const arrowRefX = isCompactMobile ? 6.3 : 9
   const arrowRefY = isCompactMobile ? 2.2 : 3
@@ -403,11 +403,11 @@ export function ChartDisplay() {
         <defs>
           {/* 綠色箭頭 - 化祿 */}
           <marker id="arrowFortune" markerWidth={arrowMarkerSize} markerHeight={arrowMarkerSize} refX={arrowRefX} refY={arrowRefY} orient="auto" markerUnits="strokeWidth">
-            <path d={arrowPath} fill="#34C759" />
+            <path d={arrowPath} fill="#21ec54bc" />
           </marker>
           {/* 紫色箭頭 - 化權 */}
           <marker id="arrowGold" markerWidth={arrowMarkerSize} markerHeight={arrowMarkerSize} refX={arrowRefX} refY={arrowRefY} orient="auto" markerUnits="strokeWidth">
-            <path d={arrowPath} fill="#AF52DE" />
+            <path d={arrowPath} fill="#aa00ffab" />
           </marker>
           {/* 藍色箭頭 - 化科 */}
           <marker id="arrowStar" markerWidth={arrowMarkerSize} markerHeight={arrowMarkerSize} refX={arrowRefX} refY={arrowRefY} orient="auto" markerUnits="strokeWidth">
@@ -415,7 +415,7 @@ export function ChartDisplay() {
           </marker>
           {/* 紅色箭頭 - 化忌 */}
           <marker id="arrowMisfortune" markerWidth={arrowMarkerSize} markerHeight={arrowMarkerSize} refX={arrowRefX} refY={arrowRefY} orient="auto" markerUnits="strokeWidth">
-            <path d={arrowPath} fill="#FF3B30" />
+            <path d={arrowPath} fill="#ff0d00" />
           </marker>
         </defs>
         
@@ -709,18 +709,18 @@ export function ChartDisplay() {
               fill="none"
               stroke="rgba(255, 213, 0, 0.6)"
               strokeWidth="1.5"
-              strokeDasharray="8 4"
+              strokeDasharray={lineDashArray}
               strokeDashoffset={0}
               className={lineExtensionAnimationEnabled ? "dash-flow-slow" : ""}
             />
             {/* 四正連線：本宮 ↔ 對宮 */}
             <line x1={p0.x} y1={p0.y} x2={pOpp.x} y2={pOpp.y}
-              stroke="rgba(0, 200, 255, 0.7)" strokeWidth="1.5" strokeDasharray="8 4"
+              stroke="rgba(0, 200, 255, 0.7)" strokeWidth="1.5" strokeDasharray={lineDashArray}
               strokeDashoffset={0}
               className={lineExtensionAnimationEnabled ? "dash-flow-slow" : ""} />
             {/* 四正連線：前3宮 ↔ 後3宮 */}
             <line x1={pFwd3.x} y1={pFwd3.y} x2={pBack3.x} y2={pBack3.y}
-              stroke="rgba(0, 200, 255, 0.7)" strokeWidth="1.5" strokeDasharray="8 4"
+              stroke="rgba(0, 200, 255, 0.7)" strokeWidth="1.5" strokeDasharray={lineDashArray}
               strokeDashoffset={0}
               className={lineExtensionAnimationEnabled ? "dash-flow-slow" : ""} />
           </svg>
@@ -728,7 +728,7 @@ export function ChartDisplay() {
       })()}
 
       {/* 4x4 网格 */}
-      <div ref={gridRef} className="grid grid-cols-4 gap-0 relative" style={{ zIndex: 2 }}>
+      <div ref={gridRef} className="grid grid-cols-4 gap-0 relative" style={{ zIndex: 2 }} data-palace-grid>
         {/* Row 0 */}
         {grid[0].map((p, c) => renderPalace(p, `0-${c}`))}
 
@@ -748,6 +748,7 @@ export function ChartDisplay() {
             showBubbleHint={showBubbleHint}
             onToggleBubbleHint={() => {
               setShowBubbleHint((v) => {
+                // 僅在主動點擊 BubbleHint 關閉時才清空 bubblePalace
                 if (v) setBubblePalace(null)
                 return !v
               })
@@ -760,7 +761,10 @@ export function ChartDisplay() {
               })
             }}
             showFlyGongToolbox={showFlyGongToolbox}
-            onToggleFlyGongToolbox={() => setShowFlyGongToolbox((v) => !v)}
+            onToggleFlyGongToolbox={() => {
+              // 切換飛宮工具箱時不影響 BubbleHint
+              setShowFlyGongToolbox((v) => !v)
+            }}
             onTimeTableClick={() => setIsTimeTableModalOpen(true)}
             onHourChange={(hour) => {
               if (birthInfo && birthInfo.year && birthInfo.month && birthInfo.day && birthInfo.gender) {
@@ -769,6 +773,24 @@ export function ChartDisplay() {
                   month: birthInfo.month,
                   day: birthInfo.day,
                   hour: hour,
+                  minute: birthInfo.minute || 0,
+                  gender: birthInfo.gender as 'male' | 'female',
+                  isLeapMonth: birthInfo.isLeapMonth || false,
+                  name: birthInfo.name,
+                  birthLocation: birthInfo.birthLocation,
+                }
+                setBirthInfo(updatedBirthInfo)
+                const newChart = generateChart(updatedBirthInfo)
+                setChart(newChart)
+              }
+            }}
+            onDayChange={(day) => {
+              if (birthInfo && birthInfo.year && birthInfo.month && birthInfo.hour !== undefined && birthInfo.gender) {
+                const updatedBirthInfo: BirthInfo = {
+                  year: birthInfo.year,
+                  month: birthInfo.month,
+                  day: day,
+                  hour: birthInfo.hour,
                   minute: birthInfo.minute || 0,
                   gender: birthInfo.gender as 'male' | 'female',
                   isLeapMonth: birthInfo.isLeapMonth || false,
@@ -848,7 +870,10 @@ export function ChartDisplay() {
         {(chartType === 'flying' || chartType === 'transformation') && (
           <MutagenControls 
             mutagenDisplay={mutagenDisplay} 
-            setMutagenDisplay={setMutagenDisplay}
+            setMutagenDisplay={(display) => {
+              // 僅切換四化顯示，不影響 BubbleHint 狀態
+              setMutagenDisplay(display)
+            }}
           />
         )}
         </div>
@@ -884,7 +909,7 @@ export function ChartDisplay() {
       )}
 
       {/* 大限流年表格 */}
-      <div className="mt-0">
+      <div className="mt-0" data-decadal-annual-table>
         <DecadalAnnualMonthlyTable 
           palaceData={palaceData} 
           birthInfo={birthInfo} 

@@ -23,6 +23,7 @@ interface CenterInfoProps {
   language: any
   nativeName?: string
   onHourChange?: (hour: number) => void
+  onDayChange?: (day: number) => void
   showSanFangSiZheng?: boolean
   onToggleSanFangSiZheng?: () => void
   showBubbleHint?: boolean
@@ -34,7 +35,7 @@ interface CenterInfoProps {
   onTimeTableClick?: () => void
 }
 
-export function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, nativeName, onHourChange, showSanFangSiZheng, onToggleSanFangSiZheng, showBubbleHint, onToggleBubbleHint, showReversalCheck = false, onToggleReversalCheck, showFlyGongToolbox = false, onToggleFlyGongToolbox, onTimeTableClick }: CenterInfoProps) {
+export function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, nativeName, onHourChange, onDayChange, showSanFangSiZheng, onToggleSanFangSiZheng, showBubbleHint, onToggleBubbleHint, showReversalCheck = false, onToggleReversalCheck, showFlyGongToolbox = false, onToggleFlyGongToolbox, onTimeTableClick }: CenterInfoProps) {
   // 分割四柱 - 格式: "甲辰 丙子 己卯 丁酉"
   const fourPillars = chart.chineseDate?.split(' ') || []
   const [yearPillar, monthPillar, dayPillar, hourPillar] = fourPillars
@@ -126,49 +127,45 @@ export function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, lan
             </div>
           </div>
 
-          {/* 右側：調整出生時間按鈕（上+下−） */}
-          <div className="flex flex-col items-center gap-1">
+          {/* 左右排列：左為日調整，右為時調整 */}
+          <div className="flex flex-row gap-1 sm:gap-2" style={{ pointerEvents: 'auto' }}>
+            {/* 左側：調整出生日期（日） */}
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-gray-500 text-xs mb-0.5">日</span>
               <button
                 type="button"
                 onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  if (onHourChange && birthInfo?.hour !== undefined) {
-                    // 計算當前時辰索引
-                    let currentShichenIndex: number
-                    if (birthInfo.hour === 23) {
-                      currentShichenIndex = 12  // 晚子時
-                    } else if (birthInfo.hour === 0) {
-                      currentShichenIndex = 0   // 早子時
-                    } else {
-                      currentShichenIndex = Math.floor((birthInfo.hour + 1) / 2)
-                    }
-                    
-                    // 下一個時辰
-                    let nextShichenIndex = (currentShichenIndex + 1) % 12
-                    if (currentShichenIndex === 11) {
-                      nextShichenIndex = 12  // 從亥時進到晚子時
-                    }
-                    
-                    // 時辰索引轉換回小時
-                    const newHour = 
-                      nextShichenIndex === 0 ? 0 :
-                      nextShichenIndex === 12 ? 23 :
-                      nextShichenIndex * 2 - 1
-                    
-                    onHourChange(newHour)
+                  e.preventDefault(); e.stopPropagation();
+                  if (onDayChange && birthInfo?.day !== undefined) {
+                    onDayChange(birthInfo.day + 1)
                   }
                 }}
                 style={{ pointerEvents: 'auto' }}
-                className="px-3.5 py-0 text-sm font-medium bg-gray-200 hover:bg-gray-300 active:bg-gray-400 rounded transition cursor-pointer"
+                className="px-3.5 py-0 text-sm font-medium bg-gray-200 hover:bg-gray-300 active:bg-gray-400 rounded transition cursor-pointer shadow-md"
               >
                 +
               </button>
               <button
                 type="button"
                 onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
+                  e.preventDefault(); e.stopPropagation();
+                  if (onDayChange && birthInfo?.day !== undefined) {
+                    onDayChange(birthInfo.day - 1)
+                  }
+                }}
+                style={{ pointerEvents: 'auto' }}
+                className="px-3.5 py-0 text-sm font-medium bg-gray-200 hover:bg-gray-300 active:bg-gray-400 rounded transition cursor-pointer shadow-md"
+              >
+                −
+              </button>
+            </div>
+            {/* 右側：調整出生時間（時） */}
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-gray-500 text-xs mb-0.5">時</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault(); e.stopPropagation();
                   if (onHourChange && birthInfo?.hour !== undefined) {
                     // 計算當前時辰索引
                     let currentShichenIndex: number
@@ -179,26 +176,56 @@ export function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, lan
                     } else {
                       currentShichenIndex = Math.floor((birthInfo.hour + 1) / 2)
                     }
-                    
+                    // 下一個時辰
+                    let nextShichenIndex = (currentShichenIndex + 1) % 12
+                    if (currentShichenIndex === 11) {
+                      nextShichenIndex = 12  // 從亥時進到晚子時
+                    }
+                    // 時辰索引轉換回小時
+                    const newHour = 
+                      nextShichenIndex === 0 ? 0 :
+                      nextShichenIndex === 12 ? 23 :
+                      nextShichenIndex * 2 - 1
+                    onHourChange(newHour)
+                  }
+                }}
+                style={{ pointerEvents: 'auto' }}
+                className="px-3.5 py-0 text-sm font-medium bg-gray-200 hover:bg-gray-300 active:bg-gray-400 rounded transition cursor-pointer shadow-md"
+              >
+                +
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault(); e.stopPropagation();
+                  if (onHourChange && birthInfo?.hour !== undefined) {
+                    // 計算當前時辰索引
+                    let currentShichenIndex: number
+                    if (birthInfo.hour === 23) {
+                      currentShichenIndex = 12  // 晚子時
+                    } else if (birthInfo.hour === 0) {
+                      currentShichenIndex = 0   // 早子時
+                    } else {
+                      currentShichenIndex = Math.floor((birthInfo.hour + 1) / 2)
+                    }
                     // 上一個時辰
                     let prevShichenIndex = (currentShichenIndex - 1 + 13) % 13
                     if (prevShichenIndex === 12) prevShichenIndex = 11  // 從晚子時回退到亥時
-                    
                     // 時辰索引轉換回小時
                     const newHour = 
                       prevShichenIndex === 0 ? 0 :
                       prevShichenIndex === 12 ? 23 :
                       prevShichenIndex * 2 - 1
-                    
                     onHourChange(newHour)
                   }
                 }}
                 style={{ pointerEvents: 'auto' }}
-                className="px-3.5 py-0 text-sm font-medium bg-gray-200 hover:bg-gray-300 active:bg-gray-400 rounded transition cursor-pointer"
+                className="px-3.5 py-0 text-sm font-medium bg-gray-200 hover:bg-gray-300 active:bg-gray-400 rounded transition cursor-pointer shadow-md"
               >
                 −
               </button>
             </div>
+          </div>
         </div>
         
         {/* 第三行：農曆 - 完整年月日時 */}

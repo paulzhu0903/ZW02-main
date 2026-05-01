@@ -259,8 +259,6 @@ export function AIInterpretation() {
     return ''
   }
 
-
-
   /**
    * 提取該宮位的生年四化
    */
@@ -455,16 +453,26 @@ export function AIInterpretation() {
     }
   }, [promptPreview, buildPromptPreview, language])
 
+  const hasBodyContent = Boolean(
+    error ||
+    (showPrompt && promptPreview) ||
+    (!currentSettings.apiKey && !displayText) ||
+    displayText ||
+    (loading && !displayText)
+  )
+
   if (!chart) return null
 
   return (
     <div
-      className="
+      className={`
         relative p-3 sm:p-4 lg:p-6
+        flex flex-col
+        ${hasBodyContent ? '' : 'min-h-[70px] justify-center'}
         bg-gradient-to-br from-white/[0.04] to-transparent
         backdrop-blur-xl border border-white/[0.08] rounded-2xl
         shadow-[0_8px_32px_rgba(0,0,0,0.3)]
-      "
+      `}
     >
       {/* 顶部发光线 */}
       <div
@@ -476,10 +484,11 @@ export function AIInterpretation() {
       />
 
       {/* 头部 */}
-      <div className="flex items-center justify-between mb-4 sm:mb-6 gap-2 sm:gap-3">
+      <div className={`flex items-center justify-between min-h-8 sm:min-h-10 gap-2 sm:gap-3 ${hasBodyContent ? 'mb-4 sm:mb-6' : ''}`}>
         <h2
           className="
             text-base sm:text-lg lg:text-2xl font-semibold
+            flex items-center h-8 sm:h-10 leading-none
             bg-gradient-to-r from-gold via-gold-light to-gold
             bg-clip-text text-transparent
           "
@@ -493,7 +502,7 @@ export function AIInterpretation() {
               <button
                 type="button"
                 onClick={handleTogglePrompt}
-                className="h-8 sm:h-10 min-w-[5rem] px-2 sm:px-3 rounded-lg text-[10px] sm:text-xs font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors whitespace-nowrap flex items-center justify-center"
+                className="h-8 sm:h-10 min-w-[5rem] px-2 sm:px-3 rounded-xl text-[10px] sm:text-xs font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors whitespace-nowrap flex items-center justify-center"
               >
                 {showPrompt ? t('ai.hidePrompt', language) : t('ai.showPrompt', language)}
               </button>
@@ -503,7 +512,7 @@ export function AIInterpretation() {
             <button
               type="button"
               onClick={handleCopyPrompt}
-              className="h-8 sm:h-10 min-w-[5rem] px-2 sm:px-3 rounded-lg text-[10px] sm:text-xs font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors whitespace-nowrap flex items-center justify-center"
+              className="h-8 sm:h-10 min-w-[5rem] px-2 sm:px-3 rounded-xl text-[10px] sm:text-xs font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors whitespace-nowrap flex items-center justify-center"
             >
               {copied ? t('fortune.copied', language) : t('fortune.copyPrompt', language)}
             </button>

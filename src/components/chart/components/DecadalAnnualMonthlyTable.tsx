@@ -115,6 +115,18 @@ export function DecadalAnnualMonthlyTable({
     }
   }, [isExpanded, selectedDecadal, selectedAnnual, selectedMonthly, dailyScrollOffset, palaceData])
 
+  useEffect(() => {
+    if (selectedMonthly === null || selectedDaily === null) return
+
+    const pageSize = 10
+    const maxOffset = Math.max(0, CHINESE_DAY_NAMES.length - pageSize)
+    const targetOffset = Math.min(Math.floor(selectedDaily / pageSize) * pageSize, maxOffset)
+
+    if (dailyScrollOffset !== targetOffset) {
+      setDailyScrollOffset(targetOffset)
+    }
+  }, [selectedMonthly, selectedDaily, dailyScrollOffset])
+
   const rowClass = 'flex items-stretch gap-0 leading-none'
   const rowLabelClass = 'shrink-0 flex items-center justify-center px-1 py-0.5 sm:px-1.5 sm:py-0 text-[8px] sm:text-[12px] lg:text-[16px] text-text-muted font-medium leading-tight bg-[#f5f5f7] min-w-[18px] sm:min-w-[40px] border border-white/[0.12] rounded-sm whitespace-nowrap'
   const scrollAreaClass = `flex-1 min-w-0 overflow-x-auto overflow-y-hidden [-webkit-overflow-scrolling:touch] ${needsScrollSpacer ? 'pb-1 sm:pb-1.5' : 'pb-0'}`

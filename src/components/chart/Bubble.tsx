@@ -71,7 +71,6 @@ export function PalaceHintBubble({
 
   const hasDecadal = !!decadalStem
   const hasAnnual  = !!annualStem && !!annualGanZhi
-  const aiPaused = true
 
   const DECADAL_LABEL_TO_ENGLISH: Record<string, string> = {
     '大命': 'life', '大父': 'parents', '大福': 'virtue', '大田': 'property',
@@ -104,29 +103,52 @@ export function PalaceHintBubble({
   const palaceEnglishKey = PALACE_NAME_TO_ENGLISH_MAP[palace.name] || ''
   const natalTabLabel = NATAL_LABEL_BY_ENGLISH[palaceEnglishKey] || localizedDisplayName
 
-  // 定位邏輯：預設與中宮一致；抓不到中宮時退回 anchor 附近
+  // 定位邏輯：優先貼齊大限／流年表格上方；抓不到時退回既有邏輯
   const margin = 8
   const viewW = window.innerWidth
   const viewH = window.innerHeight
   const centerInfoEl = document.querySelector('[data-centerinfo]') as HTMLElement | null
+  const palaceGridEl = document.querySelector('[data-palace-grid]') as HTMLElement | null
+  const palaceGridRect = palaceGridEl?.getBoundingClientRect() || null
+  const decadalAnnualTableEl = document.querySelector('[data-decadal-annual-table]') as HTMLElement | null
+  const decadalAnnualTableRect = decadalAnnualTableEl?.getBoundingClientRect() || null
   const centerInfoRect = centerInfoEl?.getBoundingClientRect() || null
   const centerInfoRadius = centerInfoEl
     ? window.getComputedStyle(centerInfoEl).borderRadius || '2px'
     : '2px'
 
-  const BUBBLE_W = centerInfoRect ? Math.round(centerInfoRect.width) : 320
+  const maxBubbleWidth = viewW - margin * 2
+  const BUBBLE_W = palaceGridRect
+    ? Math.round(Math.min(palaceGridRect.width, maxBubbleWidth))
+    : decadalAnnualTableRect
+      ? Math.round(Math.min(Math.max(decadalAnnualTableRect.width, 460), maxBubbleWidth))
+    : centerInfoRect
+      ? Math.round(Math.min(centerInfoRect.width + 120, maxBubbleWidth))
+      : Math.round(Math.min(460, maxBubbleWidth))
   const BUBBLE_H = centerInfoRect ? Math.round(centerInfoRect.height) : 400
 
-  let left = centerInfoRect ? centerInfoRect.left : anchorRect.right + margin
-  let top = centerInfoRect ? centerInfoRect.top : anchorRect.top
+  let left = palaceGridRect
+    ? palaceGridRect.left + (palaceGridRect.width - BUBBLE_W) / 2
+    : decadalAnnualTableRect
+      ? decadalAnnualTableRect.left + (decadalAnnualTableRect.width - BUBBLE_W) / 2
+    : centerInfoRect
+      ? centerInfoRect.left
+      : anchorRect.right + margin
+  let top = decadalAnnualTableRect
+    ? (palaceGridRect ? palaceGridRect.bottom + 12 : decadalAnnualTableRect.top + 12)
+    : centerInfoRect
+      ? centerInfoRect.top
+      : anchorRect.top
 
-  if (!centerInfoRect && left + BUBBLE_W > viewW - margin) {
+
+  if (!decadalAnnualTableRect && !centerInfoRect && left + BUBBLE_W > viewW - margin) {
     left = anchorRect.left - BUBBLE_W - margin
   }
 
   if (left < margin) left = margin
-  if (top + BUBBLE_H > viewH - margin) top = viewH - BUBBLE_H - margin
-  if (top < margin) top = margin
+  // 動態計算最大高度，確保 modal 不會超過 palace grid 下方空間
+  let maxModalHeight = viewH - top - margin
+  if (maxModalHeight < 100) maxModalHeight = 100
 
   /* ----------------------------------------------------------
      本地解讀文字（AI 暫停模式）
@@ -429,8 +451,8 @@ export function PalaceHintBubble({
   return createPortal(
     <div
       ref={bubbleRef}
-      style={{ position: 'fixed', left, top, width: BUBBLE_W, zIndex: 9999, pointerEvents: 'auto', borderRadius: centerInfoRadius }}
-      className="glass overflow-hidden"
+      style={{ position: 'fixed', left, top, width: BUBBLE_W, zIndex: 9999, pointerEvents: 'auto', borderRadius: '18px' }}
+      className="glass relative overflow-visible shadow-2xl rounded-2xl"
     >
       <div className="flex items-center gap-2 px-3 py-2 border-b border-black/[0.06] bg-white/30">
         <div className="flex flex-1 rounded-xl bg-black/[0.04] overflow-hidden">
@@ -442,7 +464,7 @@ export function PalaceHintBubble({
               disabled={tab.disabled}
               onClick={() => handleTabChange(tab.key)}
               className={`
-                flex-1 py-2 px-1 text-center transition-all duration-150
+                flex-1 py-1 px-1 text-center transition-all duration-150
                 ${tab.disabled
                   ? 'opacity-30 cursor-not-allowed'
                   : isActive
@@ -451,27 +473,26 @@ export function PalaceHintBubble({
                 }
               `}
             >
-              <div className="text-[11px] font-semibold leading-tight">{tab.label}</div>
+              <div className="text-[10px] font-semibold leading-tight">{tab.label}</div>
             </button>
           )
         })}
         </div>
-        <button
-          onClick={onClose}
-          className="shrink-0 w-8 h-8 rounded-full bg-slate-600 text-white flex items-center justify-center text-base leading-none hover:bg-slate-700 transition-colors"
-          aria-label={language === 'zh-TW' ? '關閉' : '关闭'}
-        >
-          ×
-        </button>
       </div>
 
+      <button
+        onClick={onClose}
+        className="absolute -top-3 -right-3 z-10 w-5 h-5 rounded-full bg-black/80 text-white hover:bg-black shadow-md transition-colors flex items-center justify-center text-[12px] leading-none"
+        aria-label={language === 'zh-TW' ? '關閉' : '关闭'}
+      >
+        ×
+      </button>
+
       {/* 解讀內容（AI 暫停） */}
-      <div className="px-3 py-2.5 min-h-[120px] max-h-[220px] overflow-y-auto text-xs leading-relaxed text-text-secondary">
-        {aiPaused && (
-          <div className="mb-2 text-[10px] text-misfortune bg-misfortune/10 border border-misfortune/20 rounded px-2 py-1">
-            {language === 'zh-TW' ? 'AI 連線已暫停（節省流量模式）' : 'AI 连接已暂停（节省流量模式）'}
-          </div>
-        )}
+      <div
+        className="px-3 py-2.5 min-h-[80px] overflow-y-auto text-xs leading-relaxed text-text-secondary"
+        style={{ maxHeight: maxModalHeight }}
+      >
         <div style={{ whiteSpace: 'pre-wrap' }}>
           {textLines.map((line, idx) => (
             <div

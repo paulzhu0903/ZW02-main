@@ -86,6 +86,36 @@ const GENDER_OPTIONS = [
 ]
 
 export function BirthForm() {
+  // CenterInfo 調用的日調整
+  const handleDayChange = (newDay: number) => {
+    // 限制範圍 1~31
+    let validDay = Math.max(1, Math.min(31, newDay));
+    setDay(validDay);
+    // 立即更新 chart 預覽
+    const birthInfo: BirthInfo = inputMode === 'solar'
+      ? {
+          year,
+          month,
+          day: validDay,
+          hour,
+          minute,
+          gender,
+          name: name || undefined,
+          birthLocation: birthLocation || undefined,
+        }
+      : convertLunarToSolarBirthInfo({
+          year,
+          month,
+          day: validDay,
+          hour,
+          minute: 0,
+          gender,
+          isLeapMonth,
+          name: name || undefined,
+          birthLocation: birthLocation || undefined,
+        });
+    submitChart(birthInfo);
+  };
   const { setBirthInfo, setChart, recordToLoad, setRecordToLoad } = useChartStore()
   const { language } = useSettingsStore()
 
@@ -300,261 +330,286 @@ export function BirthForm() {
 
   return (
     <>
-    <form
-      onSubmit={handleSubmit}
-      className="
-        relative w-full max-w-full sm:max-w-[25.5rem] lg:max-w-[26rem] p-2.5 sm:p-3.5 lg:p-5 mx-auto
-        bg-gradient-to-br from-white/[0.06] to-white/[0.02]
-        backdrop-blur-xl border border-white/[0.08] rounded-lg sm:rounded-xl
-        shadow-[0_8px_40px_rgba(0,0,0,0.3)]
-      "
-    >
-      {/* 顶部发光线 */}
-      <div
+      <form
+        onSubmit={handleSubmit}
         className="
-          absolute top-0 left-1/2 -translate-x-1/2
-          w-1/2 h-px
-          bg-gradient-to-r from-transparent via-star/40 to-transparent
+          relative w-full max-w-full sm:max-w-[25.5rem] lg:max-w-[26rem] p-2.5 sm:p-3.5 lg:p-5 mx-auto
+          bg-gradient-to-br from-white/[0.06] to-white/[0.02]
+          backdrop-blur-xl border border-white/[0.08] rounded-lg sm:rounded-xl
+          shadow-[0_8px_40px_rgba(0,0,0,0.3)]
         "
-      />
-
-      {/* 标题区域 */}
-      <div className="space-y-1 sm:space-y-1.5 mb-2.5 sm:mb-4">
- 
-
-        {/* 数据库按銭 */}
-        <button
-          type="button"
-          onClick={() => setIsDbModalOpen(true)}
+      >
+        {/* 顶部发光线 */}
+        <div
           className="
-            text-[10px] sm:text-[11px] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full
-            bg-gradient-to-r from-gold/20 to-gold/10
-            text-gold border border-gold/20
-            hover:border-gold/40 transition-colors
+            absolute top-0 left-1/2 -translate-x-1/2
+            w-1/2 h-px
+            bg-gradient-to-r from-transparent via-star/40 to-transparent
           "
-        >
-          {t('form.viewCases', language)}
-        </button>
-      </div>
-
-
-      <div className="space-y-2 sm:space-y-3">
-        {/* 姓名 - 最前面 */}
-        <Input
-          label={t('form.name', language)}
-          placeholder={t('form.namePlaceholder', language)}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          hint={t('form.nameHint', language)}
         />
 
-        {/* 出生地 */}
-        <Input
-          label={t('form.birthLocation', language)}
-          placeholder={t('form.birthLocationPlaceholder', language)}
-          value={birthLocation}
-          onChange={(e) => setBirthLocation(e.target.value)}
-          hint={t('form.birthLocationHint', language)}
-        />
-
-        {/* 備註 */}
-        <Input
-          label={t('form.remark', language) || '備註'}
-          placeholder={t('form.remarkPlaceholder', language) || '可選填，不作計算用'}
-          value={remark}
-          onChange={(e) => setRemark(e.target.value)}
-          hint={t('form.remarkHint', language) || '此欄位不影響排盤結果'}
-        />
-
-        <div className="space-y-1 sm:space-y-1.5">
-          <span className="text-[11px] sm:text-[12px] text-text-secondary font-medium">{t('form.inputMode', language)}</span>
-          <div className="grid grid-cols-2 gap-1 sm:gap-1.5">
-            <button
-              type="button"
-              onClick={() => {
-                setInputMode('solar')
-                setFormError('')
-              }}
-              className={`
-                rounded-lg sm:rounded-xl px-3 py-2 text-[12px] sm:text-[13px] font-medium transition-all duration-200
-                ${inputMode === 'solar'
-                  ? 'bg-gradient-to-r from-star to-star-dark text-white shadow-[0_4px_20px_rgba(124,58,237,0.25)]'
-                  : 'bg-white/[0.04] border border-white/[0.08] text-text-secondary hover:bg-white/[0.08] hover:border-white/[0.12]'
-                }
-              `}
-            >
-              {t('form.solarInput', language)}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setInputMode('lunar')
-                setMinute(0)
-                setFormError('')
-              }}
-              className={`
-                rounded-lg sm:rounded-xl px-3 py-2 text-[12px] sm:text-[13px] font-medium transition-all duration-200
-                ${inputMode === 'lunar'
-                  ? 'bg-gradient-to-r from-gold to-gold-dark text-night shadow-[0_4px_20px_rgba(245,158,11,0.25)]'
-                  : 'bg-white/[0.04] border border-white/[0.08] text-text-secondary hover:bg-white/[0.08] hover:border-white/[0.12]'
-                }
-              `}
-            >
-              {t('form.lunarInput', language)}
-            </button>
-          </div>
+        {/* 标题区域 */}
+        <div className="space-y-1 sm:space-y-1.5 mb-2.5 sm:mb-4">
+          {/* 数据库按鈕 */}
+          <button
+            type="button"
+            onClick={() => setIsDbModalOpen(true)}
+            className="
+              text-[10px] sm:text-[11px] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full
+              bg-gradient-to-r from-gold/20 to-gold/10
+              text-gold border border-gold/20
+              hover:border-gold/40 transition-colors
+            "
+          >
+            {t('form.viewCases', language)}
+          </button>
         </div>
 
-        {/* 出生日期区块 */}
-        <div className="space-y-1 sm:space-y-1.5">
-          {inputMode === 'solar' ? (
-            <div className="grid grid-cols-3 gap-1 sm:gap-1.5">
-              <Select
-                options={YEAR_OPTIONS}
-                value={year}
-                onChange={(e) => setYear(Number(e.target.value))}
-              />
-              <Select
-                options={MONTH_OPTIONS}
-                value={month}
-                onChange={(e) => setMonth(Number(e.target.value))}
-              />
-              <Select
-                options={DAY_OPTIONS}
-                value={day}
-                onChange={(e) => setDay(Number(e.target.value))}
-              />
+        <div className="space-y-2 sm:space-y-3">
+          {/* 姓名 - 最前面 */}
+          <Input
+            label={t('form.name', language)}
+            placeholder={t('form.namePlaceholder', language)}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            hint={t('form.nameHint', language)}
+          />
+          {/* 出生地 */}
+          <Input
+            label={t('form.birthLocation', language)}
+            placeholder={t('form.birthLocationPlaceholder', language)}
+            value={birthLocation}
+            onChange={(e) => setBirthLocation(e.target.value)}
+            hint={t('form.birthLocationHint', language)}
+          />
+          {/* 備註 */}
+          <Input
+            label={t('form.remark', language) || '備註'}
+            placeholder={t('form.remarkPlaceholder', language) || '可選填，不作計算用'}
+            value={remark}
+            onChange={(e) => setRemark(e.target.value)}
+            hint={t('form.remarkHint', language) || '此欄位不影響排盤結果'}
+          />
+
+          <div className="space-y-1 sm:space-y-1.5">
+            <span className="text-[11px] sm:text-[12px] text-text-secondary font-medium">{t('form.inputMode', language)}</span>
+            <div className="grid grid-cols-2 gap-1 sm:gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setInputMode('solar');
+                  setFormError('');
+                }}
+                className={`
+                  rounded-lg sm:rounded-xl px-3 py-2 text-[12px] sm:text-[13px] font-medium transition-all duration-200
+                  ${inputMode === 'solar'
+                    ? 'bg-gradient-to-r from-star to-star-dark text-white shadow-[0_4px_20px_rgba(124,58,237,0.25)]'
+                    : 'bg-white/[0.04] border border-white/[0.08] text-text-secondary hover:bg-white/[0.08] hover:border-white/[0.12]'
+                  }
+                `}
+              >
+                {t('form.solarInput', language)}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setInputMode('lunar');
+                  setMinute(0);
+                  setFormError('');
+                }}
+                className={`
+                  rounded-lg sm:rounded-xl px-3 py-2 text-[12px] sm:text-[13px] font-medium transition-all duration-200
+                  ${inputMode === 'lunar'
+                    ? 'bg-gradient-to-r from-gold to-gold-dark text-night shadow-[0_4px_20px_rgba(245,158,11,0.25)]'
+                    : 'bg-white/[0.04] border border-white/[0.08] text-text-secondary hover:bg-white/[0.08] hover:border-white/[0.12]'
+                  }
+                `}
+              >
+                {t('form.lunarInput', language)}
+              </button>
             </div>
-          ) : (
-            <div className="space-y-1 sm:space-y-1.5">
-              <Select
-                options={LUNAR_YEAR_OPTIONS}
-                value={year}
-                onChange={(e) => setYear(Number(e.target.value))}
-              />
+          </div>
+
+          {/* 出生日期区块 */}
+          <div className="space-y-1 sm:space-y-1.5">
+            {inputMode === 'solar' ? (
               <div className="grid grid-cols-3 gap-1 sm:gap-1.5">
                 <Select
-                  options={LUNAR_MONTH_OPTIONS}
+                  options={YEAR_OPTIONS}
+                  value={year}
+                  onChange={(e) => setYear(Number(e.target.value))}
+                />
+                <Select
+                  options={MONTH_OPTIONS}
                   value={month}
                   onChange={(e) => setMonth(Number(e.target.value))}
                 />
                 <Select
-                  options={LUNAR_DAY_OPTIONS}
+                  options={DAY_OPTIONS}
                   value={day}
                   onChange={(e) => setDay(Number(e.target.value))}
                 />
-                <button
-                  type="button"
-                  onClick={() => setIsLeapMonth((value) => !value)}
-                  className={`
-                    rounded-lg sm:rounded-xl px-2 py-2 text-[12px] sm:text-[13px] font-medium transition-all duration-200 border
-                    ${isLeapMonth
-                      ? 'border-gold/50 bg-gold/20 text-gold'
-                      : 'border-white/[0.08] bg-white/[0.04] text-text-secondary hover:bg-white/[0.08] hover:border-white/[0.12]'
-                    }
-                  `}
-                >
-                  {t('form.leapMonth', language)}
-                </button>
               </div>
-            </div>
-          )}
-          {/* 提示文字 */}
-          <p className="text-[9px] sm:text-[10px] text-text-muted mt-0.5 sm:mt-1">
-            {inputMode === 'solar' ? t('form.dateHint', language) : t('form.lunarDateHint', language)}
-          </p>
-          {formError && (
-            <p className="text-[10px] sm:text-[11px] text-misfortune">{formError}</p>
-          )}
-        </div>
+            ) : (
+              <div className="space-y-1 sm:space-y-1.5">
+                <Select
+                  options={LUNAR_YEAR_OPTIONS}
+                  value={year}
+                  onChange={(e) => setYear(Number(e.target.value))}
+                />
+                <div className="grid grid-cols-3 gap-1 sm:gap-1.5">
+                  <Select
+                    options={LUNAR_MONTH_OPTIONS}
+                    value={month}
+                    onChange={(e) => setMonth(Number(e.target.value))}
+                  />
+                  <Select
+                    options={LUNAR_DAY_OPTIONS}
+                    value={day}
+                    onChange={(e) => setDay(Number(e.target.value))}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsLeapMonth((value) => !value)}
+                    className={`
+                      rounded-lg sm:rounded-xl px-2 py-2 text-[12px] sm:text-[13px] font-medium transition-all duration-200 border
+                      ${isLeapMonth
+                        ? 'border-gold/50 bg-gold/20 text-gold'
+                        : 'border-white/[0.08] bg-white/[0.04] text-text-secondary hover:bg-white/[0.08] hover:border-white/[0.12]'
+                      }
+                    `}
+                  >
+                    {t('form.leapMonth', language)}
+                  </button>
+                </div>
+              </div>
+            )}
+            {/* 提示文字 */}
+            <p className="text-[9px] sm:text-[10px] text-text-muted mt-0.5 sm:mt-1">
+              {inputMode === 'solar' ? t('form.dateHint', language) : t('form.lunarDateHint', language)}
+            </p>
+            {formError && (
+              <p className="text-[10px] sm:text-[11px] text-misfortune">{formError}</p>
+            )}
+          </div>
 
-        {/* 出生时间 - 时和分 */}
-        <div className="space-y-1 sm:space-y-1.5">
-          <span className="text-[11px] sm:text-[12px] text-text-secondary font-medium">
-            {inputMode === 'solar' ? t('form.birthTime', language) : t('form.shichen', language)}
-          </span>
-          {inputMode === 'solar' ? (
-            <div className="grid grid-cols-2 gap-1 sm:gap-1.5">
+          {/* 出生时间 - 时和分 */}
+          <div className="space-y-1 sm:space-y-1.5">
+            <span className="text-[11px] sm:text-[12px] text-text-secondary font-medium">
+              {inputMode === 'solar' ? t('form.birthTime', language) : t('form.shichen', language)}
+            </span>
+            {inputMode === 'solar' ? (
+              <div className="grid grid-cols-2 gap-1 sm:gap-1.5">
+                <Select
+                  options={HOUR_SELECT_OPTIONS}
+                  value={hour}
+                  onChange={(e) => setHour(Number(e.target.value))}
+                />
+                <Select
+                  options={MINUTE_OPTIONS}
+                  value={minute}
+                  onChange={(e) => setMinute(Number(e.target.value))}
+                />
+              </div>
+            ) : (
               <Select
-                options={HOUR_SELECT_OPTIONS}
+                options={SHICHEN_OPTIONS}
                 value={hour}
                 onChange={(e) => setHour(Number(e.target.value))}
               />
-              <Select
-                options={MINUTE_OPTIONS}
-                value={minute}
-                onChange={(e) => setMinute(Number(e.target.value))}
-              />
-            </div>
-          ) : (
-            <Select
-              options={SHICHEN_OPTIONS}
-              value={hour}
-              onChange={(e) => setHour(Number(e.target.value))}
-            />
-          )}
-        </div>
+            )}
+          </div>
 
-        {/* 性别选择 - 胶囊按钮组 */}
-        <div className="space-y-1 sm:space-y-1.5">
-          <span className="text-[11px] sm:text-[12px] text-text-secondary font-medium">{t('form.gender', language)}</span>
-          <div className="flex gap-1 sm:gap-1.5">
-            {GENDER_OPTIONS.map((opt) => (
-              <label
-                key={opt.value}
-                className={`
-                  group relative flex-1 py-1.5 sm:py-2 px-2 sm:px-2.5 rounded-lg sm:rounded-xl
-                  flex items-center justify-center gap-0.5 sm:gap-1
-                  text-[12px] sm:text-[13px]
-                  cursor-pointer transition-all duration-200
-                  ${gender === opt.value
-                    ? 'bg-gradient-to-r from-star to-star-dark text-white shadow-[0_4px_20px_rgba(124,58,237,0.3)]'
-                    : 'bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.12]'
-                  }
-                `}
-              >
-                <input
-                  type="radio"
-                  name="gender"
-                  value={opt.value}
-                  checked={gender === opt.value}
-                  onChange={() => setGender(opt.value as Gender)}
-                  className="sr-only"
-                />
-                <span
+          {/* 性别选择 - 胶囊按钮组 */}
+          <div className="space-y-1 sm:space-y-1.5">
+            <span className="text-[11px] sm:text-[12px] text-text-secondary font-medium">{t('form.gender', language)}</span>
+            <div className="flex gap-1 sm:gap-1.5">
+              {GENDER_OPTIONS.map((opt) => (
+                <label
+                  key={opt.value}
                   className={`
-                    text-xs sm:text-sm transition-transform duration-200
-                    ${gender === opt.value ? 'scale-110' : 'opacity-60 group-hover:opacity-80'}
+                    group relative flex-1 py-1.5 sm:py-2 px-2 sm:px-2.5 rounded-lg sm:rounded-xl
+                    flex items-center justify-center gap-0.5 sm:gap-1
+                    text-[12px] sm:text-[13px]
+                    cursor-pointer transition-all duration-200
+                    ${gender === opt.value
+                      ? 'bg-gradient-to-r from-star to-star-dark text-white shadow-[0_4px_20px_rgba(124,58,237,0.3)]'
+                      : 'bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.12]'
+                    }
                   `}
                 >
-                  {opt.icon}
-                </span>
-                <span className="font-medium leading-none">{t(opt.labelKey, language)}</span>
-              </label>
-            ))}
+                  <input
+                    type="radio"
+                    name="gender"
+                    value={opt.value}
+                    checked={gender === opt.value}
+                    onChange={() => setGender(opt.value as Gender)}
+                    className="sr-only"
+                  />
+                  <span
+                    className={`
+                      text-xs sm:text-sm transition-transform duration-200
+                      ${gender === opt.value ? 'scale-110' : 'opacity-60 group-hover:opacity-80'}
+                    `}
+                  >
+                    {opt.icon}
+                  </span>
+                  <span className="font-medium leading-none">{t(opt.labelKey, language)}</span>
+                </label>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* 分隔线 */}
-        <div className="relative py-2">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-white/[0.06]" />
+          {/* 分隔线 */}
+          <div className="relative py-2">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-white/[0.06]" />
+            </div>
           </div>
-        </div>
 
-        {/* 按钮组 */}
-        {isEditing ? (
-          <div className="flex gap-1.5 sm:gap-2">
-            {/* 編輯模式：確認和取消按鈕 */}
-            <Button
-              type="submit"
-              variant="gold"
-              size="lg"
-              className="flex-1 group text-[11px] sm:text-[12px]"
-              disabled={loading}
-            >
-              {loading ? (
-                <>
+          {/* 按钮组 */}
+          {isEditing ? (
+            <div className="flex gap-1.5 sm:gap-2">
+              {/* 編輯模式：確認和取消按鈕 */}
+              <Button
+                type="submit"
+                variant="gold"
+                size="lg"
+                className="flex-1 group text-[11px] sm:text-[12px]"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    {t('form.submitting', language)}
+                  </>
+                ) : (
+                  t('form.confirm', language)
+                )}
+              </Button>
+              <button
+                type="button"
+                onClick={handleEditCancel}
+                className="flex-1 py-1.5 sm:py-2 px-2 sm:px-2.5 rounded-lg text-[11px] sm:text-[12px] font-medium transition-all bg-white/[0.06] hover:bg-white/[0.1] text-text-secondary hover:text-text border border-white/[0.1]"
+              >
+                {t('form.cancel', language)}
+              </button>
+            </div>
+          ) : (
+            /* 正常模式：提交按鈕 */
+            <div className="flex justify-center">
+              <Button
+                type="submit"
+                variant="gold"
+                size="lg"
+                className="w-auto px-8 sm:px-12 group text-[11px] sm:text-[12px]"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
                   <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -562,69 +617,51 @@ export function BirthForm() {
                   {t('form.submitting', language)}
                 </>
               ) : (
-                t('form.confirm', language)
-              )}
-            </Button>
-            <button
-              type="button"
-              onClick={handleEditCancel}
-              className="flex-1 py-1.5 sm:py-2 px-2 sm:px-2.5 rounded-lg text-[11px] sm:text-[12px] font-medium transition-all bg-white/[0.06] hover:bg-white/[0.1] text-text-secondary hover:text-text border border-white/[0.1]"
-            >
-              {t('form.cancel', language)}
-            </button>
-          </div>
-        ) : (
-          /* 正常模式：提交按鈕 */
-          <div className="flex justify-center">
-            <Button
-              type="submit"
-              variant="gold"
-              size="lg"
-              className="w-auto px-8 sm:px-12 group text-[11px] sm:text-[12px]"
-              disabled={loading}
-            >
-              {loading ? (
                 <>
-                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                {t('form.submitting', language)}
-              </>
-            ) : (
-              <>
-                <span>{t('form.submit', language)}</span>
-                <svg
-                  className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-200 group-hover:translate-x-1"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </>
-            )}
-          </Button>
-          </div>
-        )}
-      </div>
+                  <span>{t('form.submit', language)}</span>
+                  <svg
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-200 group-hover:translate-x-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </>
+              )}
+              </Button>
+            </div>
+          )}
+        </div>
 
-      {/* 角落装饰 */}
-      <div className="absolute -bottom-2 -right-2 w-16 h-16 opacity-20">
-        <div className="absolute inset-0 rounded-full border border-star/30" />
-        <div className="absolute inset-2 rounded-full border border-gold/20" />
-        <div className="absolute inset-4 rounded-full border border-star/10" />
-      </div>
-    </form>
+        {/* CenterInfo 實例（僅示範，請根據實際 props 傳遞） */}
+        {/*
+        <CenterInfo
+          chart={chart}
+          solarDate={...}
+          birthTime={...}
+          birthInfo={{ year, month, day, hour, minute, gender }}
+          gender={gender}
+          language={language}
+          onDayChange={handleDayChange}
+          // 其他 props ...
+        />
+        */}
 
-    {/* 数据库 Modal */}
-    <UserDatabaseModal
-      isOpen={isDbModalOpen}
-      onClose={() => setIsDbModalOpen(false)}
-      onSelect={handleSelectFromDbAndSubmit}
-      onAdd={handleAdd}
-      onEdit={handleEdit}
-    />
-  </>
-  )
+        <div className="absolute -bottom-2 -right-2 w-16 h-16 opacity-20">
+          <div className="absolute inset-0 rounded-full border border-star/30" />
+          <div className="absolute inset-2 rounded-full border border-gold/20" />
+          <div className="absolute inset-4 rounded-full border border-star/10" />
+        </div>
+      </form>
+      {/* 数据库 Modal */}
+      <UserDatabaseModal
+        isOpen={isDbModalOpen}
+        onClose={() => setIsDbModalOpen(false)}
+        onSelect={handleSelectFromDbAndSubmit}
+        onAdd={handleAdd}
+        onEdit={handleEdit}
+      />
+    </>
+  );
 }

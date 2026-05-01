@@ -29,7 +29,6 @@ interface TimeTableModalProps {
     month: number
     day: number
     hour: number
-    minute?: number
     selectedDecadal?: number | null
     selectedAnnual?: number | null
     selectedMonthly?: number | null
@@ -62,10 +61,42 @@ const HOUR_SELECT_OPTIONS = Array.from({ length: 24 }, (_, i) => ({
   label: String(i).padStart(2, '0'),
 }))
 
-const MINUTE_SELECT_OPTIONS = Array.from({ length: 60 }, (_, i) => ({
-  value: i,
-  label: String(i).padStart(2, '0'),
-}))
+function getHourlySelectionIndex(hour: number): number {
+  if (hour === 23) return 0
+  if (hour >= 0 && hour < 1) return 0
+  return Math.floor((hour + 1) / 2)
+}
+
+function getDefaultDecadalAnnualSelectionFromPalaceData(
+  palaceData: PalaceData[],
+  birthYear: number,
+  currentYear: number,
+): { decadal: number; annual: number } {
+  const decadalData = palaceData
+    .filter((p) => p.decadal?.range)
+    .map((p) => ({
+      ageStart: p.decadal.range[0],
+      ageEnd: p.decadal.range[1],
+    }))
+    .sort((a, b) => a.ageStart - b.ageStart)
+
+  if (decadalData.length === 0) {
+    return { decadal: 0, annual: 0 }
+  }
+
+  const currentAge = currentYear - birthYear + 1
+  let decadalIndex = decadalData.findIndex((item) => currentAge >= item.ageStart && currentAge <= item.ageEnd)
+
+  if (decadalIndex < 0) {
+    decadalIndex = currentAge < decadalData[0].ageStart ? 0 : decadalData.length - 1
+  }
+
+  const target = decadalData[decadalIndex]
+  const maxAnnualOffset = Math.max(0, target.ageEnd - target.ageStart)
+  const annualIndex = Math.max(0, Math.min(currentAge - target.ageStart, maxAnnualOffset))
+
+  return { decadal: decadalIndex, annual: annualIndex }
+}
 
 export function TimeTableModal({
   isOpen,
@@ -78,13 +109,16 @@ export function TimeTableModal({
   onConfirm,
 }: TimeTableModalProps) {
   const currentYear = new Date().getFullYear()
+  const defaultSelection = getDefaultDecadalAnnualSelectionFromPalaceData(palaceData, birthInfo.year, currentYear)
+  const resolvedSelection = initialDecadal !== null && initialDecadal !== undefined && initialAnnual !== null && initialAnnual !== undefined
+    ? { decadal: initialDecadal, annual: initialAnnual }
+    : defaultSelection
   const [year, setYear] = useState<number>(currentYear)
   const [month, setMonth] = useState<number>(1)
   const [day, setDay] = useState<number>(1)
   const [hour, setHour] = useState<number>(() => new Date().getHours())
-  const [minute, setMinute] = useState<number>(() => new Date().getMinutes())
-  const [selectedDecadal, setSelectedDecadal] = useState<number | null>(initialDecadal || null)
-  const [selectedAnnual, setSelectedAnnual] = useState<number | null>(initialAnnual || null)
+  const [selectedDecadal, setSelectedDecadal] = useState<number | null>(() => resolvedSelection.decadal)
+  const [selectedAnnual, setSelectedAnnual] = useState<number | null>(() => resolvedSelection.annual)
 
   useEffect(() => {
     if (isOpen) {
@@ -94,11 +128,10 @@ export function TimeTableModal({
       setMonth(today.getMonth() + 1)
       setDay(today.getDate())
       setHour(today.getHours())
-      setMinute(today.getMinutes())
-      setSelectedDecadal(initialDecadal || null)
-      setSelectedAnnual(initialAnnual || null)
+      setSelectedDecadal(resolvedSelection.decadal)
+      setSelectedAnnual(resolvedSelection.annual)
     }
-  }, [isOpen, initialDecadal, initialAnnual])
+  }, [isOpen, resolvedSelection])
 
   // 当选择流年后，自动更新年份
   useEffect(() => {
@@ -125,17 +158,16 @@ export function TimeTableModal({
         console.error('Error converting to lunar:', e)
       }
       
-      // 計算流月、流日、流時的索引（基於農曆月日和宮位順序 0-11）
-      const selectedMonthlyIndex = selectedDecadal !== null && selectedAnnual !== null ? (lunarMonth - 1) % 12 : null
-      const selectedDailyIndex = selectedDecadal !== null && selectedAnnual !== null ? (lunarDay - 1) % 12 : null
-      const selectedHourlyIndex = selectedDecadal !== null && selectedAnnual !== null ? Math.floor((hour + 1) / 2) : null
+      // 流月使用 0-11，流日使用完整 0-29，流時使用 0-11 的時辰索引
+      const selectedMonthlyIndex = selectedDecadal !== null && selectedAnnual !== null ? lunarMonth - 1 : null
+      const selectedDailyIndex = selectedDecadal !== null && selectedAnnual !== null ? lunarDay - 1 : null
+      const selectedHourlyIndex = selectedDecadal !== null && selectedAnnual !== null ? getHourlySelectionIndex(hour) : null
       
       onConfirm({
         year,
         month: lunarMonth,
         day: lunarDay,
         hour,
-        minute,
         selectedDecadal,
         selectedAnnual,
         selectedMonthly: selectedMonthlyIndex,
@@ -240,12 +272,12 @@ export function TimeTableModal({
         
         {/* 日期時間輸入 */}
         {selectedAnnual !== null ? (
-          // 流年已選擇：只需要選擇月、日、時、分
+          // 流年已選擇：只需要選擇月、日、時
           <div className="mb-6">
             <label className="text-sm font-semibold text-gray-700 mb-3 block">
-              {language === 'zh-TW' ? `年份自動設定為 ${year}，請選擇月、日、時、分` : `年份已自动设定为 ${year}，请选择月、日、时、分`}
+              {language === 'zh-TW' ? `年份自動設定為 ${year}，請選擇月、日、時` : `年份已自动设定为 ${year}，请选择月、日、时`}
             </label>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <Select
                 options={MONTH_OPTIONS}
                 value={month}
@@ -261,11 +293,6 @@ export function TimeTableModal({
                 value={hour}
                 onChange={(e) => setHour(Number(e.target.value))}
               />
-              <Select
-                options={MINUTE_SELECT_OPTIONS}
-                value={minute}
-                onChange={(e) => setMinute(Number(e.target.value))}
-              />
             </div>
           </div>
         ) : (
@@ -276,7 +303,7 @@ export function TimeTableModal({
             </label>
 
             {/* 日期輸入框 */}
-            <div className="grid grid-cols-5 gap-3">
+            <div className="grid grid-cols-4 gap-3">
               <div>
                 <div className="text-xs text-gray-600 mb-1 font-semibold">{language === 'zh-TW' ? '年' : '年'}</div>
                 <Select
@@ -309,14 +336,6 @@ export function TimeTableModal({
                   onChange={(e) => setHour(Number(e.target.value))}
                 />
               </div>
-              <div>
-                <div className="text-xs text-gray-600 mb-1 font-semibold">{language === 'zh-TW' ? '分' : '分'}</div>
-                <Select
-                  options={MINUTE_SELECT_OPTIONS}
-                  value={minute}
-                  onChange={(e) => setMinute(Number(e.target.value))}
-                />
-              </div>
             </div>
           </div>
         )}
@@ -328,7 +347,7 @@ export function TimeTableModal({
             📅 {language === 'zh-TW' ? '查詢日期時間' : '查询日期时间'}
           </div>
           <div className="text-xs text-gray-700 font-mono space-y-2">
-            <div>【西曆】{year}年{String(month).padStart(2, '0')}月{String(day).padStart(2, '0')}日 {String(hour).padStart(2, '0')}:{String(minute).padStart(2, '0')}</div>
+            <div>【西曆】{year}年{String(month).padStart(2, '0')}月{String(day).padStart(2, '0')}日 {String(hour).padStart(2, '0')}:00</div>
             {(() => {
               try {
                 const lunarResult = solar2lunar(

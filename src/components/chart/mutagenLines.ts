@@ -334,6 +334,41 @@ export function collectMutagenLines(palaceData: PalaceData[]): MutagenLine[] {
   const counterLines = lines.filter(line => line.isCounterMutagen)
   const processedPairs = new Set<string>()
   
+  // 建立起終點相同的線群組
+  const linesByPair = new Map<string, MutagenLine[]>()
+  counterLines.forEach(line => {
+    const pairKey = `${line.fromPalace}|${line.toPalace}`
+    if (!linesByPair.has(pairKey)) {
+      linesByPair.set(pairKey, [])
+    }
+    linesByPair.get(pairKey)!.push(line)
+  })
+
+  // 處理同方向重疊的線（相同起終點但不同四化類型）
+  linesByPair.forEach((linesWithSamePair, pairKey) => {
+    if (linesWithSamePair.length > 1) {
+      const fromPalacePos = PALACE_POSITIONS[linesWithSamePair[0].fromPalace]
+      const col = fromPalacePos?.col
+
+      // 根據起始宮的 col 決定偏移方向
+      // col 0,3（左右邊界）：使用垂直偏移 (yOffset)
+      // col 1,2（上下邊界）：使用水平偏移 (xOffset)
+      linesWithSamePair.forEach((line, idx) => {
+        const lineIndexInAll = lines.indexOf(line)
+        if (lineIndexInAll !== -1) {
+          if (col === 0 || col === 3) {
+            // 左右邊界：上下錯開 - 交替正負偏移
+            lines[lineIndexInAll].yOffset = (idx % 2 === 0 ? 1.5 : -1.5)
+          } else if (col === 1 || col === 2) {
+            // 上下邊界：左右錯開 - 交替正負偏移
+            lines[lineIndexInAll].xOffset = (idx % 2 === 0 ? 1.5 : -1.5)
+          }
+        }
+      })
+    }
+  })
+
+  // 處理反向對應的線（A→B 和 B→A 的不同方向對）
   for (let i = 0; i < counterLines.length; i++) {
     const line = counterLines[i]
     const pairKey = `${line.fromPalace}|${line.toPalace}`
@@ -367,18 +402,18 @@ export function collectMutagenLines(palaceData: PalaceData[]): MutagenLine[] {
         // col 1,2（上下邊界）：使用水平偏移 (xOffset)
         if (col === 0 || col === 3) {
           // 左右邊界：上下錯開
-          if (lineIndexInAll !== -1) {
+          if (lineIndexInAll !== -1 && !lines[lineIndexInAll].yOffset) {
             lines[lineIndexInAll].yOffset = 1.5  // 向上偏移
           }
-          if (otherLineIndexInAll !== -1) {
+          if (otherLineIndexInAll !== -1 && !lines[otherLineIndexInAll].yOffset) {
             lines[otherLineIndexInAll].yOffset = -1.5  // 向下偏移
           }
         } else if (col === 1 || col === 2) {
           // 上下邊界：左右錯開
-          if (lineIndexInAll !== -1) {
+          if (lineIndexInAll !== -1 && !lines[lineIndexInAll].xOffset) {
             lines[lineIndexInAll].xOffset = 1.5  // 向右偏移
           }
-          if (otherLineIndexInAll !== -1) {
+          if (otherLineIndexInAll !== -1 && !lines[otherLineIndexInAll].xOffset) {
             lines[otherLineIndexInAll].xOffset = -1.5  // 向左偏移
           }
         }

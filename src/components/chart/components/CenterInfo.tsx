@@ -154,7 +154,7 @@ export function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, lan
                   }
                 }}
                 style={{ pointerEvents: 'auto' }}
-                className="px-3.5 py-0 text-sm font-medium bg-gray-200 hover:bg-gray-300 active:bg-gray-400 rounded transition cursor-pointer shadow-md"
+                className="px-3.5 py-0 text-sm font-medium bg-gray-200 hover:bg-gray-300 active:bg-gray-400 rounded transition cursor-pointer"
               >
                 −
               </button>

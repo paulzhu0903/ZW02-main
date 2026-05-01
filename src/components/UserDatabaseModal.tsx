@@ -50,12 +50,12 @@ export function UserDatabaseModal({ isOpen, onClose, onSelect, onAdd, onEdit }: 
     <>
       {/* 背景覆盖层 */}
       <div
-        className="fixed inset-0 bg-black/40 z-40 backdrop-blur-sm"
+        className="fixed inset-0 bg-black/40 z-[99998] backdrop-blur-sm"
         onClick={onClose}
       />
 
       {/* Modal 对话框 */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
+      <div className="fixed inset-0 z-[99999] flex items-center justify-center p-2 sm:p-4">
         <div
           className="
             bg-white rounded-xl sm:rounded-2xl shadow-2xl

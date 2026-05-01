@@ -410,16 +410,7 @@ export function PalaceHintBubble({
     onTabChange(tab)
   }
 
-  // 點擊氣泡外部關閉
-  useEffect(() => {
-    const handle = (e: MouseEvent) => {
-      if (bubbleRef.current && !bubbleRef.current.contains(e.target as Node)) {
-        onClose()
-      }
-    }
-    document.addEventListener('mousedown', handle)
-    return () => document.removeEventListener('mousedown', handle)
-  }, [onClose])
+  // 移除點擊外部自動關閉，僅 close button 關閉
 
   /* ----------------------------------------------------------
      Tab 設定
@@ -451,7 +442,7 @@ export function PalaceHintBubble({
   return createPortal(
     <div
       ref={bubbleRef}
-      style={{ position: 'fixed', left, top, width: BUBBLE_W, zIndex: 9999, pointerEvents: 'auto', borderRadius: '18px' }}
+      style={{ position: 'fixed', left, top, width: BUBBLE_W, zIndex: 50, pointerEvents: 'auto', borderRadius: '18px' }}
       className="glass relative overflow-visible shadow-2xl rounded-2xl"
     >
       <div className="flex items-center gap-2 px-3 py-2 border-b border-black/[0.06] bg-white/30">

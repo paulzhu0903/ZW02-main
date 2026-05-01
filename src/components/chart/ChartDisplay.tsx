@@ -49,11 +49,14 @@ import { useChartDisplay, useChartCalculations } from './hooks/useChartDisplay'
    主命盤組件
    ============================================================ */
 
+import { useState } from 'react'
+
 export function ChartDisplay() {
   const { chart, birthInfo, setBirthInfo, setChart } = useChartStore()
   const { language, defaultChartType, monthlyArrangementMethod, setCurrentChartType, arcFlowAnimationEnabled, lineExtensionAnimationEnabled } = useSettingsStore()
   
   // 使用自定義 hook 管理狀態
+  const [rootMenuPalace, setRootMenuPalace] = useState<PalaceData | null>(null)
   const {
     selectedPalace,
     setSelectedPalace,
@@ -137,7 +140,7 @@ export function ChartDisplay() {
   // SVG 相關設定
   const arcResetVersion = 0
   const lineStrokeWidth = 2
-  const lineDashArray = isCompactMobile ? '4,2' : '6,3'
+  const lineDashArray = isCompactMobile ? '6,3' : '8,4'
   const arrowMarkerSize = isCompactMobile ? 7 : 10
   const arrowRefX = isCompactMobile ? 6.3 : 9
   const arrowRefY = isCompactMobile ? 2.2 : 3
@@ -315,22 +318,26 @@ export function ChartDisplay() {
         data-palace-branch={palace.branch}
         data-palace-name={palace.name}
         onClick={(e) => {
-          if (!showBubbleHint) return
-          const englishKey = PALACE_NAME_TO_ENGLISH_MAP[palace.name] || ''
-          const clickedDecadalLabel = decadalLabelsByPalaceName[englishKey] || ''
-          const clickedAnnualLabel = annualLabelsByPalaceName[englishKey] || ''
-          const clickedDecadalStem = getStemByRoleLabel(clickedDecadalLabel, decadalLabelsByPalaceName)
-          const clickedAnnualStem = getStemByRoleLabel(clickedAnnualLabel, annualLabelsByPalaceName)
-
-          setBubblePalace({
-            palace,
-            rect: e.currentTarget.getBoundingClientRect(),
-            decadalLabel: clickedDecadalLabel,
-            annualLabel: clickedAnnualLabel,
-            decadalStem: clickedDecadalStem || decadalLifePalaceStem,
-            annualStem: clickedAnnualStem || annualLifePalaceStem,
-            annualGanZhi: selectedAnnualGanZhi,
-          })
+          // 點擊宮位時可同時開啟 bubble 與 root menu
+          if (showBubbleHint) {
+            const englishKey = PALACE_NAME_TO_ENGLISH_MAP[palace.name] || ''
+            const clickedDecadalLabel = decadalLabelsByPalaceName[englishKey] || ''
+            const clickedAnnualLabel = annualLabelsByPalaceName[englishKey] || ''
+            const clickedDecadalStem = getStemByRoleLabel(clickedDecadalLabel, decadalLabelsByPalaceName)
+            const clickedAnnualStem = getStemByRoleLabel(clickedAnnualLabel, annualLabelsByPalaceName)
+            setBubblePalace({
+              palace,
+              rect: e.currentTarget.getBoundingClientRect(),
+              decadalLabel: clickedDecadalLabel,
+              annualLabel: clickedAnnualLabel,
+              decadalStem: clickedDecadalStem || decadalLifePalaceStem,
+              annualStem: clickedAnnualStem || annualLifePalaceStem,
+              annualGanZhi: selectedAnnualGanZhi,
+            })
+          }
+          if (showFlyGongToolbox) {
+            setRootMenuPalace(palace)
+          }
         }}
       >
         <PalaceCard
@@ -403,11 +410,11 @@ export function ChartDisplay() {
         <defs>
           {/* 綠色箭頭 - 化祿 */}
           <marker id="arrowFortune" markerWidth={arrowMarkerSize} markerHeight={arrowMarkerSize} refX={arrowRefX} refY={arrowRefY} orient="auto" markerUnits="strokeWidth">
-            <path d={arrowPath} fill="#21ec54bc" />
+            <path d={arrowPath} fill="#34C759" />
           </marker>
           {/* 紫色箭頭 - 化權 */}
           <marker id="arrowGold" markerWidth={arrowMarkerSize} markerHeight={arrowMarkerSize} refX={arrowRefX} refY={arrowRefY} orient="auto" markerUnits="strokeWidth">
-            <path d={arrowPath} fill="#aa00ffab" />
+            <path d={arrowPath} fill="#AF52DE" />
           </marker>
           {/* 藍色箭頭 - 化科 */}
           <marker id="arrowStar" markerWidth={arrowMarkerSize} markerHeight={arrowMarkerSize} refX={arrowRefX} refY={arrowRefY} orient="auto" markerUnits="strokeWidth">
@@ -415,7 +422,7 @@ export function ChartDisplay() {
           </marker>
           {/* 紅色箭頭 - 化忌 */}
           <marker id="arrowMisfortune" markerWidth={arrowMarkerSize} markerHeight={arrowMarkerSize} refX={arrowRefX} refY={arrowRefY} orient="auto" markerUnits="strokeWidth">
-            <path d={arrowPath} fill="#ff0d00" />
+            <path d={arrowPath} fill="#FF3B30" />
           </marker>
         </defs>
         
@@ -645,14 +652,15 @@ export function ChartDisplay() {
               {showFlyGongToolbox && (
                 <DottedArcLayer
                   palaceData={palaceData}
-                  selectedPalace={selectedPalace}
-                  setSelectedPalace={setSelectedPalace}
                   gridRef={gridRef}
                   gridOffset={gridOffset}
                   isCompactMobile={isCompactMobile}
                   lineStrokeWidth={lineStrokeWidth}
                   lineDashArray={lineDashArray}
                   resetVersion={arcResetVersion}
+                  // 傳入 rootMenuPalace 狀態
+                  rootMenuPalace={rootMenuPalace}
+                  setRootMenuPalace={setRootMenuPalace}
                 />
               )}
             </>
@@ -709,18 +717,18 @@ export function ChartDisplay() {
               fill="none"
               stroke="rgba(255, 213, 0, 0.6)"
               strokeWidth="1.5"
-              strokeDasharray={lineDashArray}
+              strokeDasharray="8 4"
               strokeDashoffset={0}
               className={lineExtensionAnimationEnabled ? "dash-flow-slow" : ""}
             />
             {/* 四正連線：本宮 ↔ 對宮 */}
             <line x1={p0.x} y1={p0.y} x2={pOpp.x} y2={pOpp.y}
-              stroke="rgba(0, 200, 255, 0.7)" strokeWidth="1.5" strokeDasharray={lineDashArray}
+              stroke="rgba(0, 200, 255, 0.7)" strokeWidth="1.5" strokeDasharray="8 4"
               strokeDashoffset={0}
               className={lineExtensionAnimationEnabled ? "dash-flow-slow" : ""} />
             {/* 四正連線：前3宮 ↔ 後3宮 */}
             <line x1={pFwd3.x} y1={pFwd3.y} x2={pBack3.x} y2={pBack3.y}
-              stroke="rgba(0, 200, 255, 0.7)" strokeWidth="1.5" strokeDasharray={lineDashArray}
+              stroke="rgba(0, 200, 255, 0.7)" strokeWidth="1.5" strokeDasharray="8 4"
               strokeDashoffset={0}
               className={lineExtensionAnimationEnabled ? "dash-flow-slow" : ""} />
           </svg>
@@ -785,7 +793,7 @@ export function ChartDisplay() {
               }
             }}
             onDayChange={(day) => {
-              if (birthInfo && birthInfo.year && birthInfo.month && birthInfo.hour !== undefined && birthInfo.gender) {
+              if (birthInfo && birthInfo.year && birthInfo.month && birthInfo.hour != null && birthInfo.gender) {
                 const updatedBirthInfo: BirthInfo = {
                   year: birthInfo.year,
                   month: birthInfo.month,
@@ -829,8 +837,8 @@ export function ChartDisplay() {
               key={item.value}
               onClick={() => {
                 setChartType(item.value as 'flying' | 'trireme' | 'transformation')
-                // 同步更新全局狀態，以便 AIInterpretation 可以讀取
                 useSettingsStore.getState().setCurrentChartType(item.value as 'flying' | 'trireme' | 'transformation')
+                setBubblePalace(null) // 切換盤型時自動關閉 bubble hint
               }}
               className={`
                 h-6 sm:h-7 px-2 sm:px-3 rounded-md sm:rounded-lg font-medium transition-all duration-200 text-[10px] sm:text-[13px] whitespace-nowrap inline-flex items-center justify-center shrink-0
@@ -851,7 +859,10 @@ export function ChartDisplay() {
         {/* 第二部分：收合按鈕 */}
         <HoverHint content={isDecadalExpanded ? '收起' : '展開'}>
           <button
-            onClick={() => setIsDecadalExpanded(!isDecadalExpanded)}
+            onClick={() => {
+              setIsDecadalExpanded(!isDecadalExpanded)
+              setBubblePalace(null) // 展開/收合時自動關閉 bubble hint
+            }}
             className="rounded-md sm:rounded-lg font-medium transition-all bg-star text-white hover:bg-star-light shadow-lg flex items-center justify-center w-7 h-6 sm:w-7 sm:h-7 shrink-0"
           >
             {isDecadalExpanded ? (
@@ -871,8 +882,8 @@ export function ChartDisplay() {
           <MutagenControls 
             mutagenDisplay={mutagenDisplay} 
             setMutagenDisplay={(display) => {
-              // 僅切換四化顯示，不影響 BubbleHint 狀態
               setMutagenDisplay(display)
+              setBubblePalace(null) // 切換四化顯示時自動關閉 bubble hint
             }}
           />
         )}

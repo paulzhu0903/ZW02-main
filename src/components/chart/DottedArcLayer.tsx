@@ -10,14 +10,14 @@ import DeleteIcon from '@/icons/delete.svg'
 
 interface DottedArcLayerProps {
   palaceData: PalaceData[]
-  selectedPalace: string | null
-  setSelectedPalace: (palaceName: string | null) => void
   gridRef: React.RefObject<HTMLDivElement | null>
   gridOffset: { x: number; y: number }
   isCompactMobile: boolean
   lineStrokeWidth: number
   lineDashArray: string
   resetVersion: number
+  rootMenuPalace: PalaceData | null
+  setRootMenuPalace: (palace: PalaceData | null) => void
 }
 
 interface ArcTrailItem {
@@ -60,18 +60,19 @@ interface TransientOppositeLine {
 
 export function DottedArcLayer({
   palaceData,
-  selectedPalace,
-  setSelectedPalace,
   gridRef,
   gridOffset,
   isCompactMobile,
   lineStrokeWidth,
   resetVersion,
+  rootMenuPalace,
+  setRootMenuPalace,
 }: DottedArcLayerProps) {
   const { arcFlowAnimationEnabled, lineExtensionAnimationEnabled } = useSettingsStore()
   const [branchStates, setBranchStates] = useState<Record<string, BranchState>>({})
   const [arcMenu, setArcMenu] = useState<ArcMenuState | null>(null)
   const [transientOppositeLines, setTransientOppositeLines] = useState<TransientOppositeLine[]>([])
+  // 移除內部 rootMenuPalace state，完全由父層控制
 
   const EMPTY_BRANCH_STATE: BranchState = {
     selectedArcLabel: null,
@@ -269,8 +270,9 @@ export function DottedArcLayer({
     }
   }
 
-  const selectedPalaceData = selectedPalace
-    ? palaceData.find(p => p.name === selectedPalace) || null
+  // root menu 控制
+  const selectedPalaceData = rootMenuPalace
+    ? palaceData.find(p => p.name === rootMenuPalace.name) || null
     : null
 
   const allArcTrails = Object.entries(branchStates).flatMap(([rootBranch, branch]) =>
@@ -285,25 +287,19 @@ export function DottedArcLayer({
 
     const rootBranch = selectedPalaceData.branch
 
-    // 使用 updater 函数，处理菜单切换
     setArcMenu((prevMenu) => {
-      // 如果是 Root Menu 且不是当前宫位，切换到新宫位
       if (prevMenu && !prevMenu.isFromArc && prevMenu.branch !== rootBranch) {
         return {
           branch: rootBranch,
           rootBranch,
         }
       }
-      
-      // 如果菜单关闭，打开新宫位的菜单
       if (!prevMenu) {
         return {
           branch: rootBranch,
           rootBranch,
         }
       }
-      
-      // 保持现有菜单（Branch Menu 或同宫位 Root Menu）
       return prevMenu
     })
   }, [selectedPalaceData])
@@ -607,9 +603,9 @@ export function DottedArcLayer({
               type="button"
               className="absolute -right-1 -top-1 h-5 w-5 flex items-center justify-center rounded-full bg-slate-600 text-white hover:bg-slate-700 transition-colors"
               onClick={() => {
-                // 關閉菜單時，也清除宮位選擇，下次點擊才能重新打開菜單
+                // 關閉 root menu 只清除 rootMenuPalace 狀態，不影響 bubbleHint
                 setArcMenu(null)
-                setSelectedPalace(null)
+                setRootMenuPalace(null)
               }}
               title="Close menu"
             >

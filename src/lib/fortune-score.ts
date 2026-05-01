@@ -16,6 +16,7 @@
 import type FunctionalAstrolabe from 'iztro/lib/astro/FunctionalAstrolabe'
 import { extractKnowledge } from '../knowledge'
 import { chat, type LLMConfig } from './llm'
+import { BRIGHTNESS_COEF, MINOR_STAR_STANDARD_BRIGHTNESS } from './brightness'
 
 /* ============================================================
    类型定义
@@ -144,7 +145,7 @@ const STAR_BASE_SCORE: Record<string, number> = {
   '天福': 4,
   '解神': 5,
   '天巫': 3,
-  '天月': -2,
+  '天鉞': -2,
   '阴煞': -5,
   '台辅': 3,
   '封诰': 3,
@@ -158,16 +159,6 @@ const STAR_BASE_SCORE: Record<string, number> = {
    亮度系数表
    ============================================================ */
 
-const BRIGHTNESS_COEF: Record<string, number> = {
-  '庙': 1.5,
-  '旺': 1.3,
-  '得': 1.1,
-  '利': 1.0,
-  '平': 0.9,
-  '不': 0.7,
-  '陷': 0.5,
-}
-
 /* ============================================================
    四化修正值
    ============================================================ */
@@ -177,6 +168,19 @@ const SIHUA_MODIFIER: Record<string, number> = {
   '权': 12,   // 化权: 权力提升
   '科': 10,   // 化科: 名声贵人
   '忌': -18,  // 化忌: 阻碍困扰
+}
+
+/* ============================================================
+   補充缺失的輔星亮度
+   ============================================================ */
+
+function getBrightnessWithDefault(star: { name: string; brightness?: string }): string | undefined {
+  // 如果已有亮度值，直接返回
+  if (star.brightness) {
+    return star.brightness
+  }
+  // 否則使用標準亮度（針對 iztro 未提供的輔星）
+  return MINOR_STAR_STANDARD_BRIGHTNESS[star.name]
 }
 
 /* ============================================================
@@ -199,7 +203,7 @@ const PALACE_WEIGHTS = {
  */
 function calculatePalaceScore(palace: {
   majorStars: Array<{ name: string; brightness?: string; mutagen?: string[] }>
-  minorStars: Array<{ name: string; mutagen?: string[] }>
+  minorStars: Array<{ name: string; brightness?: string; mutagen?: string[] }>
   adjectiveStars?: Array<{ name: string }>
 }): number {
   let score = 50  // 基础分 50
@@ -226,7 +230,12 @@ function calculatePalaceScore(palace: {
   // 辅星评分
   for (const star of palace.minorStars) {
     const baseName = star.name.replace(/[化禄权科忌]/, '')
-    score += STAR_BASE_SCORE[baseName] || 0
+    const baseScore = STAR_BASE_SCORE[baseName] || 0
+
+    // 亮度系数（辅星也需考虑亮度）
+    const brightness = star.brightness || '平'
+    const coef = BRIGHTNESS_COEF[brightness] || 1.0
+    score += baseScore * coef
 
     if (star.mutagen) {
       for (const m of star.mutagen) {
@@ -275,6 +284,7 @@ export function calculatePeriodScore(
       })),
       minorStars: palace.minorStars.map(s => ({
         name: String(s.name),
+        brightness: getBrightnessWithDefault(s),
         mutagen: normalizeMutagen(s.mutagen),
       })),
       adjectiveStars: palace.adjectiveStars?.map(s => ({ name: String(s.name) })),
@@ -503,7 +513,7 @@ function calculateRealMonthlyScoresForDecadal(
 /**
  * 计算宫位基础分数
  */
-function calculatePalaceBaseScore(palace: { majorStars: Array<{ name: unknown; brightness?: unknown; mutagen?: unknown }>; minorStars: Array<{ name: unknown }> }): number {
+function calculatePalaceBaseScore(palace: { majorStars: Array<{ name: unknown; brightness?: unknown; mutagen?: unknown }>; minorStars: Array<{ name: unknown; brightness?: unknown }> }): number {
   let score = 50
 
   // 主星评分
@@ -525,10 +535,15 @@ function calculatePalaceBaseScore(palace: { majorStars: Array<{ name: unknown; b
     }
   }
 
-  // 辅星
+  // 辅星（考虑亮度）
   for (const star of palace.minorStars) {
     const name = String(star.name)
-    score += (STAR_BASE_SCORE[name] || 0) * 0.3
+    const baseScore = STAR_BASE_SCORE[name] || 0
+    // 使用補充的標準亮度（若 iztro 未提供）
+    let brightness = star.brightness ? String(star.brightness) : undefined
+    brightness = brightness || MINOR_STAR_STANDARD_BRIGHTNESS[name] || '平'
+    const coef = BRIGHTNESS_COEF[brightness] || 1.0
+    score += baseScore * coef * 0.3
   }
 
   return Math.max(20, Math.min(90, score))
@@ -1381,4 +1396,4 @@ export async function generateKLinesWithLLM(
    导出
    ============================================================ */
 
-export { STAR_BASE_SCORE, BRIGHTNESS_COEF, SIHUA_MODIFIER }
+export { STAR_BASE_SCORE, BRIGHTNESS_COEF, SIHUA_MODIFIER, MINOR_STAR_STANDARD_BRIGHTNESS }

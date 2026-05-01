@@ -20,7 +20,7 @@ export function StarTag({ star, isMajorStar = false, forceTextColorClass = '', c
   const displayBrightness = chartType === 'trireme' ? true : false
   const { name, brightness, mutagen } = star
   const hasMutagen = !!mutagen
-  const brightnessChar = getBrightnessDisplay(brightness, language)
+  const brightnessChar = getBrightnessDisplay(brightness, language, name)
 
   // 获取本地化的四化字符
   const getMutagenDisplay = (mutagen: string | undefined): string => {

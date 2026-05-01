@@ -2,21 +2,29 @@
  * 本地化相關函數
  */
 
-import { t, BRIGHTNESS_MAP as BRIGHTNESS_MAP_I18N } from '@/lib/i18n'
+import { t } from '@/lib/i18n'
 import { getStarEnglishParam } from '@/lib/star-name'
+import { BRIGHTNESS_MAP, MINOR_STAR_STANDARD_BRIGHTNESS } from '@/lib/brightness'
 
 /**
  * 根據語言設置獲取亮度顯示字符
  * @param brightness - 亮度值（中文字符，如"廟"、"庙"、"望"、"平"、"陷"）
  * @param language - 語言代碼
+ * @param starName - 星名（用於補充缺失的亮度）
  * @returns 本地化後的亮度字符
  */
-export function getBrightnessDisplay(brightness: string | undefined, language: 'zh-TW' | 'zh-CN'): string {
-  if (!brightness) return ''
+export function getBrightnessDisplay(brightness: string | undefined, language: 'zh-TW' | 'zh-CN', starName?: string): string {
+  // 如果沒有亮度，嘗試用標準亮度補充
+  let finalBrightness = brightness
+  if (!finalBrightness && starName) {
+    finalBrightness = MINOR_STAR_STANDARD_BRIGHTNESS[starName]
+  }
+  
+  if (!finalBrightness) return ''
   
   // 將中文亮度名稱映射為英文參數名
-  const englishKey = BRIGHTNESS_MAP_I18N[brightness]
-  if (!englishKey) return brightness
+  const englishKey = BRIGHTNESS_MAP[finalBrightness]
+  if (!englishKey) return finalBrightness
   
   // 通過 t() 函數獲取本地化的亮度字符
   return t(`brightness.${englishKey}`, language)

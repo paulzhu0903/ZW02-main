@@ -55,7 +55,6 @@ const translations: Record<Language, Record<string, any>> = {
     'ai.prompt.readChart': '請解讀以下命盤：',
     'ai.prompt.indicatorsHint': '以下是程式自動整理的關鍵指標，**優先依此做結構判讀**，再參考補充上下文交叉驗證。',
     'ai.prompt.basicInfo': '基本資訊\n-',
-
     'ai.context.complete': '【命盤完整信息】',
     'ai.context.lifePalaceStars': '## 命宮主星',
     'ai.context.bodyPalacePosition': '## 身宮位置',
@@ -155,6 +154,18 @@ const translations: Record<Language, Record<string, any>> = {
     'form.shichen': '出生時辰',
     'form.leapMonth': '閏月',
     'form.invalidLunarDate': '這個農曆日期不存在，請重新選擇',
+    'form.category': '分類',
+    'form.category.family': '家人',
+    'form.category.friend': '朋友',
+    'form.category.classmate': '同學',
+    'form.category.colleague': '同事',
+    'form.category.client': '客戶',
+    'form.category.celebrity': '名人',
+    'form.category.other': '其他',
+    'form.category.zodiac': '紫占',
+    'form.category.custom1': '分類_1',
+    'form.category.custom2': '分類_2',
+    'form.category.custom3': '分類_3',
     'form.confirm': '確認',
     'form.cancel': '取消',
     'form.gender': '性別',
@@ -178,12 +189,16 @@ const translations: Record<Language, Record<string, any>> = {
     'modal.noRecords': '沒有找到符合的使用者',
     'modal.name': '姓名',
     'modal.gender': '性別',
+    'modal.category': '分類',
     'modal.birthLocation': '出生地',
     'modal.birthDate': '生辰',
     'modal.remarks': '備註',
     'modal.male': '男',
     'modal.female': '女',
     'modal.noRemarks': '無',
+    'modal.importExamples': '輸入命例',
+    'modal.exportExamples': '輸出命例',
+    'modal.categoryAll': '所有分類',
 
     // Settings
     'settings.title': '設置',
@@ -284,8 +299,11 @@ const translations: Record<Language, Record<string, any>> = {
     'chart.fiveElementsClass': '五行局',
     'chart.yinYangGender': '性別',
     'brightness.temple': '廟',
-    'brightness.wang': '望',
+    'brightness.wang': '旺',
+    'brightness.de': '得',
+    'brightness.li': '利',
     'brightness.ping': '平',
+    'brightness.bu': '不',
     'brightness.xian': '陷',
 
     // 四化 (Mutagen) - 天干四化
@@ -343,8 +361,7 @@ const translations: Record<Language, Record<string, any>> = {
     'star.tianfu2': '天福',
     'star.jieshen': '解神',
     'star.tianwu': '天巫',
-    'star.tianyue': '天月',
-    'star.youyue': '天鑰',
+    'star.tianyue': '天鉞',
     'star.tiankui': '天魁',
     'star.yinsha': '陰煞',
     'star.taifu': '台輔',
@@ -555,6 +572,18 @@ const translations: Record<Language, Record<string, any>> = {
     'form.invalidLunarDate': '这个农历日期不存在，请重新选择',
     'form.confirm': '确认',
     'form.cancel': '取消',
+    'form.category': '分类',
+    'form.category.family': '家人',
+    'form.category.friend': '朋友',
+    'form.category.classmate': '同学',
+    'form.category.colleague': '同事',
+    'form.category.client': '客户',
+    'form.category.celebrity': '名人',
+    'form.category.other': '其他',
+    'form.category.zodiac': '紫占',
+    'form.category.custom1': '分类_1',
+    'form.category.custom2': '分类_2',
+    'form.category.custom3': '分类_3',
     'form.gender': '性别',
     'form.male': '男',
     'form.female': '女',
@@ -576,12 +605,16 @@ const translations: Record<Language, Record<string, any>> = {
     'modal.noRecords': '没有找到符合的使用者',
     'modal.name': '姓名',
     'modal.gender': '性别',
+    'modal.category': '分类',
     'modal.birthLocation': '出生地',
     'modal.birthDate': '生辰',
     'modal.remarks': '备注',
     'modal.male': '男',
     'modal.female': '女',
     'modal.noRemarks': '无',
+    'modal.importExamples': '输入命例',
+    'modal.exportExamples': '输出命例',
+    'modal.categoryAll': '所有分类',
 
     // Settings
     'settings.title': '设置',
@@ -686,8 +719,11 @@ const translations: Record<Language, Record<string, any>> = {
     'chart.fiveElementsClass': '五行局',
     'chart.yinYangGender': '性别',
     'brightness.temple': '庙',
-    'brightness.wang': '望',
+    'brightness.wang': '旺',
+    'brightness.de': '得',
+    'brightness.li': '利',
     'brightness.ping': '平',
+    'brightness.bu': '不',
     'brightness.xian': '陷',
 
     // 四化 (Mutagen) - 天干四化
@@ -745,7 +781,7 @@ const translations: Record<Language, Record<string, any>> = {
     'star.tianfu2': '天福',
     'star.jieshen': '解神',
     'star.tianwu': '天巫',
-    'star.tianyue': '天月',
+    'star.tianyue': '天鉞',
     'star.youyue': '天钺',
     'star.tiankui': '天魁',
     'star.yinsha': '阴煞',
@@ -1022,13 +1058,11 @@ export const BOSHI_DEITY_MAP: Record<string, string> = {
 /**
  * 亮度映射表（中文 → 英文参数名）
  * 支持繁體和简体
+ * 亮度等級：庙/廟(最吉) → 旺 → 得 → 利 → 平 → 不 → 陷(最凶)
  */
-export const BRIGHTNESS_MAP: Record<string, string> = {
-  '廟': 'temple', '庙': 'temple',
-  '望': 'wang',
-  '平': 'ping',
-  '陷': 'xian',
-}
+
+// 亮度定義已遷移到 src/lib/brightness.ts
+// 請從那裡導入 BRIGHTNESS_MAP、BRIGHTNESS_COEF、MINOR_STAR_STANDARD_BRIGHTNESS 等
 
 export function getTranslations(language: Language) {
   return translations[language]

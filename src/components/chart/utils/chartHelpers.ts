@@ -2,6 +2,7 @@ import { EARTHLY_BRANCH_ORDER, LUNAR_MONTH_MAP, LUNAR_MONTH_NAMES, PALACE_CLOCKW
 import type { FunctionalAstrolabe } from '@/lib/astro'
 import type { PalaceData, StarData } from '../types'
 import { PALACE_BRANCH_INDEX } from '../types'
+import { MINOR_STAR_STANDARD_BRIGHTNESS } from '@/lib/brightness'
 
 /**
  * 根據年份獲取天干地支
@@ -161,7 +162,7 @@ export function parsePalaces(chart: FunctionalAstrolabe): PalaceData[] {
 
     const minorStars: StarData[] = (palace.minorStars || []).map((s) => ({
       name: s.name as string,
-      brightness: s.brightness as string | undefined,
+      brightness: (s.brightness as string) || MINOR_STAR_STANDARD_BRIGHTNESS[s.name as string],
       mutagen: s.mutagen as string | undefined,
       palaceStem: stem,
     }))

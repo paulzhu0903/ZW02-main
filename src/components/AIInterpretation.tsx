@@ -11,7 +11,8 @@ import type { ChartIndicators } from '@/knowledge'
 import { streamChat, type ChatMessage, type LLMConfig } from '@/lib/llm'
 import { getSystemPrompt, buildUserPrompt, mapUIChartTypeToPromptChartType } from '@/lib/prompts'
 import { Button, HoverHint } from '@/components/ui'
-import { t, BRIGHTNESS_MAP } from '@/lib/i18n'
+import { t } from '@/lib/i18n'
+import { getBrightnessDisplay } from '@/components/chart/utils/localization'
 
 /* ------------------------------------------------------------
    Markdown 自定义样式组件
@@ -54,19 +55,6 @@ const MarkdownComponents = {
 /* ============================================================
    輔助函數
    ============================================================ */
-
-/**
- * 獲取本地化的亮度顯示名稱
- * 將中文亮度名稱（如"廟"）轉換為國際化的顯示字符
- */
-function getBrightnessDisplay(brightness: string | undefined, language: 'zh-TW' | 'zh-CN'): string {
-  if (!brightness) return ''
-  
-  const englishKey = BRIGHTNESS_MAP[brightness]
-  if (!englishKey) return brightness
-  
-  return t(`brightness.${englishKey}`, language)
-}
 
 /* ------------------------------------------------------------
    AI 解读面板组件
@@ -253,8 +241,8 @@ export function AIInterpretation() {
 
     // 取第一個主星的亮度
     const majorStars = (palace as any)?.majorStars || []
-    if (majorStars.length > 0 && majorStars[0]?.brightness) {
-      return getBrightnessDisplay(majorStars[0].brightness, language)
+    if (majorStars.length > 0 && majorStars[0]) {
+      return getBrightnessDisplay(majorStars[0].brightness, language, majorStars[0].name)
     }
     return ''
   }

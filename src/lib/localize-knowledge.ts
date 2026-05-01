@@ -74,6 +74,7 @@ const SIMPLIFIED_TO_TRADITIONAL_CHARS: Record<string, string> = {
     '龙': '龍',
     '凤': '鳳',
     '阴': '陰',
+    '类': '類',
 }
 
 const TRADITIONAL_TO_SIMPLIFIED_PHRASES: Array<[string, string]> = SIMPLIFIED_TO_TRADITIONAL_PHRASES

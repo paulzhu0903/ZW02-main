@@ -200,24 +200,8 @@ export const MUTAGEN_COLORS: Record<string, { color: string; marker: string }> =
   '化權': { color: '#AF52DE', marker: 'arrowGold' },       // 紫色（繁體長）
 }
 
-/* ============================================================
-   亮度映射
-   ============================================================ */
-
-export const BRIGHTNESS_MAP: Record<string, string> = {
-  '庙': '庙', '旺': '旺', '得': '得', '利': '利',
-  '平': '平', '不': '不', '陷': '陷',
-}
-
-export const BRIGHTNESS_STYLE: Record<string, string> = {
-  '庙': 'text-fortune',
-  '旺': 'text-gold',
-  '得': 'text-star-light',
-  '利': 'text-star-light',
-  '平': 'text-text-muted',
-  '不': 'text-misfortune/70',
-  '陷': 'text-misfortune',
-}
+// 亮度定義已遷移到 src/lib/brightness.ts
+// 請從那裡導入 BRIGHTNESS_MAP、BRIGHTNESS_STYLE 等定義
 
 /* ============================================================
    主星列表

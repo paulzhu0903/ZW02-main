@@ -12,6 +12,7 @@ export function convertToCSV(records: UserRecord[]): string {
   // CSV 標題行
   const headers = [
     '姓名',
+    '分類',
     '出生年',
     '出生月',
     '出生日',
@@ -27,6 +28,7 @@ export function convertToCSV(records: UserRecord[]): string {
   // 轉換記錄為 CSV 行
   const rows = records.map(record => [
     escapeCsvField(record.name),
+    escapeCsvField(record.category || ''),
     record.year.toString(),
     record.month.toString(),
     record.day.toString(),
@@ -69,7 +71,9 @@ export function exportToExcel(): void {
   }
 
   const csvContent = convertToCSV(records)
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  // 添加 UTF-8 BOM，使 Excel 在 Windows 上正確識別編碼
+  const BOM = '\uFEFF'
+  const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' })
   const link = document.createElement('a')
   const url = URL.createObjectURL(blob)
 
@@ -124,20 +128,24 @@ function parseCSVContent(csvContent: string): Partial<UserRecord>[] {
   const records: Partial<UserRecord>[] = []
 
   for (let i = 1; i < lines.length; i++) {
-    const fields = parseCSVLine(lines[i])
+    const line = lines[i].trim()
+    if (!line) continue // 跳過空行
 
-    if (fields.length < 7) continue // 跳過不完整的行
+    const fields = parseCSVLine(line)
+
+    if (fields.length < 8) continue // 跳過不完整的行
 
     const record: Partial<UserRecord> = {
       name: fields[0],
-      year: parseInt(fields[1]),
-      month: parseInt(fields[2]),
-      day: parseInt(fields[3]),
-      hour: parseInt(fields[4]),
-      minute: parseInt(fields[5]) || 0,
-      gender: (fields[6] === '男' ? 'male' : 'female') as 'male' | 'female',
-      birthLocation: fields[7] || undefined,
-      remark: fields[8] || undefined,
+      category: fields[1] || '',
+      year: parseInt(fields[2]),
+      month: parseInt(fields[3]),
+      day: parseInt(fields[4]),
+      hour: parseInt(fields[5]),
+      minute: parseInt(fields[6]) || 0,
+      gender: (fields[7] === '男' ? 'male' : 'female') as 'male' | 'female',
+      birthLocation: fields[8] || undefined,
+      remark: fields[9] || undefined,
     }
 
     // 驗證必需字段
@@ -167,7 +175,7 @@ export async function importFromFile(file: File): Promise<number> {
         }
 
         // 確認導入
-        const confirmed = window.confirm(`確認導入 ${records.length} 筆記錄嗎？\n\n注意：同名記錄將被覆蓋。`)
+        const confirmed = window.confirm(`確認導入 ${records.length} 筆記錄嗎？\n\n注意：同名記錄將作為新記錄保存。`)
         if (!confirmed) {
           reject(new Error('用戶取消導入'))
           return
@@ -185,6 +193,7 @@ export async function importFromFile(file: File): Promise<number> {
               hour: record.hour!,
               minute: record.minute,
               gender: record.gender!,
+              category: record.category,
               remark: record.remark,
               birthLocation: record.birthLocation,
             })

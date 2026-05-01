@@ -4,31 +4,55 @@
 
 import { useState, useEffect } from 'react'
 import { Button, Input, Select } from '@/components/ui'
+import { useChartStore, useSettingsStore } from '@/stores'
 import { convertLunarToSolarBirthInfo, generateChart, getShichenOptions, type BirthInfo, type Gender } from '@/lib/astro'
 import { userDB, type UserRecord } from '@/lib/db'
-import { toTraditionalChinese } from '@/lib/localize-knowledge'
+import { toTraditionalChinese, localizeChineseText } from '@/lib/localize-knowledge'
 import { UserDatabaseModal } from './UserDatabaseModal'
-import { useChartStore, useSettingsStore } from '@/stores'
 import { t } from '@/lib/i18n'
+const CATEGORY_KEYS = [
+  'form.category.family',
+  'form.category.friend',
+  'form.category.classmate',
+  'form.category.colleague',
+  'form.category.client',
+  'form.category.celebrity',
+  'form.category.other',
+  'form.category.zodiac',
+  'form.category.custom1',
+  'form.category.custom2',
+  'form.category.custom3',
+]
 
-const currentYear = new Date().getFullYear()
-
-type BirthInputMode = 'solar' | 'lunar'
-
-const HEAVENLY_STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
-const EARTHLY_BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
-
-function getGanZhiYear(year: number) {
-  const heavenlyStem = HEAVENLY_STEMS[(year - 4) % 10]
-  const earthlyBranch = EARTHLY_BRANCHES[(year - 4) % 12]
-  return `${heavenlyStem}${earthlyBranch}`
+// 分類鍵到標準繁體名稱的映射
+const CATEGORY_KEY_TO_NAME: Record<string, string> = {
+  'form.category.family': '家人',
+  'form.category.friend': '朋友',
+  'form.category.classmate': '同學',
+  'form.category.colleague': '同事',
+  'form.category.client': '客戶',
+  'form.category.celebrity': '名人',
+  'form.category.other': '其他',
+  'form.category.zodiac': '紫占',
+  'form.category.custom1': '分類_1',
+  'form.category.custom2': '分類_2',
+  'form.category.custom3': '分類_3',
 }
 
+
+const currentYear = new Date().getFullYear()
 const YEAR_OPTIONS = Array.from({ length: 100 }, (_, i) => ({
   value: currentYear - i,
   label: `${currentYear - i}年`,
 }))
 
+function getGanZhiYear(year: number) {
+  const HEAVENLY_STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
+  const EARTHLY_BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
+  const heavenlyStem = HEAVENLY_STEMS[(year - 4) % 10]
+  const earthlyBranch = EARTHLY_BRANCHES[(year - 4) % 12]
+  return `${heavenlyStem}${earthlyBranch}`
+}
 const LUNAR_YEAR_OPTIONS = Array.from({ length: 100 }, (_, i) => {
   const year = currentYear - i
   return {
@@ -121,11 +145,15 @@ export function BirthForm() {
 
   const [name, setName] = useState('')
   const [birthLocation, setBirthLocation] = useState('')
-  const [remark, setRemark] = useState('')
+    const [remark, setRemark] = useState('')
+  const [category, setCategory] = useState('')
+  const [editingCategoryIndex, setEditingCategoryIndex] = useState<number | null>(null)
+  const [editingCategoryName, setEditingCategoryName] = useState('')
+  const [categoryNames, setCategoryNames] = useState<Record<string, string>>({})
   const [year, setYear] = useState(1970)
   const [month, setMonth] = useState(9)
   const [day, setDay] = useState(3)
-  const [inputMode, setInputMode] = useState<BirthInputMode>('solar')
+  const [inputMode, setInputMode] = useState('solar')
   const [isLeapMonth, setIsLeapMonth] = useState(false)
   const [hour, setHour] = useState(13)
   const [minute, setMinute] = useState(30)
@@ -140,7 +168,7 @@ export function BirthForm() {
   useEffect(() => {
     if (recordToLoad) {
       setRecordId(recordToLoad.id)  // 保存编辑记录的 ID
-      setName(recordToLoad.name)
+      setName(recordToLoad.name)  // 保存原始值，在显示时转换
       setBirthLocation(recordToLoad.birthLocation || '')  // 加载出生地
       setYear(recordToLoad.year)
       setMonth(recordToLoad.month)
@@ -150,7 +178,9 @@ export function BirthForm() {
       setHour(recordToLoad.hour)
       setMinute(recordToLoad.minute || 0)  // 确保分钟被正确设置
       setGender(recordToLoad.gender)
-      setRemark(recordToLoad.remark || '')
+        setRemark(recordToLoad.remark || '')
+        setCategory(recordToLoad.category || '')
+      setEditingCategoryIndex(null)
       setFormError('')
       setIsEditing(true)  // 进入编辑模式
     }
@@ -163,10 +193,12 @@ export function BirthForm() {
     try {
       // 儲存到資料庫（如果提供了名字）
       if (birthInfo.name?.trim()) {
+        const trimmedName = birthInfo.name.trim()
+        
         // 如果在编辑模式且有 recordId，使用 updateById 更新记录
         if (isEditing && recordId) {
           userDB.updateById(recordId, {
-            name: birthInfo.name.trim(),
+            name: trimmedName,
             year: birthInfo.year,
             month: birthInfo.month,
             day: birthInfo.day,
@@ -175,11 +207,26 @@ export function BirthForm() {
             gender: birthInfo.gender,
             remark: remark || undefined,
             birthLocation: birthLocation || undefined,
+            category: category || '',
           })
         } else {
-          // 否则使用 save 方法（新增或按名字更新）
+          // 檢查是否已存在同名記錄
+          const existingRecord = userDB.getByName(trimmedName)
+          
+          if (existingRecord) {
+            // 存在同名記錄，顯示提醒
+            const message = `已存在命例「${trimmedName}」\n\n${existingRecord.year}年${existingRecord.month}月${existingRecord.day}日 ${existingRecord.hour}時\n\n是否繼續新增此命例？\n(允許同一人有多筆記錄)`
+            
+            const shouldContinue = window.confirm(message)
+            if (!shouldContinue) {
+              setLoading(false)
+              return
+            }
+          }
+          
+          // 創建新記錄
           userDB.save({
-            name: birthInfo.name.trim(),
+            name: trimmedName,
             year: birthInfo.year,
             month: birthInfo.month,
             day: birthInfo.day,
@@ -188,6 +235,7 @@ export function BirthForm() {
             gender: birthInfo.gender,
             remark: remark || undefined,
             birthLocation: birthLocation || undefined,
+            category: category || '',
           })
         }
       }
@@ -258,13 +306,15 @@ export function BirthForm() {
     setMinute(30)
     setGender('male')
     setFormError('')
+    setCategory('')
+    setEditingCategoryIndex(null)
     setRecordId(null)
     setIsDbModalOpen(false)
   }
 
   // "修改" 按鈕：只加載資料，進入編輯模式
   const handleEdit = (record: UserRecord) => {
-    setName(record.name)
+    setName(record.name)  // 保存原始值，在显示时转换
     setBirthLocation(record.birthLocation || '')
     setRemark(record.remark || '')
     setYear(record.year)
@@ -276,6 +326,8 @@ export function BirthForm() {
     setMinute(record.minute || 0)
     setGender(record.gender)
     setFormError('')
+    setCategory(record.category || '')
+    setEditingCategoryIndex(null)
     setRecordId(record.id)  // 保存記錄 ID 用於更新
     setIsDbModalOpen(false)
     setIsEditing(true)  // 進入編輯模式
@@ -298,10 +350,12 @@ export function BirthForm() {
     setMinute(0)
     setGender('male')
     setFormError('')
+    setEditingCategoryIndex(null)
+    setCategory('')
   }
 
   const handleSelectFromDbAndSubmit = (record: UserRecord) => {
-    setName(record.name)
+    setName(record.name)  // 保存原始值，在显示时转换
     setBirthLocation(record.birthLocation || '')
     setYear(record.year)
     setMonth(record.month)
@@ -312,8 +366,8 @@ export function BirthForm() {
     setMinute(record.minute || 0)
     setGender(record.gender)
     setFormError('')
-    setIsDbModalOpen(false)
-    
+    setEditingCategoryIndex(null)
+    setCategory(record.category || '')
     // 立即生成圖表
     const birthInfo: BirthInfo = {
       year: record.year,
@@ -349,28 +403,14 @@ export function BirthForm() {
         />
 
         {/* 标题区域 */}
-        <div className="space-y-1 sm:space-y-1.5 mb-2.5 sm:mb-4">
-          {/* 数据库按鈕 */}
-          <button
-            type="button"
-            onClick={() => setIsDbModalOpen(true)}
-            className="
-              text-[10px] sm:text-[11px] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full
-              bg-gradient-to-r from-gold/20 to-gold/10
-              text-gold border border-gold/20
-              hover:border-gold/40 transition-colors
-            "
-          >
-            {t('form.viewCases', language)}
-          </button>
-        </div>
+        <div className="space-y-1 sm:space-y-1.5 mb-2.5 sm:mb-4"></div>
 
         <div className="space-y-2 sm:space-y-3">
           {/* 姓名 - 最前面 */}
           <Input
             label={t('form.name', language)}
             placeholder={t('form.namePlaceholder', language)}
-            value={name}
+            value={localizeChineseText(name, language as 'zh-TW' | 'zh-CN')}
             onChange={(e) => setName(e.target.value)}
             hint={t('form.nameHint', language)}
           />
@@ -378,18 +418,79 @@ export function BirthForm() {
           <Input
             label={t('form.birthLocation', language)}
             placeholder={t('form.birthLocationPlaceholder', language)}
-            value={birthLocation}
+            value={localizeChineseText(birthLocation, language as 'zh-TW' | 'zh-CN')}
             onChange={(e) => setBirthLocation(e.target.value)}
             hint={t('form.birthLocationHint', language)}
           />
+          {/* 分類 */}
+          <div>
+            <div className="text-[11px] sm:text-[12px] font-medium mb-1">{t('form.category', language)}：</div>
+            <div className="grid grid-cols-4 gap-1 mb-2">
+              {CATEGORY_KEYS.map((key, idx) => {
+                const displayName = categoryNames[key] || localizeChineseText(CATEGORY_KEY_TO_NAME[key], language as 'zh-TW' | 'zh-CN')
+                const standardName = CATEGORY_KEY_TO_NAME[key]
+                const isEditing = editingCategoryIndex === idx
+                // 比較時使用標準繁體名稱，確保不同語言下都能正確選取
+                const isSelected = localizeChineseText(category, 'zh-TW') === standardName && editingCategoryIndex === null
+
+                return isEditing ? (
+                  <input
+                    key={key}
+                    type="text"
+                    autoFocus
+                    value={editingCategoryName}
+                    onChange={(e) => setEditingCategoryName(e.target.value)}
+                    onBlur={() => {
+                      if (editingCategoryName.trim()) {
+                        setCategoryNames({ ...categoryNames, [key]: editingCategoryName })
+                      }
+                      setEditingCategoryIndex(null)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        if (editingCategoryName.trim()) {
+                          setCategoryNames({ ...categoryNames, [key]: editingCategoryName })
+                        }
+                        setEditingCategoryIndex(null)
+                      } else if (e.key === 'Escape') {
+                        setEditingCategoryIndex(null)
+                      }
+                    }}
+                    className="w-full px-2 py-1 rounded-lg border border-star text-[11px] sm:text-[12px] focus:outline-none"
+                  />
+                ) : (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`w-full px-2 py-1 rounded-lg border text-[11px] sm:text-[12px] font-medium transition-colors text-center
+                      ${isSelected
+                        ? 'bg-star text-white border-star shadow'
+                        : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'}
+                    `}
+                    onClick={() => {
+                      setCategory(standardName)  // 保存標準繁體名稱
+                      setEditingCategoryIndex(null)
+                    }}
+                    onDoubleClick={() => {
+                      setEditingCategoryIndex(idx)
+                      setEditingCategoryName(displayName)
+                    }}
+                    title="雙擊修改名稱"
+                  >
+                    {displayName}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
           {/* 備註 */}
           <Input
-            label={t('form.remark', language) || '備註'}
-            placeholder={t('form.remarkPlaceholder', language) || '可選填，不作計算用'}
-            value={remark}
-            onChange={(e) => setRemark(e.target.value)}
-            hint={t('form.remarkHint', language) || '此欄位不影響排盤結果'}
-          />
+              label={t('form.remark', language) || '備註'}
+              placeholder={t('form.remarkPlaceholder', language) || '可選填，不作計算用'}
+              value={localizeChineseText(remark, language as 'zh-TW' | 'zh-CN')}
+              onChange={(e) => setRemark(e.target.value)}
+              hint={t('form.remarkHint', language) || '此欄位不影響排盤結果'}
+            />
 
           <div className="space-y-1 sm:space-y-1.5">
             <span className="text-[11px] sm:text-[12px] text-text-secondary font-medium">{t('form.inputMode', language)}</span>
@@ -648,7 +749,7 @@ export function BirthForm() {
         />
         */}
 
-        <div className="absolute -bottom-2 -right-2 w-16 h-16 opacity-20">
+        <div className="absolute -bottom-2 -right-2 w-14 h-16 opacity-20">
           <div className="absolute inset-0 rounded-full border border-star/30" />
           <div className="absolute inset-2 rounded-full border border-gold/20" />
           <div className="absolute inset-4 rounded-full border border-star/10" />

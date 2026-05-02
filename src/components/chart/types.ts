@@ -201,9 +201,6 @@ export const MUTAGEN_COLORS: Record<string, { color: string; marker: string }> =
   '化權': { color: '#AF52DE', marker: 'arrowGold' },       // 紫色（繁體長）
 }
 
-// 亮度定義已遷移到 src/lib/brightness.ts
-// 請從那裡導入 BRIGHTNESS_MAP、BRIGHTNESS_STYLE 等定義
-
 /* ============================================================
    主星列表
    ============================================================ */
@@ -278,6 +275,25 @@ export const DECADAL_PALACE_MAP: Record<string, string> = {
 }
 
 /* ============================================================
+   本命宮位名稱映射（英文參數名 → "本"前缀中文名）
+   ============================================================ */
+
+export const NATAL_PALACE_MAP: Record<string, string> = {
+  'life': '本命',
+  'siblings': '本兄',
+  'spouse': '本夫',
+  'children': '本子',
+  'wealth': '本財',
+  'health': '本疾',
+  'travel': '本遷',
+  'friends': '本友',
+  'career': '本官',
+  'property': '本田',
+  'virtue': '本福',
+  'parents': '本父',
+}
+
+/* ============================================================
    年宮位名稱映射（英文參數名 → "年"前缀中文名）
    ============================================================ */
 
@@ -294,6 +310,19 @@ export const ANNUAL_PALACE_MAP: Record<string, string> = {
   'property': '年田',
   'virtue': '年福',
   'parents': '年父',
+}
+
+/* ============================================================
+   月宮位名稱映射（英文參數名 → "月"前缀中文名）
+   ============================================================ */
+
+export const MONTHLY_PALACE_MAP: Record<string, string> = {
+  'life': '月命', 'siblings': '月兄',
+  'spouse': '月夫', 'children': '月子',
+  'wealth': '月財', 'health': '月疾',
+  'travel': '月遷', 'friends': '月友',
+  'career': '月官', 'property': '月田',
+  'virtue': '月福', 'parents': '月父',
 }
 
 /* ============================================================

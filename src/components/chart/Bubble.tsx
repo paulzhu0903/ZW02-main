@@ -10,11 +10,12 @@ import { useSettingsStore } from '@/stores'
 import { SIHUA_BY_GAN, SIHUA_BY_GAN_TRADITIONAL } from '@/knowledge/sihua'
 import { localizeChineseText } from '@/lib/localize-knowledge'
 import { normalizeStarName as normalizeStarNameShared } from '@/lib/star-name'
-import { OPPOSITE_PALACE, PALACE_NAME_TO_ENGLISH_MAP } from './types'
-import { PALACE_CLOCKWISE_BRANCHES } from './utils/chartConstants'
+import { OPPOSITE_PALACE, PALACE_NAME_TO_ENGLISH_MAP, DECADAL_PALACE_MAP, ANNUAL_PALACE_MAP, MONTHLY_PALACE_MAP, NATAL_PALACE_MAP } from './types'
+import { PALACE_CLOCKWISE_BRANCHES, DECADAL_LABELS, ANNUAL_LABELS, MONTHLY_LABELS } from './utils/types'
+import { getSanFangSiZhengBranches } from './utils/chartHelpers'
 import type { PalaceData } from './types'
 
-export type TabType = 'natal' | 'decadal' | 'annual'
+export type TabType = 'natal' | 'decadal' | 'annual' | 'monthly'
 type ChartType = 'flying' | 'trireme' | 'transformation'
 
 function displayPalaceName(name: string): string {
@@ -53,8 +54,16 @@ export interface PalaceHintBubbleProps {
   annualGanZhi?: string | null
   /** 生年天干 */
   birthYearStem?: string | null
-  /** 大限標籤映射（english key -> 大限標籤） */
+  /** 大限標籤映射（palace name -> 大限標籤） */
   decadalLabelsByPalaceName?: Record<string, string>
+  /** 流年標籤映射（palace name -> 流年標籤），用於流年 tab 顯示忌入宮位 */
+  annualLabelsByPalaceName?: Record<string, string>
+  /** 此宮位在當前流月的角色標籤，例如「月命」「月財」 */
+  monthlyLabel?: string
+  /** 流月該角色宮位天干 */
+  monthlyStem?: string | null
+  /** 流月標籤映射（palace name -> 流月標籤） */
+  monthlyLabelsByPalaceName?: Record<string, string>
 }
 
 export function PalaceHintBubble({
@@ -63,6 +72,8 @@ export function PalaceHintBubble({
   decadalLabel, annualLabel,
   decadalStem, annualStem, annualGanZhi, birthYearStem,
   decadalLabelsByPalaceName = {},
+  annualLabelsByPalaceName = {},
+  monthlyLabel, monthlyStem, monthlyLabelsByPalaceName = {},
 }: PalaceHintBubbleProps) {
   const { language } = useSettingsStore()
   const displayName = displayPalaceName(palace.name)
@@ -71,37 +82,11 @@ export function PalaceHintBubble({
 
   const hasDecadal = !!decadalStem
   const hasAnnual  = !!annualStem && !!annualGanZhi
-
-  const DECADAL_LABEL_TO_ENGLISH: Record<string, string> = {
-    '大命': 'life', '大父': 'parents', '大福': 'virtue', '大田': 'property',
-    '大官': 'career', '大友': 'friends', '大遷': 'travel', '大疾': 'health',
-    '大財': 'wealth', '大子': 'children', '大夫': 'spouse', '大兄': 'siblings',
-  }
-
-  const NATAL_LABEL_BY_ENGLISH: Record<string, string> = {
-    'life': '本命',
-    'parents': '本父',
-    'virtue': '本福',
-    'property': '本田',
-    'career': '本官',
-    'friends': '本友',
-    'travel': '本遷',
-    'health': '本疾',
-    'wealth': '本財',
-    'children': '本子',
-    'spouse': '本夫',
-    'siblings': '本兄',
-  }
-
-  const ANNUAL_LABEL_TO_ENGLISH: Record<string, string> = {
-    '年命': 'life', '年父': 'parents', '年福': 'virtue', '年田': 'property',
-    '年官': 'career', '年友': 'friends', '年遷': 'travel', '年疾': 'health',
-    '年財': 'wealth', '年子': 'children', '年夫': 'spouse', '年兄': 'siblings',
-  }
+  const hasMonthly = !!monthlyStem && !!monthlyLabel
 
   const bubbleRef = useRef<HTMLDivElement>(null)
   const palaceEnglishKey = PALACE_NAME_TO_ENGLISH_MAP[palace.name] || ''
-  const natalTabLabel = NATAL_LABEL_BY_ENGLISH[palaceEnglishKey] || localizedDisplayName
+  const natalTabLabel = NATAL_PALACE_MAP[palaceEnglishKey] || localizedDisplayName
 
   // 定位邏輯：優先貼齊大限／流年表格上方；抓不到時退回既有邏輯
   const margin = 8
@@ -177,11 +162,9 @@ export function PalaceHintBubble({
     }
 
     const getTrineBranches = (baseBranch: string): [string, string] | null => {
-      const baseIdx = PALACE_CLOCKWISE_BRANCHES.indexOf(baseBranch as typeof PALACE_CLOCKWISE_BRANCHES[number])
-      if (baseIdx < 0) return null
-      const plus4 = PALACE_CLOCKWISE_BRANCHES[(baseIdx + 4) % 12]
-      const minus4 = PALACE_CLOCKWISE_BRANCHES[(baseIdx + 8) % 12]
-      return [plus4, minus4]
+      const { sanFang } = getSanFangSiZhengBranches(baseBranch)
+      if (sanFang.length >= 3) return [sanFang[1], sanFang[2]]
+      return null
     }
 
     const getOneSixBranch = (baseBranch: string): string | null => {
@@ -191,9 +174,58 @@ export function PalaceHintBubble({
       return PALACE_CLOCKWISE_BRANCHES[(baseIdx + 7) % 12]
     }
 
+    // --- 字串樣板輔助函數區 ---
     const buildHitAlertLine = (sourceLabel: string, targetLabel: string): string => {
-      return `${localizeVisibleText(sourceLabel)}沖${localizeVisibleText(targetLabel)}`
+      return isTW
+        ? `${localizeVisibleText(sourceLabel)}沖${localizeVisibleText(targetLabel)}`
+        : `${localizeVisibleText(sourceLabel)}冲${localizeVisibleText(targetLabel)}`
     }
+
+    const formatMissingStar = (label: string, star: string) => {
+      const lbl = localizeVisibleText(label)
+      const st = localizeVisibleText(star)
+      return isTW
+        ? `對宮沖判定：${lbl}化忌星（${st}）未在盤面定位。`
+        : `对宫冲判定：${lbl}化忌星（${st}）未在盘面定位。`
+    }
+
+    const formatLine1 = (hits: string[]) => {
+      if (hits.length > 0) {
+        const hitStr = hits.join('、')
+        return isTW
+          ? `1. 生年四化是否落本宮：有（${hitStr}）`
+          : `1. 生年四化是否落本宫：有（${hitStr}）`
+      }
+      return isTW ? '1. 生年四化是否落本宮：無。' : '1. 生年四化是否落本宫：无。'
+    }
+
+    const formatLine2 = (isHit: boolean, source: string, target: string, opposite: string) => {
+      const src = localizeVisibleText(source)
+      const tgt = localizeVisibleText(target)
+      const opp = localizeVisibleText(opposite)
+      return isHit
+        ? (isTW ? `2. 沖同類宮職：是。${src}忌入${tgt}，沖${opp}。` : `2. 冲同类宫职：是。${src}忌入${tgt}，冲${opp}。`)
+        : (isTW ? `2. 沖同類宮職：未命中。${src}忌入${tgt}，未沖${opp}。` : `2. 冲同类宫职：未命中。${src}忌入${tgt}，未冲${opp}。`)
+    }
+
+    const formatLine3 = (isHit: boolean, source: string, target: string, trines: string) => {
+      const src = localizeVisibleText(source)
+      const tgt = localizeVisibleText(target)
+      const tri = localizeVisibleText(trines)
+      return isHit
+        ? (isTW ? `3. 忌入三合位：是。${src}忌入${tgt}（${tri}）。` : `3. 忌入三合位：是。${src}忌入${tgt}（${tri}）。`)
+        : (isTW ? `3. 忌入三合位：未命中。${src}忌入${tgt}，三合位為${tri}。` : `3. 忌入三合位：未命中。${src}忌入${tgt}，三合位为${tri}。`)
+    }
+
+    const formatLine4 = (isHit: boolean, source: string, target: string, oneSixName: string) => {
+      const src = localizeVisibleText(source)
+      const tgt = localizeVisibleText(target)
+      const os = localizeVisibleText(oneSixName)
+      return isHit
+        ? (isTW ? `4. 忌入一六共宗位：是。${src}忌入${os}。` : `4. 忌入一六共宗位：是。${src}忌入${os}。`)
+        : (isTW ? `4. 忌入一六共宗位：未命中。${src}忌入${tgt}，一六共宗位為${os}。` : `4. 忌入一六共宗位：未命中。${src}忌入${tgt}，一六共宗位为${os}。`)
+    }
+    // --- 輔助函數區結束 ---
 
     const buildBirthMutagenCheck = (): string => {
       if (!birthYearStem) {
@@ -205,20 +237,14 @@ export function PalaceHintBubble({
         .filter(([, starName]) => palaceStarSet.has(normalizeStarNameShared(starName)))
         .map(([mutagenKey, starName]) => `${mutagenToABCD(mutagenKey)}:${localizeVisibleText(starName)}`)
 
-      return hits.length > 0
-        ? (isTW
-          ? `1. 生年四化是否落本宮：有（${hits.join('、')}）`
-          : `1. 生年四化是否落本宫：有（${hits.join('、')}）`)
-        : (isTW
-          ? '1. 生年四化是否落本宮：無。'
-          : '1. 生年四化是否落本宫：无。')
+      return formatLine1(hits)
     }
 
     const buildDecadalOppositeCheck = (): string => {
       if (!decadalStem || !decadalLabel) return ''
       const sameTypeNatalLabel = `本${decadalLabel.slice(1)}`
 
-      const sameTypeEnglish = DECADAL_LABEL_TO_ENGLISH[decadalLabel]
+      const sameTypeEnglish = Object.entries(DECADAL_PALACE_MAP).find(([, val]) => val === decadalLabel)?.[0]
       if (!sameTypeEnglish) return ''
 
       const natalSameTypePalace = findPalaceByEnglishKey(sameTypeEnglish)
@@ -233,53 +259,48 @@ export function PalaceHintBubble({
       if (!jiStar) return ''
 
       const jiPalace = findPalaceByStarName(jiStar)
+      // 驗證流年天干化忌所落宮位地支
+      if (jiPalace) {
+        console.log('[流年化忌落宮位]', jiPalace.name, '地支:', jiPalace.branch)
+      }
       if (!jiPalace) {
-        return isTW
-          ? `對宮沖判定：${localizeVisibleText(decadalLabel)}化忌星（${localizeVisibleText(jiStar)}）未在盤面定位。`
-          : `对宫冲判定：${localizeVisibleText(decadalLabel)}化忌星（${localizeVisibleText(jiStar)}）未在盘面定位。`
+        return formatMissingStar(decadalLabel, jiStar)
       }
 
       const isHitOpposite = jiPalace.branch === oppositeBranch
-      const oppositeName = displayPalaceName(oppositePalace?.name || oppositeBranch)
       const hitAlertLine = isHitOpposite ? buildHitAlertLine(decadalLabel, sameTypeNatalLabel) : ''
 
-      const oppositeLine = isHitOpposite
-        ? (isTW
-          ? `2. 小沖大(沖同類宮位)：是。${localizeVisibleText(decadalLabel)}化忌入${localizeVisibleText(oppositeName)}，沖${localizeVisibleText(sameTypeNatalLabel)}同類宮。`
-          : `2. 小冲大(冲同类宫位)：是。${localizeVisibleText(decadalLabel)}化忌入${localizeVisibleText(oppositeName)}，冲${localizeVisibleText(sameTypeNatalLabel)}同类宫。`)
-        : (isTW
-          ? `2. 小沖大(沖同類宮位)：未命中。化忌落${localizeVisibleText(displayPalaceName(jiPalace.name))}，未入${localizeVisibleText(sameTypeNatalLabel)}同類對宮（${localizeVisibleText(oppositeName)}）。`
-          : `2. 小冲大(冲同类宫位)：未命中。化忌落${localizeVisibleText(displayPalaceName(jiPalace.name))}，未入${localizeVisibleText(sameTypeNatalLabel)}同类对宫（${localizeVisibleText(oppositeName)}）。`)
+      // 取得本命標籤（沖同類宮職用）
+      const natalLabel = jiPalace ? NATAL_PALACE_MAP[PALACE_NAME_TO_ENGLISH_MAP[jiPalace.name]] || displayPalaceName(jiPalace.name) : ''
+      // 取得大限標籤（忌入三合位用）
+      const jiPalaceEngKey = jiPalace ? PALACE_NAME_TO_ENGLISH_MAP[jiPalace.name] : ''
+      const jiPalaceDecadalLabel = jiPalace && jiPalaceEngKey ? decadalLabelsByPalaceName[jiPalaceEngKey] || displayPalaceName(jiPalace.name) : ''
+      
+      const oppositeLine = formatLine2(isHitOpposite, decadalLabel, natalLabel, sameTypeNatalLabel)
 
-      const trineBranches = getTrineBranches(natalSameTypePalace.branch)
+      // 三合位以選定宮位的地支為基準
+      const selectedDecadalBranch = palace.branch
+      const trineBranches = getTrineBranches(selectedDecadalBranch)
       if (!trineBranches) return oppositeLine
 
-      const trinePalaces = trineBranches.map((branch) => allPalaces.find((p) => p.branch === branch))
-      const trineNames = trinePalaces
-        .map((p, idx) => localizeVisibleText(displayPalaceName(p?.name || trineBranches[idx])))
-        .join('、')
+      const getDecadalLabelByBranch = (branch: string) => {
+        const p = allPalaces.find(p => p.branch === branch)
+        if (!p) return `大${branch}`
+        const engKey = PALACE_NAME_TO_ENGLISH_MAP[p.name]
+        return decadalLabelsByPalaceName[engKey] || `大${branch}`
+      }
+
       const isHitTrine = trineBranches.includes(jiPalace.branch)
+      const trineDecadalNames = trineBranches.map((branch) => getDecadalLabelByBranch(branch)).join('、')
 
-      const trineLine = isHitTrine
-        ? (isTW
-          ? `3. 忌入三合位：是。${localizeVisibleText(decadalLabel)}化忌入${localizeVisibleText(displayPalaceName(jiPalace.name))}（${trineNames}）。`
-          : `3. 忌入三合位：是。${localizeVisibleText(decadalLabel)}化忌入${localizeVisibleText(displayPalaceName(jiPalace.name))}（${trineNames}）。`)
-        : (isTW
-          ? `3. 忌入三合位：未命中。化忌落${localizeVisibleText(displayPalaceName(jiPalace.name))}，三合位為${trineNames}。`
-          : `3. 忌入三合位：未命中。化忌落${localizeVisibleText(displayPalaceName(jiPalace.name))}，三合位为${trineNames}。`)
+      const trineLine = formatLine3(isHitTrine, decadalLabel, jiPalaceDecadalLabel, trineDecadalNames)
 
-      const oneSixBranch = getOneSixBranch(natalSameTypePalace.branch)
-      const oneSixPalace = oneSixBranch ? allPalaces.find((p) => p.branch === oneSixBranch) : null
-      const oneSixName = localizeVisibleText(displayPalaceName(oneSixPalace?.name || oneSixBranch || '—'))
+      const oneSixBranch = getOneSixBranch(selectedDecadalBranch)
+      // 一六共宗位標籤統一為大限標籤
+      const oneSixName = oneSixBranch ? getDecadalLabelByBranch(oneSixBranch) : '—'
       const isHitOneSix = !!oneSixBranch && jiPalace.branch === oneSixBranch
 
-      const oneSixLine = isHitOneSix
-        ? (isTW
-          ? `4. 忌入一六共宗位：是。${localizeVisibleText(decadalLabel)}化忌入${oneSixName}。`
-          : `4. 忌入一六共宗位：是。${localizeVisibleText(decadalLabel)}化忌入${oneSixName}。`)
-        : (isTW
-          ? `4. 忌入一六共宗位：未命中。一六共宗位為${oneSixName}。`
-          : `4. 忌入一六共宗位：未命中。一六共宗位为${oneSixName}。`)
+      const oneSixLine = formatLine4(isHitOneSix, decadalLabel, jiPalaceDecadalLabel, oneSixName)
 
       return [hitAlertLine, oppositeLine, trineLine, oneSixLine].filter(Boolean).join('\n')
     }
@@ -287,7 +308,7 @@ export function PalaceHintBubble({
     const buildAnnualOppositeCheck = (): string => {
       if (!annualStem || !annualLabel) return ''
 
-      const sameTypeEnglish = ANNUAL_LABEL_TO_ENGLISH[annualLabel]
+      const sameTypeEnglish = Object.entries(ANNUAL_PALACE_MAP).find(([, val]) => val === annualLabel)?.[0]
       if (!sameTypeEnglish) return ''
 
       const expectedDecadalLabel = `大${annualLabel.slice(1)}`
@@ -308,52 +329,107 @@ export function PalaceHintBubble({
 
       const jiPalace = findPalaceByStarName(jiStar)
       if (!jiPalace) {
-        return isTW
-          ? `對宮沖判定：${localizeVisibleText(annualLabel)}化忌星（${localizeVisibleText(jiStar)}）未在盤面定位。`
-          : `对宫冲判定：${localizeVisibleText(annualLabel)}化忌星（${localizeVisibleText(jiStar)}）未在盘面定位。`
+        return formatMissingStar(annualLabel, jiStar)
       }
 
       const isHitOpposite = jiPalace.branch === oppositeBranch
-      const oppositeName = displayPalaceName(oppositePalace?.name || oppositeBranch)
       const hitAlertLine = isHitOpposite ? buildHitAlertLine(annualLabel, expectedDecadalLabel) : ''
 
-      const oppositeLine = isHitOpposite
-        ? (isTW
-          ? `2. 小沖大(沖同類宮位)：是。${localizeVisibleText(annualLabel)}化忌入${localizeVisibleText(oppositeName)}，沖${localizeVisibleText(expectedDecadalLabel)}同類宮。`
-          : `2. 小冲大(冲同类宫位)：是。${localizeVisibleText(annualLabel)}化忌入${localizeVisibleText(oppositeName)}，冲${localizeVisibleText(expectedDecadalLabel)}同类宫。`)
-        : (isTW
-          ? `2. 小沖大(沖同類宮位)：未命中。化忌落${localizeVisibleText(displayPalaceName(jiPalace.name))}，未入${localizeVisibleText(expectedDecadalLabel)}同類對宮（${localizeVisibleText(oppositeName)}）。`
-          : `2. 小冲大(冲同类宫位)：未命中。化忌落${localizeVisibleText(displayPalaceName(jiPalace.name))}，未入${localizeVisibleText(expectedDecadalLabel)}同类对宫（${localizeVisibleText(oppositeName)}）。`)
+      // 沖同類宮職：忌入以大限標籤為主
+      const jiPalaceEngKey = jiPalace ? PALACE_NAME_TO_ENGLISH_MAP[jiPalace.name] : ''
+      const jiPalaceDecadalLabel = jiPalace && jiPalaceEngKey ? decadalLabelsByPalaceName[jiPalaceEngKey] || displayPalaceName(jiPalace.name) : ''
+      
+      const oppositeLine = formatLine2(isHitOpposite, annualLabel, jiPalaceDecadalLabel, expectedDecadalLabel)
 
-      const trineBranches = getTrineBranches(decadalSameTypePalace.branch)
+      // 三合位以選定宮位的地支為基準
+      const selectedAnnualBranch = palace.branch
+      const trineBranches = getTrineBranches(selectedAnnualBranch)
       if (!trineBranches) return oppositeLine
 
-      const trinePalaces = trineBranches.map((branch) => allPalaces.find((p) => p.branch === branch))
-      const trineNames = trinePalaces
-        .map((p, idx) => localizeVisibleText(displayPalaceName(p?.name || trineBranches[idx])))
-        .join('、')
+      const getAnnualLabelByBranch = (branch: string) => {
+        const p = allPalaces.find(p => p.branch === branch)
+        if (!p) return `年${branch}`
+        const engKey = PALACE_NAME_TO_ENGLISH_MAP[p.name]
+        return annualLabelsByPalaceName[engKey] || `年${branch}`
+      }
+
       const isHitTrine = trineBranches.includes(jiPalace.branch)
+      const trineAnnualNames = trineBranches.map((branch) => getAnnualLabelByBranch(branch)).join('、')
+      
+      // 忌入宮位名稱以 ANNUAL_LABELS 對應地支順序顯示
+      const jiPalaceAnnualLabel = jiPalace ? getAnnualLabelByBranch(jiPalace.branch) : ''
+      
+      const trineLine = formatLine3(isHitTrine, annualLabel, jiPalaceAnnualLabel, trineAnnualNames)
 
-      const trineLine = isHitTrine
-        ? (isTW
-          ? `3. 忌入三合位：是。${localizeVisibleText(annualLabel)}化忌入${localizeVisibleText(displayPalaceName(jiPalace.name))}（${trineNames}）。`
-          : `3. 忌入三合位：是。${localizeVisibleText(annualLabel)}化忌入${localizeVisibleText(displayPalaceName(jiPalace.name))}（${trineNames}）。`)
-        : (isTW
-          ? `3. 忌入三合位：未命中。化忌落${localizeVisibleText(displayPalaceName(jiPalace.name))}，三合位為${trineNames}。`
-          : `3. 忌入三合位：未命中。化忌落${localizeVisibleText(displayPalaceName(jiPalace.name))}，三合位为${trineNames}。`)
-
-      const oneSixBranch = getOneSixBranch(decadalSameTypePalace.branch)
-      const oneSixPalace = oneSixBranch ? allPalaces.find((p) => p.branch === oneSixBranch) : null
-      const oneSixName = localizeVisibleText(displayPalaceName(oneSixPalace?.name || oneSixBranch || '—'))
+      const oneSixBranch = getOneSixBranch(selectedAnnualBranch)
+      // 一六共宗位標籤統一為流年標籤（如年福）
+      const oneSixName = oneSixBranch ? getAnnualLabelByBranch(oneSixBranch) : '—'
       const isHitOneSix = !!oneSixBranch && jiPalace.branch === oneSixBranch
 
-      const oneSixLine = isHitOneSix
-        ? (isTW
-          ? `4. 忌入一六共宗位：是。${localizeVisibleText(annualLabel)}化忌入${oneSixName}。`
-          : `4. 忌入一六共宗位：是。${localizeVisibleText(annualLabel)}化忌入${oneSixName}。`)
-        : (isTW
-          ? `4. 忌入一六共宗位：未命中。一六共宗位為${oneSixName}。`
-          : `4. 忌入一六共宗位：未命中。一六共宗位为${oneSixName}。`)
+      const oneSixLine = formatLine4(isHitOneSix, annualLabel, jiPalaceAnnualLabel, oneSixName)
+
+      return [hitAlertLine, oppositeLine, trineLine, oneSixLine].filter(Boolean).join('\n')
+    }
+
+    const buildMonthlyOppositeCheck = (): string => {
+      if (!monthlyStem || !monthlyLabel) return ''
+
+      const sameTypeEnglish = Object.entries(MONTHLY_PALACE_MAP).find(([, val]) => val === monthlyLabel)?.[0]
+      if (!sameTypeEnglish) return ''
+
+      const expectedAnnualLabel = `年${monthlyLabel.slice(1)}`
+      const annualSameTypeEnglish = Object.entries(annualLabelsByPalaceName).find(([, label]) => label === expectedAnnualLabel)?.[0]
+      const annualSameTypePalace = annualSameTypeEnglish
+        ? findPalaceByEnglishKey(annualSameTypeEnglish)
+        : findPalaceByEnglishKey(sameTypeEnglish)
+
+      if (!annualSameTypePalace) return ''
+
+      const oppositeBranch = OPPOSITE_PALACE[annualSameTypePalace.branch]
+      if (!oppositeBranch) return ''
+
+      const oppositePalace = allPalaces.find((p) => p.branch === oppositeBranch)
+      const sihua = sihuaMap[monthlyStem] ?? {}
+      const jiStar = sihua['化忌']
+      if (!jiStar) return ''
+
+      const jiPalace = findPalaceByStarName(jiStar)
+      if (!jiPalace) {
+        return formatMissingStar(monthlyLabel, jiStar)
+      }
+
+      const isHitOpposite = jiPalace.branch === oppositeBranch
+      const hitAlertLine = isHitOpposite ? buildHitAlertLine(monthlyLabel, expectedAnnualLabel) : ''
+
+      // 沖同類宮職：忌入優先以流年標籤為主，如果沒有則使用大限或原宮名
+      const jiPalaceEngKey = jiPalace ? PALACE_NAME_TO_ENGLISH_MAP[jiPalace.name] : ''
+      const jiPalaceAnnualLabel = jiPalace && jiPalaceEngKey ? annualLabelsByPalaceName[jiPalaceEngKey] || decadalLabelsByPalaceName[jiPalaceEngKey] || displayPalaceName(jiPalace.name) : ''
+      
+      const oppositeLine = formatLine2(isHitOpposite, monthlyLabel, jiPalaceAnnualLabel, expectedAnnualLabel)
+
+      const selectedMonthlyBranch = palace.branch
+      const trineBranches = getTrineBranches(selectedMonthlyBranch)
+      if (!trineBranches) return oppositeLine
+
+      const getMonthlyLabelByBranch = (branch: string) => {
+        const p = allPalaces.find(p => p.branch === branch)
+        if (!p) return `月${branch}`
+        const engKey = PALACE_NAME_TO_ENGLISH_MAP[p.name]
+        return monthlyLabelsByPalaceName[engKey] || `月${branch}`
+      }
+
+      const isHitTrine = trineBranches.includes(jiPalace.branch)
+      const trineMonthlyNames = trineBranches.map((branch) => getMonthlyLabelByBranch(branch)).join('、')
+      const jiPalaceMonthlyLabel = jiPalace ? getMonthlyLabelByBranch(jiPalace.branch) : ''
+      
+      const trineLine = formatLine3(isHitTrine, monthlyLabel, jiPalaceMonthlyLabel, trineMonthlyNames)
+
+      const oneSixBranch = getOneSixBranch(selectedMonthlyBranch)
+      // 一六共宗位標籤統一為流月標籤
+      const oneSixName = oneSixBranch ? getMonthlyLabelByBranch(oneSixBranch) : '—'
+      const isHitOneSix = !!oneSixBranch && jiPalace.branch === oneSixBranch
+
+      const oneSixLine = formatLine4(isHitOneSix, monthlyLabel, jiPalaceMonthlyLabel, oneSixName)
 
       return [hitAlertLine, oppositeLine, trineLine, oneSixLine].filter(Boolean).join('\n')
     }
@@ -382,19 +458,27 @@ export function PalaceHintBubble({
       return buildAnnualSummary()
     }
 
+    if (tab === 'monthly' && monthlyStem) {
+      return buildMonthlyOppositeCheck()
+    }
+
     // fallback
     return isTW
       ? '目前資料不足，請先選擇對應的大限或流年。'
       : '目前资料不足，请先选择对应的大限或流年。'
-  }, [palace, allPalaces, decadalLabel, annualLabel, decadalStem, annualStem, annualGanZhi, birthYearStem, decadalLabelsByPalaceName, language])
+  }, [palace, allPalaces, decadalLabel, annualLabel, monthlyLabel, decadalStem, annualStem, monthlyStem, annualGanZhi, birthYearStem, decadalLabelsByPalaceName, annualLabelsByPalaceName, monthlyLabelsByPalaceName, language])
 
   const displayText = buildLocalText(activeTab)
   const textLines = displayText.split('\n')
   const isHitAlertLine = (line: string) => {
-    return /^[本大小年][^\s]*沖[本大小年][^\s]*$/.test(line)
+    return /^[本大小年月][^\s]*[沖冲][本大小年月][^\s]*$/.test(line)
   }
 
   useEffect(() => {
+    if (activeTab === 'monthly' && !hasMonthly) {
+      onTabChange(hasAnnual ? 'annual' : hasDecadal ? 'decadal' : 'natal')
+      return
+    }
     if (activeTab === 'annual' && !hasAnnual) {
       onTabChange(hasDecadal ? 'decadal' : 'natal')
       return
@@ -402,7 +486,7 @@ export function PalaceHintBubble({
     if (activeTab === 'decadal' && !hasDecadal) {
       onTabChange('natal')
     }
-  }, [activeTab, hasAnnual, hasDecadal, onTabChange])
+  }, [activeTab, hasMonthly, hasAnnual, hasDecadal, onTabChange])
 
   // 切換 tab 時：若已有快取直接顯示，否則觸發 AI
   const handleTabChange = (tab: TabType) => {
@@ -436,6 +520,13 @@ export function PalaceHintBubble({
       sub: '',
       disabled: !hasAnnual,
       activeColor: 'bg-star text-white',
+    },
+    {
+      key: 'monthly',
+      label: monthlyLabel ? localizeVisibleText(monthlyLabel) : '—',
+      sub: '',
+      disabled: !hasMonthly,
+      activeColor: 'bg-indigo-500 text-white', // 針對流月使用靛藍色標籤
     },
   ]
 

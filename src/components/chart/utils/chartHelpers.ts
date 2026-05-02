@@ -1,37 +1,11 @@
-import { EARTHLY_BRANCH_ORDER, LUNAR_MONTH_MAP, LUNAR_MONTH_NAMES, PALACE_CLOCKWISE_BRANCHES, HEAVENLY_STEMS, FIRST_MONTH_GAN_MAP } from './chartConstants'
+import { EARTHLY_BRANCH_ORDER, LUNAR_MONTH_NAMES, PALACE_CLOCKWISE_BRANCHES } from './types'
+import { getLunarMonthNumber, getTimeBranchIndex, getMonthlyGan, normalizeIndex } from './lunar'
 import type { FunctionalAstrolabe } from '@/lib/astro'
 import type { PalaceData, StarData } from '../types'
 import { PALACE_BRANCH_INDEX } from '../types'
 import { MINOR_STAR_STANDARD_BRIGHTNESS } from '@/lib/brightness'
 
-/**
- * 根據年份獲取天干地支
- * @param year - 年份
- * @returns 干支字符串，如"甲寅"
- */
-export function getYearGanZhi(year: number): string {
-  const ganList = HEAVENLY_STEMS
-  const zhiList = EARTHLY_BRANCH_ORDER
-  
-  const gan = ganList[(year - 1900 + 6) % 10]
-  const zhi = zhiList[(year - 1900) % 12]
-  
-  return gan + zhi
-}
-
-export function normalizeIndex(value: number): number {
-  return ((value % 12) + 12) % 12
-}
-
-export function getLunarMonthNumber(lunarDateText: string | undefined): number | null {
-  if (!lunarDateText) return null
-
-  const match = lunarDateText.match(/年(闰|閏)?(正|一|二|三|四|五|六|七|八|九|十[一二]?|冬|腊|臘)月/)
-  const lunarMonthText = match?.[2]
-  if (!lunarMonthText) return null
-
-  return LUNAR_MONTH_MAP[lunarMonthText] ?? null
-}
+export { normalizeIndex }
 
 export function hasDirection(mark: '得' | '失' | '得失' | undefined, target: '得' | '失'): boolean {
   if (!mark) return false
@@ -59,42 +33,6 @@ export function getSanFangSiZhengBranches(selectedBranch: string): {
   }
 }
 
-export function getTimeBranchIndex(timeText: string | undefined): number | null {
-  if (!timeText) return null
-
-  const match = timeText.match(/[子丑寅卯辰巳午未申酉戌亥]/)
-  if (!match) return null
-
-  const index = EARTHLY_BRANCH_ORDER.indexOf(match[0] as typeof EARTHLY_BRANCH_ORDER[number])
-  return index >= 0 ? index : null
-}
-
-/**
- * 五虎遁法則：根據年份天干計算正月天干
- * @param year - 年份
- * @returns 正月天干，如"丙"、"戊"等
- */
-export function getFirstMonthGan(year: number): string {
-  const ganList = HEAVENLY_STEMS
-  const yearGan = ganList[(year - 1900 + 6) % 10]
-  
-  return FIRST_MONTH_GAN_MAP[yearGan] || '甲'
-}
-
-/**
- * 計算指定月份的天干
- * @param year - 年份
- * @param lunarMonth - 農曆月份（1-12）
- * @returns 月份天干，如"丙"、"丁"等
- */
-export function getMonthlyGan(year: number, lunarMonth: number): '甲' | '乙' | '丙' | '丁' | '戊' | '己' | '庚' | '辛' | '壬' | '癸' {
-  const ganList = HEAVENLY_STEMS
-  const firstMonthGan = getFirstMonthGan(year)
-  const firstMonthGanIndex = ganList.indexOf(firstMonthGan as typeof ganList[0])
-  
-  const monthGanIndex = (firstMonthGanIndex + lunarMonth - 1) % 10
-  return ganList[monthGanIndex] as '甲' | '乙' | '丙' | '丁' | '戊' | '己' | '庚' | '辛' | '壬' | '癸'
-}
 
 export function getMonthlySequenceByBranch(
   chart: FunctionalAstrolabe,

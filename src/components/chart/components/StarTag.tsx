@@ -212,33 +212,55 @@ export function StarTag({ star, isMajorStar = false, forceTextColorClass = '', c
 
   // 四化盤中：确定星曜的性别指示符（圆点颜色）
   let genderDotColor: string | null = null
-  if (chartType === 'transformation' && starEnglishParam && colorfulStarsInTransformation.has(starEnglishParam)) {
-    // 这是18颗关键星之一，显示性别圆点
-    if (starEnglishParam === 'lianzhen') {
-      // 廉贞例外：化禄是男星，化忌是女星
-      if (mutagen === '化禄' || mutagen === '化祿') {
+  if (chartType === 'transformation') {
+    if (starEnglishParam && colorfulStarsInTransformation.has(starEnglishParam)) {
+      // 这是18颗关键星之一，显示性别圆点
+      if (starEnglishParam === 'lianzhen') {
+        // 廉贞例外：只檢查生年四化
+        if ((star as any).palaceStem) {
+          // 檢查生年四化
+          const sihuaMap = SIHUA_BY_GAN[(star as any).palaceStem] || SIHUA_BY_GAN_TRADITIONAL[(star as any).palaceStem]
+          if (sihuaMap) {
+            const lianzhenKey = getStarLookupKey(name)
+            // 檢查廉貞在生年四化中的角色
+            const huaLuStar = sihuaMap['化禄'] || sihuaMap['化祿']
+            const huaJiStar = sihuaMap['化忌']
+            
+            if (huaLuStar && getStarLookupKey(huaLuStar) === lianzhenKey) {
+              genderDotColor = '#00aeff'  // 蓝色（生年四化祿）
+            } else if (huaJiStar && getStarLookupKey(huaJiStar) === lianzhenKey) {
+              genderDotColor = '#ff00ff'  // 粉红色（生年四化忌）
+            } else {
+              genderDotColor = '#AF52DE'  // 紫色（廉贞，一般情况）
+            }
+          } else {
+            genderDotColor = '#AF52DE'  // 紫色（廉贞特殊星，一般情况）
+          }
+        } else {
+          genderDotColor = '#AF52DE'  // 紫色（廉贞特殊星，一般情况）
+        }
+      } else if (maleStarParams.includes(starEnglishParam)) {
         genderDotColor = '#00aeff'  // 蓝色（男星）
-      } else if (mutagen === '化忌') {
+      } else if (femaleStarParams.includes(starEnglishParam)) {
         genderDotColor = '#ff00ff'  // 粉红色（女星）
       }
-    } else if (maleStarParams.includes(starEnglishParam)) {
-      genderDotColor = '#00aeff'  // 蓝色（男星）
-    } else if (femaleStarParams.includes(starEnglishParam)) {
-      genderDotColor = '#ff00ff'  // 粉红色（女星）
+    } else {
+      // 四化盤中的輔星沒有性別定義，用透明圓點佔位保持整齊
+      genderDotColor = 'transparent'
     }
   }
 
   return (
     <div className={`flex flex-col items-center ${STAR_SLOT_WIDTH_CLASS}`} style={{ minHeight: '30px' }}>
       {/* 四化盤中的性別指示條 */}
-      {chartType === 'transformation' && genderDotColor && (
+      {chartType === 'transformation' && genderDotColor !== null && (
         <div
           style={{
-            width: '4px',
-            height: '4px',
+            width: '5px',
+            height: '5px',
             borderRadius: '2px',
             backgroundColor: genderDotColor,
-            marginBottom: '2px',
+            marginBottom: '1px',
           }}
         />
       )}

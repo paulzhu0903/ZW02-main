@@ -1,4 +1,4 @@
-﻿/* ============================================================
+﻿﻿﻿﻿/* ============================================================
    命盤可视化组件
    對齊文墨天機標準：
    - 完整星曜 + 亮度（廟旺平陷）
@@ -126,6 +126,8 @@ export function ChartDisplay() {
     selectedHourlyPalaceBranch,
     decadalLabelsByPalaceName,
     annualLabelsByPalaceName,
+    monthlyLabelsByPalaceName,
+    monthlyLifePalaceStem,
   } = useChartCalculations(
     chart,
     birthInfo,
@@ -325,6 +327,8 @@ export function ChartDisplay() {
             const clickedAnnualLabel = annualLabelsByPalaceName[englishKey] || ''
             const clickedDecadalStem = getStemByRoleLabel(clickedDecadalLabel, decadalLabelsByPalaceName)
             const clickedAnnualStem = getStemByRoleLabel(clickedAnnualLabel, annualLabelsByPalaceName)
+            const clickedMonthlyLabel = monthlyLabelsByPalaceName[englishKey] || ''
+            const clickedMonthlyStem = getStemByRoleLabel(clickedMonthlyLabel, monthlyLabelsByPalaceName)
             setBubblePalace({
               palace,
               rect: e.currentTarget.getBoundingClientRect(),
@@ -333,6 +337,8 @@ export function ChartDisplay() {
               decadalStem: clickedDecadalStem || decadalLifePalaceStem,
               annualStem: clickedAnnualStem || annualLifePalaceStem,
               annualGanZhi: selectedAnnualGanZhi,
+              monthlyLabel: clickedMonthlyLabel,
+              monthlyStem: clickedMonthlyStem || monthlyLifePalaceStem,
             })
           }
           if (showFlyGongToolbox) {
@@ -955,6 +961,10 @@ export function ChartDisplay() {
           annualGanZhi={bubblePalace.annualGanZhi}
           birthYearStem={yearGan}
           decadalLabelsByPalaceName={decadalLabelsByPalaceName}
+          annualLabelsByPalaceName={annualLabelsByPalaceName}
+          monthlyLabel={bubblePalace.monthlyLabel}
+          monthlyStem={bubblePalace.monthlyStem}
+          monthlyLabelsByPalaceName={monthlyLabelsByPalaceName}
         />
       )}
 

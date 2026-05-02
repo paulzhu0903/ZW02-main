@@ -10,7 +10,7 @@ import { userDB, type UserRecord } from '@/lib/db'
 import { toTraditionalChinese, localizeChineseText } from '@/lib/localize-knowledge'
 import { UserDatabaseModal } from './UserDatabaseModal'
 import { t } from '@/lib/i18n'
-import { HEAVENLY_STEMS, EARTHLY_BRANCH_ORDER, LUNAR_MONTH_DISPLAY_NAMES, CHINESE_DAY_NAMES } from '@/components/chart/utils/chartConstants'
+import { HEAVENLY_STEMS, EARTHLY_BRANCH_ORDER, LUNAR_MONTH_DISPLAY_NAMES, CHINESE_DAY_NAMES } from '@/components/chart/utils/types'
 const CATEGORY_KEYS = [
   'form.category.family',
   'form.category.friend',

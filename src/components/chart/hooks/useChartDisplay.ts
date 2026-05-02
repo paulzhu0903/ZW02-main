@@ -10,22 +10,19 @@ import type { TabType } from '../Bubble'
 import { PALACE_POSITIONS, PALACE_BRANCH_INDEX, PALACE_NAME_TO_ENGLISH_MAP, PALACE_ORDER } from '../types'
 import { 
   PALACE_CLOCKWISE_BRANCHES,
-  EARTHLY_BRANCH_ORDER, 
-  LUNAR_MONTH_NAMES, 
   CHINESE_DAY_NAMES, 
   SHICHEN_NAMES,
   HEAVENLY_STEMS,
   DECADAL_LABELS,
   ANNUAL_LABELS,
-} from '../utils/chartConstants'
+  MONTHLY_LABELS,
+} from '../utils/types'
 import { 
-  getYearGanZhi, 
   getMonthlySequenceByBranch, 
   getDefaultDecadalAnnualSelection,
-  normalizeIndex,
   parsePalaces,
 } from '../utils/chartHelpers'
-import { getMonthlySequenceLabel } from '../utils/lunar'
+import { getMonthlySequenceLabel, getYearGanZhi, normalizeIndex, getMonthlyGan } from '../utils/lunar'
 import { markSelfMutagens, markCausePalace } from '../mutagenLines'
 
 export interface ChartDisplayState {
@@ -52,6 +49,8 @@ export interface ChartDisplayState {
     decadalStem: string | null
     annualStem: string | null
     annualGanZhi: string | null
+    monthlyLabel: string
+    monthlyStem: string | null
   } | null
   bubbleActiveTab: TabType
   isCompactMobile: boolean
@@ -403,6 +402,30 @@ export function useChartCalculations(
     }
   }
 
+  // 流月標籤映射
+  let monthlyLabelsByPalaceName: Record<string, string> = {}
+  if (selectedMonthlyPalaceBranch !== null) {
+    const monthlyLifePalace = palaceData.find((p) => p.branch === selectedMonthlyPalaceBranch)
+    if (monthlyLifePalace) {
+      const lifeEnglishName = PALACE_NAME_TO_ENGLISH_MAP[monthlyLifePalace.name]
+      if (lifeEnglishName) {
+        const lifeIndex = PALACE_ORDER.indexOf(lifeEnglishName)
+        if (lifeIndex !== -1) {
+          for (let i = 0; i < PALACE_ORDER.length; i++) {
+            const palaceEnglishName = PALACE_ORDER[i]
+            const labelIndex = (i - lifeIndex + PALACE_ORDER.length) % PALACE_ORDER.length
+            monthlyLabelsByPalaceName[palaceEnglishName] = MONTHLY_LABELS[labelIndex]
+          }
+        }
+      }
+    }
+  }
+
+  // 流月命宮天干 (根據流年與流月索引計算當月干支)
+  const monthlyLifePalaceStem = (selectedAnnualYear !== null && selectedMonthly !== null)
+    ? getMonthlyGan(selectedAnnualYear, selectedMonthly + 1)
+    : null
+
   return {
     yearGan,
     gender,
@@ -426,5 +449,7 @@ export function useChartCalculations(
     selectedHourlyPalaceBranch,
     decadalLabelsByPalaceName,
     annualLabelsByPalaceName,
+    monthlyLabelsByPalaceName,
+    monthlyLifePalaceStem,
   }
 }

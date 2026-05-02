@@ -58,6 +58,44 @@ interface TransientOppositeLine {
   createdAt: number
 }
 
+const EMPTY_BRANCH_STATE: BranchState = {
+  selectedArcLabel: null,
+  currentPalaceName: null,
+  currentPalaceBranch: null,
+  arcTrail: [],
+  arcStateStack: [],
+  selectedLabelsPerBranch: {},
+  selectedLabelTime: null,
+}
+
+const mutagenKeyByLabel: Record<'A' | 'B' | 'C' | 'D', string> = {
+  A: '化禄',
+  B: '化权',
+  C: '化科',
+  D: '化忌',
+}
+
+const getUnorderedPairKey = (a: string, b: string) => (a < b ? `${a}-${b}` : `${b}-${a}`)
+
+const getArcColorInfoByLabel = (label: 'A' | 'B' | 'C' | 'D') => {
+  const mutagenKey = mutagenKeyByLabel[label]
+  const mutagenType = getMutagenType(mutagenKey)
+  return MUTAGEN_COLORS[mutagenType] || MUTAGEN_COLORS[mutagenKey]
+}
+
+// 計算二次貝塞爾曲線上給定參數 t 的點
+const getQuadraticBezierPoint = (
+  start: { x: number; y: number },
+  control: { x: number; y: number },
+  end: { x: number; y: number },
+  t: number,
+) => {
+  const t1 = 1 - t
+  const x = t1 * t1 * start.x + 2 * t1 * t * control.x + t * t * end.x
+  const y = t1 * t1 * start.y + 2 * t1 * t * control.y + t * t * end.y
+  return { x, y }
+}
+
 export function DottedArcLayer({
   palaceData,
   gridRef,
@@ -73,23 +111,6 @@ export function DottedArcLayer({
   const [arcMenu, setArcMenu] = useState<ArcMenuState | null>(null)
   const [transientOppositeLines, setTransientOppositeLines] = useState<TransientOppositeLine[]>([])
   // 移除內部 rootMenuPalace state，完全由父層控制
-
-  const EMPTY_BRANCH_STATE: BranchState = {
-    selectedArcLabel: null,
-    currentPalaceName: null,
-    currentPalaceBranch: null,
-    arcTrail: [],
-    arcStateStack: [],
-    selectedLabelsPerBranch: {},
-    selectedLabelTime: null,
-  }
-
-  const mutagenKeyByLabel: Record<'A' | 'B' | 'C' | 'D', string> = {
-    A: '化禄',
-    B: '化权',
-    C: '化科',
-    D: '化忌',
-  }
 
   const updateBranchState = (rootBranch: string, updater: (state: BranchState) => BranchState) => {
     setBranchStates((prev) => {
@@ -165,12 +186,6 @@ export function DottedArcLayer({
       // 如果没有弧线了，关闭菜单（不跳回 root menu）
       setArcMenu(null)
     }
-  }
-
-  const getArcColorInfoByLabel = (label: 'A' | 'B' | 'C' | 'D') => {
-    const mutagenKey = mutagenKeyByLabel[label]
-    const mutagenType = getMutagenType(mutagenKey)
-    return MUTAGEN_COLORS[mutagenType] || MUTAGEN_COLORS[mutagenKey]
   }
 
   useEffect(() => {
@@ -304,20 +319,6 @@ export function DottedArcLayer({
     })
   }, [selectedPalaceData])
 
-  const getUnorderedPairKey = (a: string, b: string) => (a < b ? `${a}-${b}` : `${b}-${a}`)
-
-  // 計算二次貝塞爾曲線上給定參數t的點
-  const getQuadraticBezierPoint = (
-    start: { x: number; y: number },
-    control: { x: number; y: number },
-    end: { x: number; y: number },
-    t: number,
-  ) => {
-    const t1 = 1 - t
-    const x = t1 * t1 * start.x + 2 * t1 * t * control.x + t * t * end.x
-    const y = t1 * t1 * start.y + 2 * t1 * t * control.y + t * t * end.y
-    return { x, y }
-  }
 
   const buildArcPath = (
     from: { x: number; y: number },

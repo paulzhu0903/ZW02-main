@@ -12,7 +12,10 @@ import {
   MUTAGEN_COLORS,
   MUTAGEN_LABEL_MAP,
   MUTAGEN_SIMPLIFIED_TO_TRADITIONAL,
-  NAYIN_TABLE
+  NAYIN_TABLE,
+  MAJOR_STARS_LIST,
+  MAJOR_STARS_LIST_SIMPLIFIED,
+  CAUSE_PALACE_MAP
 } from './types'
 
 /* ============================================================
@@ -40,14 +43,6 @@ export function getNayin(ganZhi: string): string {
  * 檢查是否為主星
  */
 export function isMajorStarName(starName: string): boolean {
-  const MAJOR_STARS_LIST = [
-    '紫微', '天機', '太陽', '武曲', '天同', '廉貞', '天府',
-    '太陰', '貪狼', '巨門', '天相', '天梁', '七殺', '破軍',
-  ]
-  const MAJOR_STARS_LIST_SIMPLIFIED = [
-    '紫微', '天机', '太阳', '武曲', '天同', '廉贞', '天府',
-    '太阴', '贪狼', '巨门', '天相', '天梁', '七杀', '破军',
-  ]
   return MAJOR_STARS_LIST.includes(starName) || MAJOR_STARS_LIST_SIMPLIFIED.includes(starName)
 }
 
@@ -56,12 +51,7 @@ export function isMajorStarName(starName: string): boolean {
  * 甲→戌、乙→酉、丙→申、丁→未、戊→午、己→巳、庚→辰、辛→卯、壬→寅、癸→亥
  */
 export function getCausePalaceBranch(yearGan: string): string {
-  const causePalaceMap: Record<string, string> = {
-    '甲': '戌', '乙': '酉', '丙': '申', '丁': '未',
-    '戊': '午', '己': '巳', '庚': '辰', '辛': '卯',
-    '壬': '寅', '癸': '亥'
-  }
-  return causePalaceMap[yearGan] || ''
+  return CAUSE_PALACE_MAP[yearGan] || ''
 }
 
 /* ============================================================

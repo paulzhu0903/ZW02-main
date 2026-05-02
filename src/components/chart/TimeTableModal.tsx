@@ -7,7 +7,7 @@ import { Select } from '@/components/ui'
 import { type Language } from '@/lib/i18n'
 import { solar2lunar } from 'iztro/lib/calendar'
 import type { PalaceData } from './types'
-import { LUNAR_MONTH_DISPLAY_NAMES, CHINESE_DAY_NAMES, EARTHLY_BRANCH_ORDER } from './utils/chartConstants'
+import { LUNAR_MONTH_DISPLAY_NAMES, CHINESE_DAY_NAMES, EARTHLY_BRANCH_ORDER } from './utils/types'
 
 interface TimeTableModalProps {
   isOpen: boolean

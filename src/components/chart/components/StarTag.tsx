@@ -14,7 +14,7 @@ const STAR_SLOT_WIDTH_CLASS = 'w-[14px] min-w-[14px] sm:w-[16px] sm:min-w-[16px]
 const STAR_BASE_TEXT_CLASS = 'text-[10px] sm:text-[11px] md:text-[12px] lg:text-[14px] xl:text-[15px]'
 const TRIREME_MUTAGEN_SQUARE_CLASS = 'flex items-center justify-center w-[14px] h-[14px] text-[10px] sm:w-[14px] sm:h-[14px] sm:text-[11px] md:text-[12px] lg:w-[16px] lg:h-[16px] lg:text-[14px] xl:text-[15px]'
 
-export function StarTag({ star, isMajorStar = false, forceTextColorClass = '', chartType = 'flying', selectedDecadal = null, selectedAnnual = null, isCurrentDecadalPalace = false, isCurrentAnnualPalace = false, decadalLifePalaceStem = null, annualLifePalaceStem = null }: StarTagProps) {
+export function StarTag({ star, isMajorStar = false, forceTextColorClass = '', chartType = 'flying', selectedDecadal = null, selectedAnnual = null, isCurrentDecadalPalace = false, isCurrentAnnualPalace = false, decadalLifePalaceStem = null, annualLifePalaceStem = null, selectedAnnualGanZhi = null }: StarTagProps) {
   const { language } = useSettingsStore()
   // 三合盤顯示亮度；四化和飛星不顯示亮度
   const displayBrightness = chartType === 'trireme' ? true : false
@@ -121,11 +121,16 @@ export function StarTag({ star, isMajorStar = false, forceTextColorClass = '', c
   }
 
   const getAnnualMutagenForCurrentStar = (): string | null => {
-    if (chartType !== 'trireme' || !annualLifePalaceStem || selectedAnnual === null) return null
+    // 三合盤流年四化：使用流年干支的天干（selectedAnnualGanZhi）而不是年命宮天干
+    if (chartType !== 'trireme' || !selectedAnnual) return null
+
+    // 優先使用流年干支天干；如果沒有，則使用年命宮天干（作為備用）
+    const annualStemToUse = selectedAnnualGanZhi?.charAt(0) || annualLifePalaceStem
+    if (!annualStemToUse) return null
 
     const starNameNormalized = getStarLookupKey(name)
-    const sihuaMapSimple = SIHUA_BY_GAN[annualLifePalaceStem] || {}
-    const sihuaMapTraditional = SIHUA_BY_GAN_TRADITIONAL[annualLifePalaceStem] || {}
+    const sihuaMapSimple = SIHUA_BY_GAN[annualStemToUse] || {}
+    const sihuaMapTraditional = SIHUA_BY_GAN_TRADITIONAL[annualStemToUse] || {}
 
     const findMutagenKey = (sihuaMap: Record<string, string>): string | null => {
       for (const [mutagenKey, starName] of Object.entries(sihuaMap)) {
@@ -178,29 +183,13 @@ export function StarTag({ star, isMajorStar = false, forceTextColorClass = '', c
   // 获取星名的英文参数名
   const starEnglishParam = getStarEnglishParam(name)
   
-  // 主星用黑字，其他星耀用浅灰；四化盘中18颗关键星根据性别显示颜色
+  // 主星用黑字，其他星耀用浅灰
   let textColor = 'text-text-secondary'
   
   if (chartType === 'transformation') {
-    // 四化盘中：只有18颗关键星显示性别颜色，其他所有星（包括主星和辅星）都显示浅灰色
-    if (starEnglishParam && colorfulStarsInTransformation.has(starEnglishParam)) {
-      // 这是18颗关键星之一，应用性别颜色
-      if (starEnglishParam === 'lianzhen') {
-        // 廉贞例外：化禄是男星，化忌是女星
-        if (mutagen === '化禄' || mutagen === '化祿') {
-          textColor = 'text-[#00aeff]'  // 水蓝色（男星）
-        } else if (mutagen === '化忌') {
-          textColor = 'text-[#ff00ff]'  // 粉红色（女星）
-        }
-      } else if (maleStarParams.includes(starEnglishParam)) {
-        textColor = 'text-[#00aeff]'  // 水蓝色
-      } else if (femaleStarParams.includes(starEnglishParam)) {
-        textColor = 'text-[#ff00ff]'  // 粉红色
-      }
-    } else {
-      // 不在18颗关键星中，强制设为浅灰色（包括所有辅星、雜曜等）
-      textColor = 'text-text-secondary'
-    }
+    // 四化盘中：所有星都显示黑色或灰色（不再用文字颜色区别男女）
+    // 男女区别改用上方的圆点指示符
+    textColor = 'text-text-secondary'
   } else {
     // 其他盘面中：主星显示为黑色，其他星保持浅灰
     if (!hasMutagen) {
@@ -210,21 +199,49 @@ export function StarTag({ star, isMajorStar = false, forceTextColorClass = '', c
     }
   }
 
-  // 确保四化盤中非18顆星的輔星仍為灰色（即使有forceTextColorClass也要覆蓋）
+  // 确保四化盤中所有星都为灰色或黑色（男女区分改用圆点）
   if (!hasMutagen) {
     if (chartType === 'transformation') {
-      // 四化盤中：只有18顆關鍵星才能改變顏色，其他都是灰色
-      if (!starEnglishParam || !colorfulStarsInTransformation.has(starEnglishParam)) {
-        textColor = 'text-text-secondary'
-      }
+      // 四化盤中：所有星都是灰色，改用圆点指示符显示性别
+      textColor = 'text-text-secondary'
     } else if (forceTextColorClass && !isMajorStar) {
       // 非四化盤且不是主星，使用forceTextColorClass
       textColor = forceTextColorClass
     }
   }
 
+  // 四化盤中：确定星曜的性别指示符（圆点颜色）
+  let genderDotColor: string | null = null
+  if (chartType === 'transformation' && starEnglishParam && colorfulStarsInTransformation.has(starEnglishParam)) {
+    // 这是18颗关键星之一，显示性别圆点
+    if (starEnglishParam === 'lianzhen') {
+      // 廉贞例外：化禄是男星，化忌是女星
+      if (mutagen === '化禄' || mutagen === '化祿') {
+        genderDotColor = '#00aeff'  // 蓝色（男星）
+      } else if (mutagen === '化忌') {
+        genderDotColor = '#ff00ff'  // 粉红色（女星）
+      }
+    } else if (maleStarParams.includes(starEnglishParam)) {
+      genderDotColor = '#00aeff'  // 蓝色（男星）
+    } else if (femaleStarParams.includes(starEnglishParam)) {
+      genderDotColor = '#ff00ff'  // 粉红色（女星）
+    }
+  }
+
   return (
     <div className={`flex flex-col items-center ${STAR_SLOT_WIDTH_CLASS}`} style={{ minHeight: '30px' }}>
+      {/* 四化盤中的性別指示條 */}
+      {chartType === 'transformation' && genderDotColor && (
+        <div
+          style={{
+            width: '4px',
+            height: '4px',
+            borderRadius: '2px',
+            backgroundColor: genderDotColor,
+            marginBottom: '2px',
+          }}
+        />
+      )}
       <span
         className={`
           relative ${STAR_SLOT_WIDTH_CLASS} ${STAR_BASE_TEXT_CLASS} font-medium px-0 py-0 rounded

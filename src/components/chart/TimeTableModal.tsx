@@ -2,11 +2,12 @@
    時間表查詢模態框 - 大限、流年、流月、流日、流時
    ============================================================ */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Select } from '@/components/ui'
 import { type Language } from '@/lib/i18n'
 import { solar2lunar } from 'iztro/lib/calendar'
 import type { PalaceData } from './types'
+import { LUNAR_MONTH_DISPLAY_NAMES, CHINESE_DAY_NAMES, EARTHLY_BRANCH_ORDER } from './utils/chartConstants'
 
 interface TimeTableModalProps {
   isOpen: boolean
@@ -109,29 +110,32 @@ export function TimeTableModal({
   onConfirm,
 }: TimeTableModalProps) {
   const currentYear = new Date().getFullYear()
-  const defaultSelection = getDefaultDecadalAnnualSelectionFromPalaceData(palaceData, birthInfo.year, currentYear)
-  const resolvedSelection = initialDecadal !== null && initialDecadal !== undefined && initialAnnual !== null && initialAnnual !== undefined
-    ? { decadal: initialDecadal, annual: initialAnnual }
-    : defaultSelection
   const [year, setYear] = useState<number>(currentYear)
   const [month, setMonth] = useState<number>(1)
   const [day, setDay] = useState<number>(1)
   const [hour, setHour] = useState<number>(() => new Date().getHours())
-  const [selectedDecadal, setSelectedDecadal] = useState<number | null>(() => resolvedSelection.decadal)
-  const [selectedAnnual, setSelectedAnnual] = useState<number | null>(() => resolvedSelection.annual)
+  const [selectedDecadal, setSelectedDecadal] = useState<number | null>(null)
+  const [selectedAnnual, setSelectedAnnual] = useState<number | null>(null)
+  const wasOpenRef = useRef(false)
 
   useEffect(() => {
-    if (isOpen) {
-      // 每次開啟都同步系統當前時間，避免固定在 13:00
+    const justOpened = isOpen && !wasOpenRef.current
+    wasOpenRef.current = isOpen
+    if (justOpened) {
+      // 只在 modal 開啟瞬間重置為當前時間，之後允許使用者自由修改
       const today = new Date()
       setYear(today.getFullYear())
       setMonth(today.getMonth() + 1)
       setDay(today.getDate())
       setHour(today.getHours())
-      setSelectedDecadal(resolvedSelection.decadal)
-      setSelectedAnnual(resolvedSelection.annual)
+      const defaultSelection = getDefaultDecadalAnnualSelectionFromPalaceData(palaceData, birthInfo.year, today.getFullYear())
+      const resolved = initialDecadal !== null && initialDecadal !== undefined && initialAnnual !== null && initialAnnual !== undefined
+        ? { decadal: initialDecadal, annual: initialAnnual }
+        : defaultSelection
+      setSelectedDecadal(resolved.decadal)
+      setSelectedAnnual(resolved.annual)
     }
-  }, [isOpen, resolvedSelection])
+  }, [isOpen])
 
   // 当选择流年后，自动更新年份
   useEffect(() => {
@@ -354,16 +358,8 @@ export function TimeTableModal({
                   `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
                 )
                 if (lunarResult) {
-                  const LUNAR_MONTH_LABELS = ['正月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '冬月', '臘月']
-                  const LUNAR_DAY_LABELS = [
-                    '初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十',
-                    '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
-                    '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十',
-                  ]
-                  const SHICHEN_LABELS = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
-                  
-                  const monthLabel = LUNAR_MONTH_LABELS[lunarResult.lunarMonth - 1]
-                  const dayLabel = LUNAR_DAY_LABELS[lunarResult.lunarDay - 1]
+                  const monthLabel = LUNAR_MONTH_DISPLAY_NAMES[lunarResult.lunarMonth - 1]
+                  const dayLabel = CHINESE_DAY_NAMES[lunarResult.lunarDay - 1]
                   
                   let shichenIndex: number
                   if (hour === 23) {
@@ -373,7 +369,7 @@ export function TimeTableModal({
                   } else {
                     shichenIndex = Math.floor((hour + 1) / 2)
                   }
-                  const hourLabel = SHICHEN_LABELS[shichenIndex] || ''
+                  const hourLabel = EARTHLY_BRANCH_ORDER[shichenIndex] || ''
                   
                   return (
                     <>

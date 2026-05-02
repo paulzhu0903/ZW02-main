@@ -1,10 +1,13 @@
 /**
  * 命盤常量定義
  */
-
+export const HEAVENLY_STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'] as const
 export const EARTHLY_BRANCH_ORDER = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'] as const
 
 export const LUNAR_MONTH_NAMES = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'] as const
+
+// 表單用：帶"月"字的農曆月份標籤
+export const LUNAR_MONTH_DISPLAY_NAMES = ['正月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '冬月', '臘月'] as const
 
 export const PALACE_CLOCKWISE_BRANCHES = ['寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥', '子', '丑'] as const
 
@@ -15,8 +18,6 @@ export const CHINESE_DAY_NAMES = [
 ] as const
 
 export const SHICHEN_NAMES = ['子時', '丑時', '寅時', '卯時', '辰時', '巳時', '午時', '未時', '申時', '酉時', '戌時', '亥時'] as const
-
-export const HEAVENLY_STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'] as const
 
 export const FIRST_MONTH_GAN_MAP: Record<string, string> = {
   '甲': '丙', '己': '丙',  // 甲己年起丙寅

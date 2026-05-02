@@ -67,6 +67,7 @@ export interface StarTagProps {
   isCurrentAnnualPalace?: boolean
   decadalLifePalaceStem?: string | null
   annualLifePalaceStem?: string | null
+  selectedAnnualGanZhi?: string | null
 }
 
 export interface PalaceCardProps extends PalaceData {
@@ -225,7 +226,7 @@ export const MAJOR_STARS_LIST_SIMPLIFIED = [
 
 // 12宫位排列顺序（按命宫开始的顺序）
 export const PALACE_ORDER = [
-  'life', 'parents', 'virtue', 'property', 'career', 'servants',
+  'life', 'parents', 'virtue', 'property', 'career', 'friends',
   'travel', 'health', 'wealth', 'children', 'spouse', 'siblings'
 ]
 
@@ -233,7 +234,7 @@ export const PALACE_ORDER = [
 export const PALACE_NAME_MAP_ZH: Record<string, string> = {
   'life': '命宫', 'parents': '父母宫', 'virtue': '福德宫', 'property': '田宅宫',
   'career': '官禄宫', 'spouse': '夫妻宫', 'children': '子女宫', 'wealth': '财帛宫',
-  'health': '疾厄宫', 'travel': '迁移宫', 'servants': '交友宫', 'siblings': '兄弟宫'
+  'health': '疾厄宫', 'travel': '迁移宫', 'friends': '交友宫', 'siblings': '兄弟宫'
 }
 
 /* ============================================================
@@ -269,7 +270,7 @@ export const DECADAL_PALACE_MAP: Record<string, string> = {
   'wealth': '大財',
   'health': '大疾',
   'travel': '大遷',
-  'servants': '大友',
+  'friends': '大友',
   'career': '大官',
   'property': '大田',
   'virtue': '大福',
@@ -288,7 +289,7 @@ export const ANNUAL_PALACE_MAP: Record<string, string> = {
   'wealth': '年財',
   'health': '年疾',
   'travel': '年遷',
-  'servants': '年友',
+  'friends': '年友',
   'career': '年官',
   'property': '年田',
   'virtue': '年福',
@@ -311,9 +312,9 @@ export const PALACE_NAME_TO_ENGLISH_MAP: Record<string, string> = {
   '财帛宫': 'wealth', '財帛宫': 'wealth', '财帛宮': 'wealth', '財帛宮': 'wealth', '财帛': 'wealth', '財帛': 'wealth',
   '疾厄宫': 'health', '疾厄宮': 'health', '疾厄': 'health',
   '迁移宫': 'travel', '遷移宫': 'travel', '迁移宮': 'travel', '遷移宮': 'travel', '迁移': 'travel', '遷移': 'travel',
-  '交友宫': 'servants', '交友宮': 'servants', '交友': 'servants',
-  '奴仆宫': 'servants', '奴僕宫': 'servants', '奴仆宮': 'servants', '奴僕宮': 'servants', '奴仆': 'servants', '奴僕': 'servants',
-  '仆役宫': 'servants', '僕役宫': 'servants', '仆役宮': 'servants', '僕役宮': 'servants', '仆役': 'servants', '僕役': 'servants',
+  '交友宫': 'friends', '交友宮': 'friends', '交友': 'friends',
+  '奴仆宫': 'friends', '奴僕宫': 'friends', '奴仆宮': 'friends', '奴僕宮': 'friends', '奴仆': 'friends', '奴僕': 'friends',
+  '仆役宫': 'friends', '僕役宫': 'friends', '仆役宮': 'friends', '僕役宮': 'friends', '仆役': 'friends', '僕役': 'friends',
   '兄弟宫': 'siblings', '兄弟宮': 'siblings', '兄弟': 'siblings',
 }
 

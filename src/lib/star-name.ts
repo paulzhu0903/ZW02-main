@@ -69,6 +69,7 @@ const STAR_NAME_TO_ENGLISH_PARAM: Record<string, string> = {
   '天傷': 'tianshang', '天伤': 'tianshang',
   '龍德': 'longde', '龙德': 'longde',
   '天鉞': 'tianyue', '天钺': 'tianyue',
+  '天月': 'tianyuee',
   '天魁': 'tiankui',
 }
 

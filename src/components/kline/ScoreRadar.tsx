@@ -54,6 +54,10 @@ export function ScoreRadar({ score, period }: ScoreRadarProps) {
       backgroundColor: 'rgba(15,15,35,0.95)',
       borderColor: 'rgba(124,58,237,0.3)',
       textStyle: { color: '#fff' },
+      position: (point: any) => {
+        return ['50%', '50%']
+      },
+      alwaysShowContent: false,
     },
     series: [
       {

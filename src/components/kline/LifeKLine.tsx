@@ -9,7 +9,7 @@
    - 深色玻璃态 Tooltip
    ============================================================ */
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import {
   ComposedChart,
   Bar,
@@ -24,6 +24,7 @@ import {
 } from 'recharts'
 import { useChartStore, useSettingsStore, useContentCacheStore } from '@/stores'
 import { ScoreRadar } from './ScoreRadar'
+import { EventCard } from './EventCard'
 import {
   generateLifetimeKLines,
   generateKLinesWithLLM,
@@ -31,6 +32,11 @@ import {
 } from '@/lib/fortune-score'
 import { type LLMConfig } from '@/lib/llm'
 import { t } from '@/lib/i18n'
+
+// 全局回调存储 (用于 Tooltip)
+const tooltipCallbacks = {
+  onConfirm: (point: LifetimeKLinePoint) => {},
+}
 
 /* ============================================================
    自定义 Tooltip (深色玻璃态)
@@ -53,7 +59,7 @@ function localizeKlineProgress(message: string, language: 'zh-TW' | 'zh-CN') {
   return progressMap[message] ?? message
 }
 
-function CustomTooltip({ active, payload }: TooltipProps) {
+function CustomTooltip({ active, payload, position }: TooltipProps & { position?: { x?: number; y?: number } }) {
   const { language } = useSettingsStore()
 
   if (!active || !payload?.length) return null
@@ -67,19 +73,27 @@ function CustomTooltip({ active, payload }: TooltipProps) {
                      data.score >= 20 ? t('kline.scoreBad', language) : t('kline.scoreWorst', language)
 
   return (
-    <div className="bg-night/95 backdrop-blur-md p-5 rounded-xl shadow-2xl border border-white/10 z-50 w-[320px] md:w-[380px]">
+    <div 
+      className="bg-night/95 backdrop-blur-md p-2 rounded-2xl shadow-2xl border border-white/10 z-50 w-[260px] md:w-[300px] fixed h-[150px] overflow-y-auto"
+      style={{
+        left: '50%',
+        top: '80%',
+        transform: 'translate(-50%, -50%)',
+        pointerEvents: 'auto',
+      }}
+    >
       {/* ─── Header ─── */}
-      <div className="flex justify-between items-start mb-3 border-b border-white/10 pb-3">
+      <div className="flex justify-between items-start mb-0 border-b border-white/10 pb-1">
         <div>
-          <p className="text-xl font-bold text-white" style={{ fontFamily: 'var(--font-serif)' }}>
+          <p className="text-lg font-bold text-gray-500 leading-tight" style={{ fontFamily: 'var(--font-serif)' }}>
             {data.year} {data.ganZhi}年
-            <span className="text-base text-text-muted ml-2">({data.age}{ageUnit})</span>
+            <span className="text-sm text-text-muted ml-2">({data.age}{ageUnit})</span>
           </p>
-          <p className="text-sm text-star-light font-medium mt-1">
+          <p className="text-xs text-star-light font-medium mt-0.5">
             {t('kline.daYun', language)}：{data.daYun} ({data.daYunRange})
           </p>
         </div>
-        <div className={`text-sm font-bold px-3 py-1.5 rounded-lg ${
+        <div className={`text-sm font-bold px-3 py-1 rounded-lg ${
           data.score >= 60 ? 'bg-green-500/20 text-green-400' :
           data.score >= 40 ? 'bg-amber-500/20 text-amber-400' :
           'bg-rose-500/20 text-rose-400'
@@ -89,10 +103,10 @@ function CustomTooltip({ active, payload }: TooltipProps) {
       </div>
 
       {/* ─── OHLC Grid ─── */}
-      <div className="grid grid-cols-4 gap-2 text-xs mb-4 bg-white/[0.03] p-3 rounded-lg">
+      <div className="grid grid-cols-4 gap-1 text-xs mb-2 bg-white/[0.03] p-2 rounded-lg">
         <div className="text-center">
           <span className="block text-text-muted mb-1">{t('kline.startOfYear', language)}</span>
-          <span className="font-mono text-white font-bold">{data.open}</span>
+          <span className="font-mono text-gray-300 font-bold">{data.open}</span>
         </div>
         <div className="text-center">
           <span className="block text-text-muted mb-1">{t('kline.endOfYear', language)}</span>
@@ -108,22 +122,11 @@ function CustomTooltip({ active, payload }: TooltipProps) {
         </div>
       </div>
 
-      {/* ─── Reason ─── */}
-      <div className="text-sm text-text-secondary leading-relaxed max-h-[120px] overflow-y-auto"
-           style={{ fontFamily: 'var(--font-brush)' }}>
-        {data.reason || (
-          <span className="text-text-muted flex items-center gap-2">
-            <span className="inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-            {t('kline.interpretationLoading', language)}
-          </span>
-        )}
-      </div>
-
       {/* ─── 流年四化 ─── */}
       {data.yearlyMutagens && data.yearlyMutagens.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-white/10">
+        <div className="flex flex-wrap gap-1 mt-1 pt-1 border-t border-white/10">
           {data.yearlyMutagens.map((m, i) => (
-            <span key={i} className="px-2 py-0.5 rounded text-xs bg-star/20 text-star-light">
+            <span key={i} className="px-1.5 py-0.5 rounded text-xs bg-star/20 text-star-light">
               {m}
             </span>
           ))}
@@ -147,7 +150,7 @@ interface CandleShapeProps {
 }
 
 function CandleShape(props: CandleShapeProps) {
-  const { x = 0, y = 0, width = 0, height = 0, payload, yAxis } = props
+  const { x = 0, y = 50, width = 0, height = 0, payload, yAxis } = props
   if (!payload) return null
 
   const isUp = payload.close >= payload.open
@@ -159,8 +162,12 @@ function CandleShape(props: CandleShapeProps) {
 
   if (yAxis && typeof yAxis.scale === 'function') {
     try {
-      highY = yAxis.scale(payload.high)
-      lowY = yAxis.scale(payload.low)
+      const scaledHigh = yAxis.scale(payload.high)
+      const scaledLow = yAxis.scale(payload.low)
+      
+      // Clamp values to prevent wicks from exceeding frame bounds
+      highY = Math.max(y, Math.min(y + height, scaledHigh))
+      lowY = Math.max(y, Math.min(y + height, scaledLow))
     } catch {
       highY = y
       lowY = y + height
@@ -231,6 +238,7 @@ export function LifeKLine() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [progress, setProgress] = useState('')
   const [selectedPoint, setSelectedPoint] = useState<LifetimeKLinePoint | null>(null)
+  const [interpretingPointId, setInterpretingPointId] = useState<string | null>(null)
 
   // LLM 配置
   const llmConfig: LLMConfig = useMemo(() => {
@@ -315,15 +323,74 @@ export function LifeKLine() {
   }, [chartData])
 
   /* ------------------------------------------------------------
-     图表点击
+     圖表點擊 - 顯示詳細信息
      ------------------------------------------------------------ */
 
-  const handleChartClick = useCallback((data: unknown) => {
-    const chartData = data as { activePayload?: Array<{ payload: LifetimeKLinePoint }> }
-    if (chartData.activePayload?.[0]?.payload) {
-      setSelectedPoint(chartData.activePayload[0].payload)
+  const handleChartClick = useCallback((e: any) => {
+    // 防止事件冒泡到圖表
+    if (e?.stopPropagation) {
+      e.stopPropagation()
+    }
+    
+    // 計算點擊位置對應的年份
+    const container = e?.currentTarget as HTMLElement
+    if (!container) return
+    
+    const rect = container.getBoundingClientRect()
+    const clickX = e.clientX - rect.left
+    const relativeX = (clickX / rect.width) * 100
+    
+    // 根據 x 位置找到對應的數據點（估算）
+    if (chartData.length > 0) {
+      const index = Math.min(
+        Math.floor((relativeX / 100) * chartData.length),
+        chartData.length - 1
+      )
+      if (index >= 0 && chartData[index]) {
+        setSelectedPoint(chartData[index])
+        setInterpretingPointId(null)
+      }
+    }
+  }, [chartData])
+
+  // 初始化 Tooltip 回调
+  useMemo(() => {
+    tooltipCallbacks.onConfirm = (point: LifetimeKLinePoint) => {
+      setSelectedPoint(point)
+      setInterpretingPointId(null)
     }
   }, [])
+
+  /* ------------------------------------------------------------
+     请求特定点的 AI 解讀
+     ------------------------------------------------------------ */
+
+  const requestPointInterpretation = useCallback(async () => {
+    if (!selectedPoint || !llmConfig.apiKey) return
+
+    setInterpretingPointId(`${selectedPoint.age}-${selectedPoint.year}`)
+
+    try {
+      // 构建简单的 prompt 来为这一年生成解讯
+      const prompt = `请用简洁的 1-2 句话解释为什么 ${selectedPoint.year} 年 (${selectedPoint.ganZhi}) 这一年的运势评分是 ${selectedPoint.score} 分。考虑到运势开始于 ${selectedPoint.open} 分，结束于 ${selectedPoint.close} 分，最高达到 ${selectedPoint.high} 分，最低跌到 ${selectedPoint.low} 分。这一年属于大运 ${selectedPoint.daYun}。`
+
+      const { streamChat } = await import('@/lib/llm')
+      let fullResponse = ''
+      
+      for await (const chunk of streamChat(llmConfig, [
+        { role: 'user', content: prompt },
+      ])) {
+        fullResponse += chunk
+      }
+
+      // 更新 selectedPoint 的 reason
+      setSelectedPoint(prev => prev ? { ...prev, reason: fullResponse } : null)
+    } catch (error) {
+      console.error('解讀生成失败:', error)
+    } finally {
+      setInterpretingPointId(null)
+    }
+  }, [selectedPoint, llmConfig])
 
   /* ------------------------------------------------------------
      渲染
@@ -375,7 +442,7 @@ export function LifeKLine() {
 
             {/* 图表标题 */}
             <div className="mb-4 flex justify-between items-center px-2">
-              <h3 className="text-lg font-bold text-white" style={{ fontFamily: 'var(--font-serif)' }}>
+              <h3 className="text-lg font-bold text-gray-500" style={{ fontFamily: 'var(--font-serif)' }}>
                 {t('kline.chartTitle', language)}
               </h3>
               <div className="flex gap-3 text-xs font-medium">
@@ -388,16 +455,16 @@ export function LifeKLine() {
               </div>
             </div>
 
-            <ResponsiveContainer width="100%" height={500}>
-              <ComposedChart
-                data={chartData}
-                margin={{ top: 30, right: 10, left: 0, bottom: 20 }}
-                onClick={handleChartClick}
-              >
+            <div onClick={handleChartClick} className="cursor-pointer overflow-hidden rounded-lg">
+              <ResponsiveContainer width="100%" height={350}>
+                <ComposedChart
+                  data={chartData}
+                  margin={{ top: 50, right: 10, left: 0, bottom: 20 }}
+                >
                 <CartesianGrid
                   strokeDasharray="3 3"
                   vertical={false}
-                  stroke="rgba(255,255,255,0.05)"
+                  stroke="rgba(141, 141, 141, 0.05)"
                 />
 
                 <XAxis
@@ -432,7 +499,8 @@ export function LifeKLine() {
 
                 <Tooltip
                   content={<CustomTooltip />}
-                  cursor={{ stroke: 'rgba(124,58,237,0.3)', strokeWidth: 1, strokeDasharray: '4 4' }}
+                  cursor={{ stroke: 'rgba(93, 0, 254, 0.5)', strokeWidth: 1, strokeDasharray: '4 4' }}
+                  wrapperStyle={{ position: 'fixed', pointerEvents: 'none' }}
                 />
 
                 {/* 大运分界线 */}
@@ -440,7 +508,7 @@ export function LifeKLine() {
                   <ReferenceLine
                     key={`dayun-${index}`}
                     x={point.age}
-                    stroke="rgba(124,58,237,0.3)"
+                    stroke="rgb(255, 0, 234)"
                     strokeDasharray="3 3"
                     strokeWidth={1}
                   >
@@ -468,7 +536,8 @@ export function LifeKLine() {
                   />
                 </Bar>
               </ComposedChart>
-            </ResponsiveContainer>
+              </ResponsiveContainer>
+            </div>
 
             {/* 生成状态 */}
             {klineCache.isGenerating && (
@@ -481,64 +550,104 @@ export function LifeKLine() {
 
           {/* ─── 选中年份详情 ─── */}
           {selectedPoint && (
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* 雷达图 */}
-              <ScoreRadar
-                score={{
-                  total: selectedPoint.score,
-                  trend: selectedPoint.close >= selectedPoint.open ? 'up' : 'down',
-                  dimensions: selectedPoint.dimensions,
-                }}
-                period={`${selectedPoint.year}年 (${selectedPoint.age}${language === 'zh-TW' ? '歲' : '岁'})`}
-              />
+            <>
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* 雷达图 */}
+                <ScoreRadar
+                  score={{
+                    total: selectedPoint.score,
+                    trend: selectedPoint.close >= selectedPoint.open ? 'up' : 'down',
+                    dimensions: selectedPoint.dimensions,
+                  }}
+                  period={`${selectedPoint.year}年 (${selectedPoint.age}${language === 'zh-TW' ? '歲' : '岁'})`}
+                />
 
-              {/* 详细信息卡片 */}
-              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] backdrop-blur-sm">
-                <h3 className="text-sm text-text-muted font-medium mb-4">
-                  📌 {selectedPoint.year}年 {selectedPoint.ganZhi} · {selectedPoint.age}{language === 'zh-TW' ? '歲' : '岁'}
-                </h3>
+                {/* 详细信息卡片 */}
+                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] backdrop-blur-sm">
+                  <h3 className="text-sm text-text-muted font-medium mb-4">
+                    📌 {selectedPoint.year}年 {selectedPoint.ganZhi} · {selectedPoint.age}{language === 'zh-TW' ? '歲' : '岁'}
+                  </h3>
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-text-muted">{t('kline.belongDaYun', language)}</span>
-                    <span className="text-star-light font-medium">{selectedPoint.daYun} ({selectedPoint.daYunRange})</span>
-                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-text-muted">{t('kline.belongDaYun', language)}</span>
+                      <span className="text-star-light font-medium">{selectedPoint.daYun} ({selectedPoint.daYunRange})</span>
+                    </div>
 
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-text-muted">{t('kline.totalScore', language)}</span>
-                    <span className={`font-bold ${
-                      selectedPoint.score >= 70 ? 'text-gold' :
-                      selectedPoint.score >= 50 ? 'text-green-400' :
-                      selectedPoint.score >= 30 ? 'text-amber-400' : 'text-rose-400'
-                    }`}>
-                      {selectedPoint.score} 分
-                    </span>
-                  </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-text-muted">{t('kline.totalScore', language)}</span>
+                      <span className={`font-bold ${
+                        selectedPoint.score >= 70 ? 'text-gold' :
+                        selectedPoint.score >= 50 ? 'text-green-400' :
+                        selectedPoint.score >= 30 ? 'text-amber-400' : 'text-rose-400'
+                      }`}>
+                        {selectedPoint.score} 分
+                      </span>
+                    </div>
 
-                  {selectedPoint.yearlyMutagens && selectedPoint.yearlyMutagens.length > 0 && (
-                    <div className="pt-3 border-t border-white/10">
-                      <span className="text-text-muted text-sm block mb-2">{t('kline.yearlyMutagens', language)}</span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {selectedPoint.yearlyMutagens.map((m, i) => (
-                          <span key={i} className="px-2 py-0.5 rounded text-xs bg-star/20 text-star-light">
-                            {m}
-                          </span>
-                        ))}
+                    {selectedPoint.yearlyMutagens && selectedPoint.yearlyMutagens.length > 0 && (
+                      <div className="pt-3 border-t border-white/10">
+                        <span className="text-text-muted text-sm block mb-2">{t('kline.yearlyMutagens', language)}</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {selectedPoint.yearlyMutagens.map((m, i) => (
+                            <span key={i} className="px-2 py-0.5 rounded text-xs bg-star/20 text-star-light">
+                              {m}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {selectedPoint.reason && (
-                    <div className="pt-3 border-t border-white/10">
-                      <span className="text-text-muted text-sm block mb-2">{t('kline.interpretation', language)}</span>
-                      <p className="text-text-secondary text-sm leading-relaxed" style={{ fontFamily: 'var(--font-brush)' }}>
-                        {selectedPoint.reason}
-                      </p>
-                    </div>
-                  )}
+                    {selectedPoint.reason && (
+                      <div className="pt-3 border-t border-white/10">
+                        <span className="text-text-muted text-sm block mb-2">{t('kline.interpretation', language)}</span>
+                        <p className="text-text-secondary text-sm leading-relaxed" style={{ fontFamily: 'var(--font-brush)' }}>
+                          {selectedPoint.reason}
+                        </p>
+                      </div>
+                    )}
+
+                    {!selectedPoint.reason && (
+                      <button
+                        onClick={requestPointInterpretation}
+                        disabled={interpretingPointId === `${selectedPoint.age}-${selectedPoint.year}`}
+                        className="w-full mt-4 py-2 px-3 rounded-lg bg-gold/20 text-gold hover:bg-gold/30 disabled:opacity-50 text-sm font-medium transition-all duration-200"
+                      >
+                        {interpretingPointId === `${selectedPoint.age}-${selectedPoint.year}` ? (
+                          <span className="flex items-center justify-center gap-1.5">
+                            <span className="inline-block w-2 h-2 border border-current border-t-transparent rounded-full animate-spin" />
+                            AI 解讀中...
+                          </span>
+                        ) : (
+                          '🤖 AI 解讀'
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+
+              {/* ─── 事件卡片 ─── */}
+              {selectedPoint.events && selectedPoint.events.length > 0 && (
+                <div className="space-y-3 mt-6">
+                  <h3 className="text-sm text-text-muted font-medium mb-3">
+                    📍 {selectedPoint.year}年 事件
+                  </h3>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {selectedPoint.events.map((event, idx) => (
+                      <EventCard
+                        key={idx}
+                        event={event}
+                        description={event.description}
+                        onRequestDescription={() => {
+                          // 如果事件需要 AI 解讀，可在此實現
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </>
       )}

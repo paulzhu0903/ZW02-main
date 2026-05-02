@@ -73,6 +73,7 @@ export interface LifetimeKLinePoint {
     relationship: number
     health: number
   }
+  events?: EventData[]      // 关键事件
   // 用于 LLM 生成 reason 的元数据
   yearlyMutagens?: string[]  // 流年四化
 }
@@ -145,7 +146,7 @@ const STAR_BASE_SCORE: Record<string, number> = {
   '天福': 4,
   '解神': 5,
   '天巫': 3,
-  '天鉞': -2,
+  '天月': -2,
   '阴煞': -5,
   '台辅': 3,
   '封诰': 3,
@@ -1154,6 +1155,15 @@ export function generateLifetimeKLines(
       low: Math.round(low),
       score: Math.max(0, Math.min(100, score)),
       dimensions,
+      events: score >= 70 ? [{
+        type: 'positive',
+        title: `${year}年運勢上升`,
+        stars: [],
+      }] : score <= 30 ? [{
+        type: 'negative',
+        title: `${year}年運勢下降`,
+        stars: [],
+      }] : [],
       yearlyMutagens: mutagens,
     })
   }
@@ -1384,6 +1394,15 @@ export async function generateKLinesWithLLM(
         relationship: normalize(score * 0.9 + (Math.random() - 0.5) * 10),
         health: normalize(score * 0.92 + (Math.random() - 0.5) * 10),
       },
+      events: score >= 70 ? [{
+        type: 'positive',
+        title: `${year}年運勢上升`,
+        stars: [],
+      }] : score <= 30 ? [{
+        type: 'negative',
+        title: `${year}年運勢下降`,
+        stars: [],
+      }] : [],
       yearlyMutagens: [],
     })
   }

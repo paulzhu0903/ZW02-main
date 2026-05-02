@@ -140,7 +140,7 @@ export function ChartDisplay() {
   // SVG 相關設定
   const arcResetVersion = 0
   const lineStrokeWidth = 2
-  const lineDashArray = isCompactMobile ? '6,3' : '8,4'
+  const lineDashArray = isCompactMobile ? '4,2' : '6,3'
   const arrowMarkerSize = isCompactMobile ? 7 : 10
   const arrowRefX = isCompactMobile ? 6.3 : 9
   const arrowRefY = isCompactMobile ? 2.2 : 3
@@ -717,18 +717,18 @@ export function ChartDisplay() {
               fill="none"
               stroke="rgba(255, 213, 0, 0.6)"
               strokeWidth="1.5"
-              strokeDasharray="8 4"
+              strokeDasharray={lineDashArray}
               strokeDashoffset={0}
               className={lineExtensionAnimationEnabled ? "dash-flow-slow" : ""}
             />
             {/* 四正連線：本宮 ↔ 對宮 */}
             <line x1={p0.x} y1={p0.y} x2={pOpp.x} y2={pOpp.y}
-              stroke="rgba(0, 200, 255, 0.7)" strokeWidth="1.5" strokeDasharray="8 4"
+              stroke="rgba(0, 200, 255, 0.7)" strokeWidth="1.5" strokeDasharray={lineDashArray}
               strokeDashoffset={0}
               className={lineExtensionAnimationEnabled ? "dash-flow-slow" : ""} />
             {/* 四正連線：前3宮 ↔ 後3宮 */}
             <line x1={pFwd3.x} y1={pFwd3.y} x2={pBack3.x} y2={pBack3.y}
-              stroke="rgba(0, 200, 255, 0.7)" strokeWidth="1.5" strokeDasharray="8 4"
+              stroke="rgba(0, 200, 255, 0.7)" strokeWidth="1.5" strokeDasharray={lineDashArray}
               strokeDashoffset={0}
               className={lineExtensionAnimationEnabled ? "dash-flow-slow" : ""} />
           </svg>
@@ -823,7 +823,7 @@ export function ChartDisplay() {
       </div>
 
       {/* 盤面类型切换按钮 - 移到盘面下方 */}
-      <div className="mt-4 sm:mt-10 mb-2 sm:mb-3 w-full overflow-x-auto px-0.5 sm:px-0">
+      <div className="mt-4 sm:mt-10 mb-2 sm:mb-3 w-full px-0.5 sm:px-0">
         <div className="flex items-center justify-between gap-1 sm:gap-3 w-full min-w-max">
         {/* 第一部分：盤面類型按鈕（左邊） */}
         {/* 選擇盤面之後 prompt 會隨著改變 */}

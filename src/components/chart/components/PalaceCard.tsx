@@ -9,12 +9,14 @@ import {
   PALACE_BRANCH_INDEX,
   PALACE_ORDER,
   PALACE_NAME_TO_ENGLISH_MAP,
+  MUTAGEN_COLORS,
   type PalaceCardProps,
 } from '../types'
 import {
   isMajorStarName,
   getDecadalPalaceIndex,
 } from '../mutagenLines'
+import { SIHUA_BY_GAN } from '@/knowledge/sihua'
 import { StarTag } from './StarTag'
 
 export function PalaceCard({
@@ -171,6 +173,7 @@ export function PalaceCard({
                 isCurrentAnnualPalace={isCurrentAnnualPalace}
                 decadalLifePalaceStem={decadalLifePalaceStem}
                 annualLifePalaceStem={annualLifePalaceStem}
+                selectedAnnualGanZhi={selectedAnnualGanZhi}
               />
             </div>
           ))}
@@ -195,6 +198,7 @@ export function PalaceCard({
                   isCurrentAnnualPalace={isCurrentAnnualPalace}
                   decadalLifePalaceStem={decadalLifePalaceStem}
                   annualLifePalaceStem={annualLifePalaceStem}
+                  selectedAnnualGanZhi={selectedAnnualGanZhi}
                 />
               </div>
             )
@@ -218,6 +222,7 @@ export function PalaceCard({
                   isCurrentAnnualPalace={isCurrentAnnualPalace}
                   decadalLifePalaceStem={decadalLifePalaceStem}
                   annualLifePalaceStem={annualLifePalaceStem}
+                  selectedAnnualGanZhi={selectedAnnualGanZhi}
                 />
               </div>
             ))}
@@ -308,7 +313,7 @@ export function PalaceCard({
         {/* 右下: 流年 + 大限 + 宮位名 */}
         <div className="flex flex-col items-end justify-end gap-0.5 pr-0.5" style={{ minWidth: '24px', marginRight: 0, boxSizing: 'border-box' }}>
           {selectedAnnualLabel && (
-            <span className="text-[11px] sm:text-[12px] lg:text-[15px] font-medium text-center leading-none inline-block" style={{ color: '#00aeff', minWidth: 24, maxWidth: 36 }}>
+            <span className="text-[11px] sm:text-[12px] lg:text-[15px] font-medium text-center leading-none inline-block" style={{ color: '#007AFF', minWidth: 24, maxWidth: 36 }}>
               {selectedAnnualLabel}
             </span>
           )}

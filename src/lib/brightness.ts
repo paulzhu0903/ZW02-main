@@ -36,8 +36,12 @@ export const BRIGHTNESS_COEF: Record<string, number> = {
 
 /**
  * 輔星標準亮度定義（iztro 未提供時補充）
- * 中州派標準：祿存/六吉 廟，地劫/地空 陷
+ * 根據文墨天機標準
  * 支持繁體和簡體、以及各種別名
+ * 
+ * 说明：
+ * - 主星的亮度已由 iztro 按地支提供，无需在此定义
+ * - 此表仅用于 iztro 未提供亮度的辅星和次要星曜
  */
 export const MINOR_STAR_STANDARD_BRIGHTNESS: Record<string, string> = {
   // 祿存（繁簡體）
@@ -51,11 +55,14 @@ export const MINOR_STAR_STANDARD_BRIGHTNESS: Record<string, string> = {
   // 天魁（繁簡體 + 別名）
   '天魁': '廟',
   '天奎': '廟',
-  // 天鉞（繁簡體 + 別名）
-  '天鉞': '廟',
-  '天钺': '庙',
-  // 地劫
-  '地劫': '陷',
+  // 天鉞（繁簡體 + 別名）- 文墨天機標準
+  '天鉞': '旺',
+  '天钺': '旺',
+  // 天馬（繁簡體）- 文墨天機標準
+  '天馬': '旺',
+  '天马': '旺',
+  // 地劫 - 文墨天機標準
+  '地劫': '廟',
   // 地空
   '地空': '陷',
 }

@@ -361,6 +361,7 @@ const translations: Record<Language, Record<string, any>> = {
     'star.tianfu2': '天福',
     'star.jieshen': '解神',
     'star.tianwu': '天巫',
+    'star.tianyuee': '天月',
     'star.tianyue': '天鉞',
     'star.tiankui': '天魁',
     'star.yinsha': '陰煞',
@@ -385,7 +386,7 @@ const translations: Record<Language, Record<string, any>> = {
     'palace.wealth': '財帛',
     'palace.health': '疾厄',
     'palace.travel': '遷移',
-    'palace.servants': '交友',
+    'palace.friends': '交友',
     'palace.siblings': '兄弟',
 
     // 长生十二神 (12 Longevity Deities)
@@ -466,10 +467,7 @@ const translations: Record<Language, Record<string, any>> = {
     'ai.prompt.keyIndicators': '关键指标\n- 离心/向心自化\n- 哪些宫位有“同性质四化串联”\n- 哪些宫位有“禄忌串联”',
     'ai.prompt.indicatorsHint': '以下是程序自动整理的关键指标，**优先依此做结构判读**，再参考补充上下文交叉验证。',
     'ai.prompt.basicInfo': '基本信息',
-    // 'ai.prompt.supplementContext': '补充盘面上下文',
-    // 'ai.prompt.analyzeOrder': '先建立坐标系（各宫干地支、生年四化、自化、男女星、我宫/他宫），再说明体用与能量流动，最后白话解读。',
 
-    // AI Prompt Context (JSON Labels)
     'ai.context.complete': '【命盘完整信息】',
     'ai.context.lifePalaceStars': '## 命宫主星',
     // 'ai.context.bodyPalacePosition': '## 身宫位置',
@@ -781,8 +779,8 @@ const translations: Record<Language, Record<string, any>> = {
     'star.tianfu2': '天福',
     'star.jieshen': '解神',
     'star.tianwu': '天巫',
-    'star.tianyue': '天鉞',
-    'star.youyue': '天钺',
+    'star.tianyuee': '天月',
+    'star.tianyue': '天钺',
     'star.tiankui': '天魁',
     'star.yinsha': '阴煞',
     'star.taifu': '台辅',
@@ -806,7 +804,7 @@ const translations: Record<Language, Record<string, any>> = {
     'palace.wealth': '财帛',
     'palace.health': '疾厄',
     'palace.travel': '迁移',
-    'palace.servants': '交友',
+    'palace.friends': '交友',
     'palace.siblings': '兄弟',
 
     // 长生十二神 (12 Longevity Deities)

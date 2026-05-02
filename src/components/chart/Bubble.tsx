@@ -74,7 +74,7 @@ export function PalaceHintBubble({
 
   const DECADAL_LABEL_TO_ENGLISH: Record<string, string> = {
     '大命': 'life', '大父': 'parents', '大福': 'virtue', '大田': 'property',
-    '大官': 'career', '大友': 'servants', '大遷': 'travel', '大疾': 'health',
+    '大官': 'career', '大友': 'friends', '大遷': 'travel', '大疾': 'health',
     '大財': 'wealth', '大子': 'children', '大夫': 'spouse', '大兄': 'siblings',
   }
 
@@ -84,7 +84,7 @@ export function PalaceHintBubble({
     'virtue': '本福',
     'property': '本田',
     'career': '本官',
-    'servants': '本友',
+    'friends': '本友',
     'travel': '本遷',
     'health': '本疾',
     'wealth': '本財',
@@ -95,7 +95,7 @@ export function PalaceHintBubble({
 
   const ANNUAL_LABEL_TO_ENGLISH: Record<string, string> = {
     '年命': 'life', '年父': 'parents', '年福': 'virtue', '年田': 'property',
-    '年官': 'career', '年友': 'servants', '年遷': 'travel', '年疾': 'health',
+    '年官': 'career', '年友': 'friends', '年遷': 'travel', '年疾': 'health',
     '年財': 'wealth', '年子': 'children', '年夫': 'spouse', '年兄': 'siblings',
   }
 

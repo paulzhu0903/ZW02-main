@@ -239,9 +239,11 @@ export function DecadalAnnualMonthlyTable({
             const monthlyZhi = EARTHLY_BRANCH_ORDER[(monthIndex + 1) % 12]
             const monthlyGanZhi = monthlyGan ? `${monthlyGan}${monthlyZhi}` : ''
 
-            let displayMonth = month
-            if (month === '冬') displayMonth = '冬'
-            if (month === '臘') displayMonth = '臘'
+            const getDisplayMonth = (m: string): string => {
+              if (m === '冬月') return '冬'
+              if (m === '臘月') return '臘'
+              return m.replace('月', '')
+            }
 
             return (
             <td 
@@ -256,7 +258,7 @@ export function DecadalAnnualMonthlyTable({
               }}
             >
               <div className={`rounded-[4px] px-1 py-0.5 sm:px-1.5 sm:py-0.5 flex flex-col items-center gap-0 leading-tight ${selectedMonthly === i ? 'bg-gold/20' : ''}`}>
-                <div className="text-[8px] sm:text-[9px] lg:text-[10px]">{displayMonth}月</div>
+                <div className="text-[8px] sm:text-[9px] lg:text-[10px]">{getDisplayMonth(month)}月</div>
                 {monthlyGanZhi && (
                   <div className="text-[8px] sm:text-[9px] lg:text-[10px] text-text-muted">
                     {monthlyGanZhi}

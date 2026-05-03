@@ -23,7 +23,7 @@ export function PalaceCard({
   name, stem, branch, majorStars, minorStars, adjectiveStars,
   boshi12Deity, longlifeDeity, isLife, isBody, isCausePalace, isSelected, onClick, chartType = 'flying', selectedDecadal = null, selectedAnnual = null, monthlySequenceLabels = [], selectedDailyLabel = '', selectedHourlyLabel = '', selectedAnnualAge = null, selectedAnnualYear = null, selectedAnnualGanZhi = null, selectedAnnualLabel = '', selectedDecadalLabel = '', yearGan = '', gender = 'male', birthInfo = null, palaceData = null, decadalLifePalaceStem = null, annualLifePalaceStem = null, directionMark = null, directionFocus = null, selectedMonthlyPalaceBranch = null, selectedDailyPalaceBranch = null, selectedHourlyPalaceBranch = null
 }: PalaceCardProps) {
-  const { language, transformationShowGods, flyingShowGods, transformationShowCausePalace, transformationHideMinorStars } = useSettingsStore()
+  const { language, transformationShowGods, flyingShowGods, transformationShowCausePalace, transformationHideMinorStars, transformationShowMinorStars, flyingShowMinorStars, triremeShowMinorStars } = useSettingsStore()
   const hasMergedDailyHourly = !!selectedDailyLabel && !!selectedHourlyLabel && selectedHourlyLabel.startsWith(selectedDailyLabel)
   
   // 計算流年和虛歲 - 基於當前宮位在大限中的相對位置
@@ -180,8 +180,18 @@ export function PalaceCard({
           {/* 輔星 */}
           {(chartType === 'flying' || chartType === 'transformation' || chartType === 'trireme') && minorStars.map((star, i) => {
             // 四化盤中，如果隱藏輔星，則只顯示四個重要輔星（左輔、右弼、文昌、文曲）
+            // 飛星盤中，根據 flyingShowMinorStars 控制雜曜顯示
+            // 三合盤中，根據 triremeShowMinorStars 控制雜曜顯示
             const keyMinorStars = ['左輔', '左辅', '右弼', '文昌', '文曲']
-            const shouldShow = !transformationHideMinorStars || chartType !== 'transformation' || keyMinorStars.includes(star.name)
+            let shouldShow = false
+            if (chartType === 'flying') {
+              shouldShow = flyingShowMinorStars
+            } else if (chartType === 'trireme') {
+              shouldShow = triremeShowMinorStars
+            } else {
+              // transformation
+              shouldShow = !transformationHideMinorStars || keyMinorStars.includes(star.name)
+            }
             
             if (!shouldShow) return null
             
@@ -207,8 +217,19 @@ export function PalaceCard({
         </div>
 
         {/* 雜曜獨立容器 */}
-        {(chartType === 'flying' || chartType === 'trireme') && adjectiveStars.length > 0 && (
-          <div className="flex flex-row flex-wrap justify-end items-start content-start gap-x-0 gap-y-0 w-[48px] sm:w-[60px] lg:w-[70px] shrink-0">
+        {((chartType === 'flying' && flyingShowMinorStars) || (chartType === 'trireme' && triremeShowMinorStars) || (chartType === 'transformation' && transformationShowMinorStars)) && adjectiveStars.length > 0 && (
+          <div className="flex flex-row flex-wrap justify-end items-start content-start gap-x-0 gap-y-0 w-[42px] sm:w-[48px] lg:w-[54px] shrink-0 relative">
+            {/* 身宮標籤 - 與雜曜同容器，超出容器顯示 */}
+            {isBody && chartType !== 'transformation' && (
+              <div className="absolute -top-2 -right-2 pointer-events-none">
+                <div
+                  className="px-0.5 py-0.5 rounded border border-red-500 text-red-500 text-[11px] sm:text-[12px] lg:text-[15px] font-medium bg-white/70"
+                  style={{ writingMode: 'vertical-rl', lineHeight: 1 }}
+                >
+                  {language === 'zh-TW' ? '身宮' : '身宫'}
+                </div>
+              </div>
+            )}
             {adjectiveStars.map((name, i) => (
               <div key={`adj-wrap-${i}`} className={`${STAR_SLOT_WIDTH_CLASS} flex justify-center items-start`}>
                 <StarTag
@@ -244,6 +265,7 @@ export function PalaceCard({
             </div>
           </div>
         )}
+
       </div>
 
       {/* 十二神显示 - 由 i18n.ts 中的定义完全控制显示内容和语言 */}

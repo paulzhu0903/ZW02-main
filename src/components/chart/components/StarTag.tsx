@@ -15,9 +15,9 @@ const STAR_BASE_TEXT_CLASS = 'text-[10px] sm:text-[11px] md:text-[12px] lg:text-
 const TRIREME_MUTAGEN_SQUARE_CLASS = 'flex items-center justify-center w-[14px] h-[14px] text-[10px] sm:w-[14px] sm:h-[14px] sm:text-[11px] md:text-[12px] lg:w-[16px] lg:h-[16px] lg:text-[14px] xl:text-[15px]'
 
 export function StarTag({ star, isMajorStar = false, forceTextColorClass = '', chartType = 'flying', selectedDecadal = null, selectedAnnual = null, isCurrentDecadalPalace = false, isCurrentAnnualPalace = false, decadalLifePalaceStem = null, annualLifePalaceStem = null, selectedAnnualGanZhi = null, yearGan = '' }: StarTagProps) {
-  const { language } = useSettingsStore()
+  const { language, triremeShowStarBrightness } = useSettingsStore()
   // 三合盤顯示亮度；四化和飛星不顯示亮度
-  const displayBrightness = chartType === 'trireme' ? true : false
+  const displayBrightness = chartType === 'trireme' && triremeShowStarBrightness
   const { name, brightness, mutagen } = star
   const hasMutagen = !!mutagen
   const brightnessChar = getBrightnessDisplay(brightness, language, name)
@@ -202,8 +202,12 @@ export function StarTag({ star, isMajorStar = false, forceTextColorClass = '', c
   // 确保四化盤中所有星都为灰色或黑色（男女区分改用圆点）
   if (!hasMutagen) {
     if (chartType === 'transformation') {
-      // 四化盤中：所有星都是灰色，改用圆点指示符显示性别
-      textColor = 'text-text-secondary'
+      // 四化盤中：雜曜使用forceTextColorClass（淺灰），其他星用灰色
+      if (forceTextColorClass && !isMajorStar) {
+        textColor = forceTextColorClass
+      } else {
+        textColor = 'text-text-secondary'
+      }
     } else if (forceTextColorClass && !isMajorStar) {
       // 非四化盤且不是主星，使用forceTextColorClass
       textColor = forceTextColorClass

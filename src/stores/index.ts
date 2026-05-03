@@ -158,6 +158,7 @@ interface SettingsState {
   transformationShowCentralFixBoard: boolean
   transformationShowCausePalace: boolean
   transformationHideMinorStars: boolean  // 隱藏輔星和雜曜（左輔、右弼、文昌、文曲除外）
+  transformationShowMinorStars: boolean
 
   // 飛星盤面設定
   flyingShowGods: boolean
@@ -172,10 +173,14 @@ interface SettingsState {
 
   // 三合盤面設定
   triremeShowStarBrightness: boolean
+  triremeShowMinorStars: boolean
 
   // 動畫設定
   arcFlowAnimationEnabled: boolean  // 弧線的流動效果
   lineExtensionAnimationEnabled: boolean  // 弧線及實線的動畫延伸效果
+
+  // 中宮顯示設定
+  showCenterInfo: boolean  // 顯示/隱藏中宮所有信息
 
   setProvider: (provider: ModelProvider) => void
   updateCurrentProvider: (settings: Partial<ProviderSettings>) => void
@@ -212,10 +217,14 @@ interface SettingsState {
 
   // 三合盤面相關的setter
   setTriremeShowStarBrightness: (value: boolean) => void
+  setTriremeShowMinorStars: (value: boolean) => void
 
   // 動畫設定相關的setter
   setArcFlowAnimationEnabled: (value: boolean) => void
   setLineExtensionAnimationEnabled: (value: boolean) => void
+
+  // 中宮顯示相關的setter
+  setShowCenterInfo: (value: boolean) => void
 
   // 便捷访问当前厂商配置
   getCurrentSettings: () => ProviderSettings
@@ -251,6 +260,7 @@ export const useSettingsStore = create<SettingsState>()(
       transformationShowCentralFixBoard: true,
       transformationShowCausePalace: true,
       transformationHideMinorStars: false,
+      transformationShowMinorStars: false,
 
       // 飛星盤面設定
       flyingShowGods: true,
@@ -265,10 +275,14 @@ export const useSettingsStore = create<SettingsState>()(
 
       // 三合盤面設定
       triremeShowStarBrightness: true,
+      triremeShowMinorStars: false,
 
       // 動畫設定
       arcFlowAnimationEnabled: true,
       lineExtensionAnimationEnabled: true,
+
+      // 中宮顯示設定
+      showCenterInfo: true,
 
       setProvider: (provider) => set({ provider }),
 
@@ -301,6 +315,7 @@ export const useSettingsStore = create<SettingsState>()(
       setTransformationShowCentralFixBoard: (value) => set({ transformationShowCentralFixBoard: value }),
       setTransformationShowCausePalace: (value) => set({ transformationShowCausePalace: value }),
       setTransformationHideMinorStars: (value) => set({ transformationHideMinorStars: value }),
+      setTransformationShowMinorStars: (value) => set({ transformationShowMinorStars: value }),
 
       // 飛星盤面相關的setter
       setFlyingShowGods: (value) => set({ flyingShowGods: value }),
@@ -315,10 +330,14 @@ export const useSettingsStore = create<SettingsState>()(
 
       // 三合盤面相關的setter
       setTriremeShowStarBrightness: (value) => set({ triremeShowStarBrightness: value }),
+      setTriremeShowMinorStars: (value) => set({ triremeShowMinorStars: value }),
 
       // 動畫設定相關的setter
       setArcFlowAnimationEnabled: (value) => set({ arcFlowAnimationEnabled: value }),
       setLineExtensionAnimationEnabled: (value) => set({ lineExtensionAnimationEnabled: value }),
+
+      // 中宮顯示相關的setter
+      setShowCenterInfo: (value) => set({ showCenterInfo: value }),
 
       getCurrentSettings: () => {
         const state = get()

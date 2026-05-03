@@ -54,7 +54,7 @@ import { useState } from 'react'
 
 export function ChartDisplay() {
   const { chart, birthInfo, setBirthInfo, setChart } = useChartStore()
-  const { language, defaultChartType, monthlyArrangementMethod, setCurrentChartType, arcFlowAnimationEnabled, lineExtensionAnimationEnabled } = useSettingsStore()
+  const { language, defaultChartType, monthlyArrangementMethod, setCurrentChartType, arcFlowAnimationEnabled, lineExtensionAnimationEnabled, showCenterInfo } = useSettingsStore()
   
   // 使用自定義 hook 管理狀態
   const [rootMenuPalace, setRootMenuPalace] = useState<PalaceData | null>(null)
@@ -824,6 +824,7 @@ export function ChartDisplay() {
                 setChart(newChart)
               }
             }}
+            showContent={showCenterInfo}
           />
         </div>
         {renderPalace(grid[1][3], '1-3')}

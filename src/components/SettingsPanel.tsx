@@ -30,8 +30,10 @@ function SettingToggle({ children, checked, onChange }: { children: React.ReactN
 function SettingRadio({ children, active, onClick }: { children: React.ReactNode, active: boolean, onClick: () => void }) {
   return (
     <div className="flex items-center gap-3 cursor-pointer group" onClick={onClick}>
-      <div className={`w-10 h-6 rounded-full relative transition-colors shrink-0 ${active ? 'bg-star' : 'bg-white/10'}`}>
-        <div className={`absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white transition-transform ${active ? 'left-6' : 'left-1'}`} />
+      <div className={`w-5 h-5 rounded-full relative transition-colors shrink-0 border-2 ${active ? 'border-star bg-star/10' : 'border-white/30'}`}>
+        {active && (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-star" />
+        )}
       </div>
       <div className="text-sm text-text-secondary group-hover:text-text transition-colors select-none">
         {children}
@@ -81,6 +83,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     transformationShowCentralFixBoard,
     transformationShowCausePalace,
     transformationHideMinorStars,
+    transformationShowMinorStars,
     // 飛星盤面設定
     flyingShowGods,
     flyingShowMinorStars,
@@ -93,6 +96,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     flyingShowTripleQuaternaryLine,
     // 三合盤面設定
     triremeShowStarBrightness,
+    triremeShowMinorStars,
     // 動畫設定
     arcFlowAnimationEnabled,
     lineExtensionAnimationEnabled,
@@ -116,6 +120,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     setTransformationShowCentralFixBoard,
     setTransformationShowCausePalace,
     setTransformationHideMinorStars,
+    setTransformationShowMinorStars,
     // 飛星盤面相關的setter
     setFlyingShowGods,
     setFlyingShowMinorStars,
@@ -128,9 +133,13 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     setFlyingShowTripleQuaternaryLine,
     // 三合盤面相關的setter
     setTriremeShowStarBrightness,
+    setTriremeShowMinorStars,
     // 動畫設定相關的setter
     setArcFlowAnimationEnabled,
     setLineExtensionAnimationEnabled,
+    // 中宮顯示相關
+    showCenterInfo,
+    setShowCenterInfo,
   } = useSettingsStore()
 
   // 当前厂商的配置
@@ -268,44 +277,12 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           <div>
             <h3 className="text-sm font-medium text-text-secondary mb-2">{t('settings.language', language)}</h3>
             <div className="space-y-2">
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`
-                    w-10 h-6 rounded-full relative transition-colors
-                    ${language === 'zh-TW' ? 'bg-star' : 'bg-white/10'}
-                  `}
-                  onClick={() => setLanguage('zh-TW')}
-                >
-                  <div
-                    className={`
-                      absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white transition-transform
-                      ${language === 'zh-TW' ? 'left-6' : 'left-1'}
-                    `}
-                  />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">
-                  {t('settings.traditionalChinese', language)}
-                </span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`
-                    w-10 h-6 rounded-full relative transition-colors
-                    ${language === 'zh-CN' ? 'bg-star' : 'bg-white/10'}
-                  `}
-                  onClick={() => setLanguage('zh-CN')}
-                >
-                  <div
-                    className={`
-                      absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white transition-transform
-                      ${language === 'zh-CN' ? 'left-6' : 'left-1'}
-                    `}
-                  />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">
-                  {t('settings.simplifiedChinese', language)}
-                </span>
-              </label>
+              <SettingRadio active={language === 'zh-TW'} onClick={() => setLanguage('zh-TW')}>
+                {t('settings.traditionalChinese', language)}
+              </SettingRadio>
+              <SettingRadio active={language === 'zh-CN'} onClick={() => setLanguage('zh-CN')}>
+                {t('settings.simplifiedChinese', language)}
+              </SettingRadio>
             </div>
           </div>
 
@@ -313,63 +290,15 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           <div>
             <h3 className="text-sm font-medium text-text-secondary mb-2"> {t('settings.defaultChart', language)}</h3>
             <div className="space-y-2">
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`
-                    w-10 h-6 rounded-full relative transition-colors
-                    ${defaultChartType === 'flying' ? 'bg-star' : 'bg-white/10'}
-                  `}
-                  onClick={() => setDefaultChartType('flying')}
-                >
-                  <div
-                    className={`
-                      absolute top-1 w-4 h-4 rounded-full bg-white transition-transform
-                      ${defaultChartType === 'flying' ? 'left-5' : 'left-1'}
-                    `}
-                  />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">
-                  {t('settings.flyingChart', language)}
-                </span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`
-                    w-10 h-6 rounded-full relative transition-colors
-                    ${defaultChartType === 'trireme' ? 'bg-star' : 'bg-white/10'}
-                  `}
-                  onClick={() => setDefaultChartType('trireme')}
-                >
-                  <div
-                    className={`
-                      absolute top-1 w-4 h-4 rounded-full bg-white transition-transform
-                      ${defaultChartType === 'trireme' ? 'left-5' : 'left-1'}
-                    `}
-                  />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">
-                  {t('settings.triremeChart', language)}
-                </span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`
-                    w-10 h-6 rounded-full relative transition-colors
-                    ${defaultChartType === 'transformation' ? 'bg-star' : 'bg-white/10'}
-                  `}
-                  onClick={() => setDefaultChartType('transformation')}
-                >
-                  <div
-                    className={`
-                      absolute top-1 w-4 h-4 rounded-full bg-white transition-transform
-                      ${defaultChartType === 'transformation' ? 'left-5' : 'left-1'}
-                    `}
-                  />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">
-                  {t('settings.transformationChart', language)}
-                </span>
-              </label>
+              <SettingRadio active={defaultChartType === 'flying'} onClick={() => setDefaultChartType('flying')}>
+                {t('settings.flyingChart', language)}
+              </SettingRadio>
+              <SettingRadio active={defaultChartType === 'trireme'} onClick={() => setDefaultChartType('trireme')}>
+                {t('settings.triremeChart', language)}
+              </SettingRadio>
+              <SettingRadio active={defaultChartType === 'transformation'} onClick={() => setDefaultChartType('transformation')}>
+                {t('settings.transformationChart', language)}
+              </SettingRadio>
             </div>
           </div>
 
@@ -377,44 +306,12 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           <div>
             <h3 className="text-sm font-medium text-text-secondary mb-2">{t('settings.monthlyArrangement', language)}</h3>
             <div className="space-y-2">
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`
-                    w-10 h-6 rounded-full relative transition-colors
-                    ${monthlyArrangementMethod === 'yuanYuePositioning' ? 'bg-star' : 'bg-white/10'}
-                  `}
-                  onClick={() => setMonthlyArrangementMethod('yuanYuePositioning')}
-                >
-                  <div
-                    className={`
-                      absolute top-1 w-4 h-4 rounded-full bg-white transition-transform
-                      ${monthlyArrangementMethod === 'yuanYuePositioning' ? 'left-5' : 'left-1'}
-                    `}
-                  />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">
-                  {t('settings.yuanYuePositioning', language)}
-                </span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`
-                    w-10 h-6 rounded-full relative transition-colors
-                    ${monthlyArrangementMethod === 'douJun' ? 'bg-star' : 'bg-white/10'}
-                  `}
-                  onClick={() => setMonthlyArrangementMethod('douJun')}
-                >
-                  <div
-                    className={`
-                      absolute top-1 w-4 h-4 rounded-full bg-white transition-transform
-                      ${monthlyArrangementMethod === 'douJun' ? 'left-5' : 'left-1'}
-                    `}
-                  />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">
-                  {t('settings.douJun', language)}
-                </span>
-              </label>
+              <SettingRadio active={monthlyArrangementMethod === 'yuanYuePositioning'} onClick={() => setMonthlyArrangementMethod('yuanYuePositioning')}>
+                {t('settings.yuanYuePositioning', language)}
+              </SettingRadio>
+              <SettingRadio active={monthlyArrangementMethod === 'douJun'} onClick={() => setMonthlyArrangementMethod('douJun')}>
+                {t('settings.douJun', language)}
+              </SettingRadio>
             </div>
           </div>
 
@@ -422,63 +319,15 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           <div>
             <h3 className="text-sm font-medium text-text-secondary mb-2">{t('settings.starPlacement', language)}</h3>
             <div className="space-y-2">
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`
-                    w-10 h-6 rounded-full relative transition-colors
-                    ${starPlacementMethod === 'yearBranch' ? 'bg-star' : 'bg-white/10'}
-                  `}
-                  onClick={() => setStarPlacementMethod('yearBranch')}
-                >
-                  <div
-                    className={`
-                      absolute top-1 w-4 h-4 rounded-full bg-white transition-transform
-                      ${starPlacementMethod === 'yearBranch' ? 'left-5' : 'left-1'}
-                    `}
-                  />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">
-                  {t('settings.yearBranch', language)}
-                </span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`
-                    w-10 h-6 rounded-full relative transition-colors
-                    ${starPlacementMethod === 'lunarMonth' ? 'bg-star' : 'bg-white/10'}
-                  `}
-                  onClick={() => setStarPlacementMethod('lunarMonth')}
-                >
-                  <div
-                    className={`
-                      absolute top-1 w-4 h-4 rounded-full bg-white transition-transform
-                      ${starPlacementMethod === 'lunarMonth' ? 'left-5' : 'left-1'}
-                    `}
-                  />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">
-                  {t('settings.lunarMonth', language)}
-                </span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`
-                    w-10 h-6 rounded-full relative transition-colors
-                    ${starPlacementMethod === 'standardArrangement' ? 'bg-star' : 'bg-white/10'}
-                  `}
-                  onClick={() => setStarPlacementMethod('standardArrangement')}
-                >
-                  <div
-                    className={`
-                      absolute top-1 w-4 h-4 rounded-full bg-white transition-transform
-                      ${starPlacementMethod === 'standardArrangement' ? 'left-5' : 'left-1'}
-                    `}
-                  />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">
-                  {t('settings.standardArrangement', language)}
-                </span>
-              </label>
+              <SettingRadio active={starPlacementMethod === 'yearBranch'} onClick={() => setStarPlacementMethod('yearBranch')}>
+                {t('settings.yearBranch', language)}
+              </SettingRadio>
+              <SettingRadio active={starPlacementMethod === 'lunarMonth'} onClick={() => setStarPlacementMethod('lunarMonth')}>
+                {t('settings.lunarMonth', language)}
+              </SettingRadio>
+              <SettingRadio active={starPlacementMethod === 'standardArrangement'} onClick={() => setStarPlacementMethod('standardArrangement')}>
+                {t('settings.standardArrangement', language)}
+              </SettingRadio>
             </div>
           </div>
         </div>
@@ -492,30 +341,31 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               <SettingToggle checked={transformationShowGods} onChange={() => setTransformationShowGods(!transformationShowGods)}>
                 {t('settings.showGods', language)}
               </SettingToggle>
-              <SettingToggle checked={transformationShowDailyMutagen} onChange={() => setTransformationShowDailyMutagen(!transformationShowDailyMutagen)}>
-                {t('settings.showDailyMutagen', language)}
-              </SettingToggle>
-              <SettingToggle checked={transformationShowTriremeEnlightenment} onChange={() => setTransformationShowTriremeEnlightenment(!transformationShowTriremeEnlightenment)}>
-                {t('settings.showCentralEightCharacters', language)}
-              </SettingToggle>
+
               <SettingToggle checked={transformationUseColorMutagen} onChange={() => setTransformationUseColorMutagen(!transformationUseColorMutagen)}>
                 {t('settings.useColorMutagen', language)}
               </SettingToggle>
+              
               <SettingToggle checked={transformationShowAnnualAge} onChange={() => setTransformationShowAnnualAge(!transformationShowAnnualAge)}>
                 {t('settings.showAnnualAge', language)}
               </SettingToggle>
-              <SettingToggle checked={transformationShowCentralEightCharacters} onChange={() => setTransformationShowCentralEightCharacters(!transformationShowCentralEightCharacters)}>
-                {t('settings.showCentralEightCharacters', language)}
+
+              <SettingToggle checked={transformationShowTriremeEnlightenment} onChange={() => setTransformationShowTriremeEnlightenment(!transformationShowTriremeEnlightenment)}>
+                {t('settings.showTriremeEnlightenment', language)}
               </SettingToggle>
+
               <SettingToggle checked={transformationShowCentralFixBoard} onChange={() => setTransformationShowCentralFixBoard(!transformationShowCentralFixBoard)}>
                 {t('settings.showCentralFixBoard', language)}
               </SettingToggle>
+
               <SettingToggle checked={transformationShowCausePalace} onChange={() => setTransformationShowCausePalace(!transformationShowCausePalace)}>
                 {t('settings.showCausePalace', language)}
               </SettingToggle>
-              <SettingToggle checked={transformationHideMinorStars} onChange={() => setTransformationHideMinorStars(!transformationHideMinorStars)}>
-                隱藏輔星、雜曜
+
+              <SettingToggle checked={transformationShowMinorStars} onChange={() => setTransformationShowMinorStars(!transformationShowMinorStars)}>
+                {t('settings.showMinorStars', language)}
               </SettingToggle>
+
             </div>
           </div>
 
@@ -526,12 +376,15 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               <SettingToggle checked={flyingShowGods} onChange={() => setFlyingShowGods(!flyingShowGods)}>
                 {t('settings.showGods', language)}
               </SettingToggle>
+
               <SettingToggle checked={flyingShowMinorStars} onChange={() => setFlyingShowMinorStars(!flyingShowMinorStars)}>
                 {t('settings.showMinorStars', language)}
               </SettingToggle>
+
               <SettingToggle checked={flyingShowBodyPalace} onChange={() => setFlyingShowBodyPalace(!flyingShowBodyPalace)}>
                 {t('settings.showBodyPalace', language)}
               </SettingToggle>
+
               <SettingToggle checked={flyingShowCausePalace} onChange={() => setFlyingShowCausePalace(!flyingShowCausePalace)}>
                 {t('settings.showCausePalace', language)}
               </SettingToggle>
@@ -559,6 +412,9 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             <div className="space-y-2">
               <SettingToggle checked={triremeShowStarBrightness} onChange={() => setTriremeShowStarBrightness(!triremeShowStarBrightness)}>
                 {t('settings.showStarBrightness', language)}
+              </SettingToggle>
+              <SettingToggle checked={triremeShowMinorStars} onChange={() => setTriremeShowMinorStars(!triremeShowMinorStars)}>
+                {t('settings.showMinorStars', language)}
               </SettingToggle>
             </div>
           </div>
@@ -591,6 +447,24 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               </div>
               <span className="text-sm text-text-secondary group-hover:text-text transition-colors">
                 {language === 'zh-TW' ? '弧線及實線的動畫延伸效果' : '弧线及实线的动画延伸效果'}
+              </span>
+            </label>
+          </div>
+        </div>
+
+        {/* 中宮顯示設定 */}
+        <div className="border-t border-white/10 pt-3 space-y-3">
+          <h3 className="text-sm font-medium text-text-secondary mb-2">{language === 'zh-TW' ? '中宮顯示' : '中宫显示'}</h3>
+          <div className="space-y-2">
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <div
+                className={`w-10 h-6 rounded-full relative transition-colors ${showCenterInfo ? 'bg-star' : 'bg-white/10'}`}
+                onClick={() => setShowCenterInfo(!showCenterInfo)}
+              >
+                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${showCenterInfo ? 'left-5' : 'left-1'}`} />
+              </div>
+              <span className="text-sm text-text-secondary group-hover:text-text transition-colors">
+                {language === 'zh-TW' ? '顯示中宮資訊' : '显示中宫信息'}
               </span>
             </label>
           </div>

@@ -38,6 +38,7 @@ export interface ChartDisplayState {
   showBubbleHint: boolean
   directionFocus: '得' | '失' | null
   showReversalCheck: boolean
+  showReversalCheckModal: boolean
   showFlyGongToolbox: boolean
   isTimeTableModalOpen: boolean
   gridOffset: { x: number; y: number }
@@ -86,6 +87,7 @@ export function useChartDisplay(
   const [showBubbleHint, setShowBubbleHint] = useState(false)
   const [directionFocus, setDirectionFocus] = useState<'得' | '失' | null>(null)
   const [showReversalCheck, setShowReversalCheck] = useState(false)
+  const [showReversalCheckModal, setShowReversalCheckModal] = useState(false)
   const [showFlyGongToolbox, setShowFlyGongToolbox] = useState(false)
   const [isTimeTableModalOpen, setIsTimeTableModalOpen] = useState(false)
   const gridRef = useRef<HTMLDivElement>(null)
@@ -191,6 +193,8 @@ export function useChartDisplay(
     setDirectionFocus,
     showReversalCheck,
     setShowReversalCheck,
+    showReversalCheckModal,
+    setShowReversalCheckModal,
     showFlyGongToolbox,
     setShowFlyGongToolbox,
     isTimeTableModalOpen,

@@ -40,7 +40,6 @@ const CATEGORY_KEY_TO_NAME: Record<string, string> = {
   'form.category.custom3': '分類_3',
 }
 
-
 const currentYear = new Date().getFullYear()
 const YEAR_OPTIONS = Array.from({ length: 100 }, (_, i) => ({
   value: currentYear - i,
@@ -393,29 +392,30 @@ export function BirthForm() {
           "
         />
 
-        {/* 标题区域 */}
-        <div className="space-y-1 sm:space-y-1.5 mb-2.5 sm:mb-4"></div>
+        <div className="space-y-1 sm:space-y-2">
+          {/* 姓名  */}
+          <div className="space-y-1 sm:space-y-1.5">
+            <span className="block text-[11px] sm:text-[12px] text-text-secondary font-medium">{t('form.name', language)}</span>
+            <Input
+              placeholder={t('form.namePlaceholder', language)}
+              value={localizeChineseText(name, language as 'zh-TW' | 'zh-CN')}
+              onChange={(e) => setName(e.target.value)}
 
-        <div className="space-y-2 sm:space-y-3">
-          {/* 姓名 - 最前面 */}
-          <Input
-            label={t('form.name', language)}
-            placeholder={t('form.namePlaceholder', language)}
-            value={localizeChineseText(name, language as 'zh-TW' | 'zh-CN')}
-            onChange={(e) => setName(e.target.value)}
-            hint={t('form.nameHint', language)}
-          />
+            />
+          </div>
           {/* 出生地 */}
-          <Input
-            label={t('form.birthLocation', language)}
-            placeholder={t('form.birthLocationPlaceholder', language)}
-            value={localizeChineseText(birthLocation, language as 'zh-TW' | 'zh-CN')}
-            onChange={(e) => setBirthLocation(e.target.value)}
-            hint={t('form.birthLocationHint', language)}
-          />
+          <div className="space-y-1 sm:space-y-1.5">
+            <span className="block text-[11px] sm:text-[12px] text-text-secondary font-medium">{t('form.birthLocation', language)}</span>
+            <Input
+              placeholder={t('form.birthLocationPlaceholder', language)}
+              value={localizeChineseText(birthLocation, language as 'zh-TW' | 'zh-CN')}
+              onChange={(e) => setBirthLocation(e.target.value)}
+
+            />
+          </div>
           {/* 分類 */}
-          <div>
-            <div className="text-[11px] sm:text-[12px] font-medium mb-1">{t('form.category', language)}：</div>
+          <div className="space-y-1 sm:space-y-1.5">
+            <span className="block text-[11px] sm:text-[12px] text-text-secondary font-medium">{t('form.category', language)}</span>
             <div className="grid grid-cols-4 gap-1 mb-2">
               {CATEGORY_KEYS.map((key, idx) => {
                 const displayName = categoryNames[key] || localizeChineseText(CATEGORY_KEY_TO_NAME[key], language as 'zh-TW' | 'zh-CN')
@@ -453,7 +453,7 @@ export function BirthForm() {
                   <button
                     key={key}
                     type="button"
-                    className={`w-full px-2 py-1 rounded-lg border text-[11px] sm:text-[12px] font-medium transition-colors text-center
+                    className={`w-full px-1 py-1 rounded-lg border text-[11px] sm:text-[12px] font-medium transition-colors text-center
                       ${isSelected
                         ? 'bg-star text-white border-star shadow'
                         : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'}
@@ -475,16 +475,17 @@ export function BirthForm() {
             </div>
           </div>
           {/* 備註 */}
-          <Input
-              label={t('form.remark', language) || '備註'}
-              placeholder={t('form.remarkPlaceholder', language) || '可選填，不作計算用'}
-              value={localizeChineseText(remark, language as 'zh-TW' | 'zh-CN')}
-              onChange={(e) => setRemark(e.target.value)}
-              hint={t('form.remarkHint', language) || '此欄位不影響排盤結果'}
-            />
+          <div className="space-y-1 sm:space-y-1.5">
+            <span className="block text-[11px] sm:text-[12px] text-text-secondary font-medium">{t('form.remark', language) || '備註'}</span>
+            <Input
+                placeholder={t('form.remarkPlaceholder', language) || '可選填，不作計算用'}
+                value={localizeChineseText(remark, language as 'zh-TW' | 'zh-CN')}
+                onChange={(e) => setRemark(e.target.value)}
+              />
+          </div>
 
           <div className="space-y-1 sm:space-y-1.5">
-            <span className="text-[11px] sm:text-[12px] text-text-secondary font-medium">{t('form.inputMode', language)}</span>
+            <span className="block text-[11px] sm:text-[12px] text-text-secondary font-medium">{t('form.inputMode', language)}</span>
             <div className="grid grid-cols-2 gap-1 sm:gap-1.5">
               <button
                 type="button"
@@ -493,7 +494,7 @@ export function BirthForm() {
                   setFormError('');
                 }}
                 className={`
-                  rounded-lg sm:rounded-xl px-3 py-2 text-[12px] sm:text-[13px] font-medium transition-all duration-200
+                flex items-center justify-center h-9 sm:h-10 rounded-lg sm:rounded-xl px-3 text-[12px] sm:text-[13px] font-medium transition-all duration-200
                   ${inputMode === 'solar'
                     ? 'bg-gradient-to-r from-star to-star-dark text-white shadow-[0_4px_20px_rgba(124,58,237,0.25)]'
                     : 'bg-white/[0.04] border border-white/[0.08] text-text-secondary hover:bg-white/[0.08] hover:border-white/[0.12]'
@@ -510,7 +511,7 @@ export function BirthForm() {
                   setFormError('');
                 }}
                 className={`
-                  rounded-lg sm:rounded-xl px-3 py-2 text-[12px] sm:text-[13px] font-medium transition-all duration-200
+                flex items-center justify-center h-9 sm:h-10 rounded-lg sm:rounded-xl px-3 text-[12px] sm:text-[13px] font-medium transition-all duration-200
                   ${inputMode === 'lunar'
                     ? 'bg-gradient-to-r from-gold to-gold-dark text-night shadow-[0_4px_20px_rgba(245,158,11,0.25)]'
                     : 'bg-white/[0.04] border border-white/[0.08] text-text-secondary hover:bg-white/[0.08] hover:border-white/[0.12]'
@@ -522,7 +523,7 @@ export function BirthForm() {
             </div>
           </div>
 
-          {/* 出生日期区块 */}
+          {/* 出生日期 */}
           <div className="space-y-1 sm:space-y-1.5">
             {inputMode === 'solar' ? (
               <div className="grid grid-cols-3 gap-1 sm:gap-1.5">
@@ -564,7 +565,7 @@ export function BirthForm() {
                     type="button"
                     onClick={() => setIsLeapMonth((value) => !value)}
                     className={`
-                      rounded-lg sm:rounded-xl px-2 py-2 text-[12px] sm:text-[13px] font-medium transition-all duration-200 border
+                      flex items-center justify-center h-9 sm:h-10 rounded-lg sm:rounded-xl px-2 text-[12px] sm:text-[13px] font-medium transition-all duration-200 border
                       ${isLeapMonth
                         ? 'border-gold/50 bg-gold/20 text-gold'
                         : 'border-white/[0.08] bg-white/[0.04] text-text-secondary hover:bg-white/[0.08] hover:border-white/[0.12]'
@@ -576,18 +577,12 @@ export function BirthForm() {
                 </div>
               </div>
             )}
-            {/* 提示文字 */}
-            <p className="text-[9px] sm:text-[10px] text-text-muted mt-0.5 sm:mt-1">
-              {inputMode === 'solar' ? t('form.dateHint', language) : t('form.lunarDateHint', language)}
-            </p>
-            {formError && (
-              <p className="text-[10px] sm:text-[11px] text-misfortune">{formError}</p>
-            )}
+           
           </div>
 
           {/* 出生时间 - 时和分 */}
           <div className="space-y-1 sm:space-y-1.5">
-            <span className="text-[11px] sm:text-[12px] text-text-secondary font-medium">
+            <span className="block text-[11px] sm:text-[12px] text-text-secondary font-medium">
               {inputMode === 'solar' ? t('form.birthTime', language) : t('form.shichen', language)}
             </span>
             {inputMode === 'solar' ? (
@@ -612,15 +607,15 @@ export function BirthForm() {
             )}
           </div>
 
-          {/* 性别选择 - 胶囊按钮组 */}
+          {/* 性别 */}
           <div className="space-y-1 sm:space-y-1.5">
-            <span className="text-[11px] sm:text-[12px] text-text-secondary font-medium">{t('form.gender', language)}</span>
+            <span className="block text-[11px] sm:text-[12px] text-text-secondary font-medium">{t('form.gender', language)}</span>
             <div className="flex gap-1 sm:gap-1.5">
               {GENDER_OPTIONS.map((opt) => (
                 <label
                   key={opt.value}
                   className={`
-                    group relative flex-1 py-1.5 sm:py-2 px-2 sm:px-2.5 rounded-lg sm:rounded-xl
+                    group relative flex-1 h-9 sm:h-10 px-2 sm:px-2.5 rounded-lg sm:rounded-xl
                     flex items-center justify-center gap-0.5 sm:gap-1
                     text-[12px] sm:text-[13px]
                     cursor-pointer transition-all duration-200
@@ -653,7 +648,7 @@ export function BirthForm() {
           </div>
 
           {/* 分隔线 */}
-          <div className="relative py-2">
+          <div className="relative py-0.5">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-white/[0.06]" />
             </div>
@@ -666,8 +661,7 @@ export function BirthForm() {
               <Button
                 type="submit"
                 variant="gold"
-                size="lg"
-                className="flex-1 group text-[11px] sm:text-[12px]"
+                className="flex-1 group h-9 sm:h-10 text-[11px] sm:text-[12px]"
                 disabled={loading}
               >
                 {loading ? (
@@ -685,7 +679,7 @@ export function BirthForm() {
               <button
                 type="button"
                 onClick={handleEditCancel}
-                className="flex-1 py-1.5 sm:py-2 px-2 sm:px-2.5 rounded-lg text-[11px] sm:text-[12px] font-medium transition-all bg-white/[0.06] hover:bg-white/[0.1] text-text-secondary hover:text-text border border-white/[0.1]"
+                className="flex-1 flex items-center justify-center h-9 sm:h-10 px-2 sm:px-2.5 rounded-lg text-[11px] sm:text-[12px] font-medium transition-all bg-white/[0.06] hover:bg-white/[0.1] text-text-secondary hover:text-text border border-white/[0.1]"
               >
                 {t('form.cancel', language)}
               </button>
@@ -696,8 +690,7 @@ export function BirthForm() {
               <Button
                 type="submit"
                 variant="gold"
-                size="lg"
-                className="w-auto px-8 sm:px-12 group text-[11px] sm:text-[12px]"
+                className="w-auto px-8 sm:px-12 group h-9 sm:h-10 text-[11px] sm:text-[12px]"
                 disabled={loading}
               >
                 {loading ? (

@@ -1,6 +1,5 @@
-﻿﻿﻿﻿/* ============================================================
-   命盤可视化组件
-   對齊文墨天機標準：
+﻿﻿/* ============================================================
+   命盤可视化
    - 完整星曜 + 亮度（廟旺平陷）
    - 宮干 + 大限範圍
    - 博士/長生十二神 + 杂曜
@@ -29,6 +28,8 @@ import {
 import { MutagenControls } from './MutagenControls'
 import { PalaceHintBubble } from './Bubble'
 import { TimeTableModal } from './TimeTableModal'
+import { ReversalCheckModal } from './ReversalCheckModal'
+import { detectABCDReversals } from './abcdReversalSpec'
 import { DottedArcLayer } from './DottedArcLayer'
 import { HoverHint } from '@/components/ui'
 
@@ -82,6 +83,8 @@ export function ChartDisplay() {
     setDirectionFocus,
     showReversalCheck,
     setShowReversalCheck,
+    showReversalCheckModal,
+    setShowReversalCheckModal,
     showFlyGongToolbox,
     setShowFlyGongToolbox,
     isTimeTableModalOpen,
@@ -101,6 +104,13 @@ export function ChartDisplay() {
   useEffect(() => {
     setCurrentChartType(chartType)
   }, [chartType, setCurrentChartType])
+
+  // 反背檢測開啟時自動啟用 A 四化
+  useEffect(() => {
+    if (showReversalCheck) {
+      setMutagenDisplay({ A: true, B: false, C: false, D: false })
+    }
+  }, [showReversalCheck, setMutagenDisplay])
 
   // 使用計算 hook 獲取衍生資料
   const {
@@ -177,21 +187,9 @@ export function ChartDisplay() {
       tag.style.color = ''
     }
 
-    // 為四個四化星應用樣式 - 根據 mutagenDisplay 控制显示
-    const mutagenMapping: Record<string, 'A' | 'B' | 'C' | 'D'> = {
-      '化禄': 'A',
-      '化权': 'B',
-      '化科': 'C',
-      '化忌': 'D'
-    }
-    
+    // 為四個四化星應用樣式 (不再受 mutagenDisplay 控制，確保 palace card 上的標記始終顯示)
     const mutagenKeys = ['化禄', '化权', '化科', '化忌']
     mutagenKeys.forEach(mutagenKey => {
-      const label = mutagenMapping[mutagenKey]
-      const shouldDisplay = mutagenDisplay[label] ?? true
-      
-      if (!shouldDisplay) return
-      
       const mutagenStar = sihuaMap[mutagenKey]
       if (!mutagenStar) return
 
@@ -296,6 +294,16 @@ export function ChartDisplay() {
       sanFang: getStats(groups.sanFang),
       siZheng: getStats(groups.siZheng),
     }
+  })()
+
+  // 計算 ABCD 反背結果
+  // 重要：使用 allMutagenLines 而非 visibleMutagenLines，以檢測所有四化的反背現象
+  const abcdReversalSignals = (() => {
+    const signals = detectABCDReversals({
+      lines: allMutagenLines,
+      language: language as 'zh-TW' | 'zh-CN',
+    })
+    return signals
   })()
 
   const effectiveDirectionFocus = showReversalCheck ? directionFocus : null
@@ -885,45 +893,18 @@ export function ChartDisplay() {
 
         {/* 第三部分：ABCD 控制组件 - 飛星盤與四化盤顯示，三合盤隱藏 */}
         {(chartType === 'flying' || chartType === 'transformation') && (
-          <MutagenControls 
-            mutagenDisplay={mutagenDisplay} 
-            setMutagenDisplay={(display) => {
-              setMutagenDisplay(display)
-              setBubblePalace(null) // 切換四化顯示時自動關閉 bubble hint
-            }}
-          />
+          <div data-mutagen-controls>
+            <MutagenControls 
+              mutagenDisplay={mutagenDisplay} 
+              setMutagenDisplay={(display) => {
+                setMutagenDisplay(display)
+                setBubblePalace(null) // 切換四化顯示時自動關閉 bubble hint
+              }}
+            />
+          </div>
         )}
         </div>
       </div>
-
-      {/* 三方四正反背檢測*/}
-      {showReversalCheck && sanFangSiZhengResult && (
-        <div className="mb-2 px-1 sm:px-0">
-          <div className="text-[11px] sm:text-[12px] text-gray-400 bg-white/[0.06] border border-white/[0.12] rounded-md px-0 py-0 flex flex-wrap gap-x-2 gap-y-1 items-center">
-            <span className="font-semibold">反背統計：</span>
-            
-            <span className="flex items-center gap-x-1">
-              三方&nbsp;
-              <span className="text-gray-400 font-semibold">得{sanFangSiZhengResult.sanFang.getCount}</span>
-              <span className="mx-0.5">/</span>
-              <span className="text-gray-400 font-semibold">失{sanFangSiZhengResult.sanFang.lossCount}</span>
-              <span className="text-gray-400 font-semibold ml-2">
-                三方反背{sanFangSiZhengResult.sanFang.hasReversal ? '✓' : '✗'}
-              </span>
-            </span>
-            
-            <span className="flex items-center gap-x-1">
-              四正&nbsp;
-              <span className="text-gray-400 font-semibold">得{sanFangSiZhengResult.siZheng.getCount}</span>
-              <span className="mx-0.5">/</span>
-              <span className="text-gray-400 font-semibold">失{sanFangSiZhengResult.siZheng.lossCount}</span>
-              <span className="text-gray-400 font-semibold ml-2">
-                四正反背{sanFangSiZhengResult.siZheng.hasReversal ? '✓' : '✗'}
-              </span>
-            </span>
-          </div>
-        </div>
-      )}
 
       {/* 大限流年表格 */}
       <div className="mt-0" data-decadal-annual-table>
@@ -965,6 +946,17 @@ export function ChartDisplay() {
           monthlyLabel={bubblePalace.monthlyLabel}
           monthlyStem={bubblePalace.monthlyStem}
           monthlyLabelsByPalaceName={monthlyLabelsByPalaceName}
+        />
+      )}
+
+      {/* 三方四正反背檢測 & ABCD 反背 Modal */}
+      {showReversalCheck && (sanFangSiZhengResult || abcdReversalSignals.length > 0) && (
+        <ReversalCheckModal
+          isOpen={true}
+          onClose={() => setShowReversalCheck(false)}
+          sanFangSiZhengResult={sanFangSiZhengResult}
+          abcdReversalSignals={abcdReversalSignals}
+          selectedPalaceName={selectedPalace}
         />
       )}
 

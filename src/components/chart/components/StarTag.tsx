@@ -14,7 +14,7 @@ const STAR_SLOT_WIDTH_CLASS = 'w-[14px] min-w-[14px] sm:w-[16px] sm:min-w-[16px]
 const STAR_BASE_TEXT_CLASS = 'text-[10px] sm:text-[11px] md:text-[12px] lg:text-[14px] xl:text-[15px]'
 const TRIREME_MUTAGEN_SQUARE_CLASS = 'flex items-center justify-center w-[14px] h-[14px] text-[10px] sm:w-[14px] sm:h-[14px] sm:text-[11px] md:text-[12px] lg:w-[16px] lg:h-[16px] lg:text-[14px] xl:text-[15px]'
 
-export function StarTag({ star, isMajorStar = false, forceTextColorClass = '', chartType = 'flying', selectedDecadal = null, selectedAnnual = null, isCurrentDecadalPalace = false, isCurrentAnnualPalace = false, decadalLifePalaceStem = null, annualLifePalaceStem = null, selectedAnnualGanZhi = null }: StarTagProps) {
+export function StarTag({ star, isMajorStar = false, forceTextColorClass = '', chartType = 'flying', selectedDecadal = null, selectedAnnual = null, isCurrentDecadalPalace = false, isCurrentAnnualPalace = false, decadalLifePalaceStem = null, annualLifePalaceStem = null, selectedAnnualGanZhi = null, yearGan = '' }: StarTagProps) {
   const { language } = useSettingsStore()
   // 三合盤顯示亮度；四化和飛星不顯示亮度
   const displayBrightness = chartType === 'trireme' ? true : false
@@ -216,13 +216,13 @@ export function StarTag({ star, isMajorStar = false, forceTextColorClass = '', c
     if (starEnglishParam && colorfulStarsInTransformation.has(starEnglishParam)) {
       // 这是18颗关键星之一，显示性别圆点
       if (starEnglishParam === 'lianzhen') {
-        // 廉贞例外：只檢查生年四化
-        if ((star as any).palaceStem) {
-          // 檢查生年四化
-          const sihuaMap = SIHUA_BY_GAN[(star as any).palaceStem] || SIHUA_BY_GAN_TRADITIONAL[(star as any).palaceStem]
+        // 廉贞例外：一般為紫色，但生年四化祿為藍色(男)，生年四化忌為粉紅色(女)
+        genderDotColor = '#AF52DE' // 預設紫色
+        
+        if (yearGan) {
+          const sihuaMap = SIHUA_BY_GAN[yearGan] || SIHUA_BY_GAN_TRADITIONAL[yearGan]
           if (sihuaMap) {
             const lianzhenKey = getStarLookupKey(name)
-            // 檢查廉貞在生年四化中的角色
             const huaLuStar = sihuaMap['化禄'] || sihuaMap['化祿']
             const huaJiStar = sihuaMap['化忌']
             
@@ -230,14 +230,8 @@ export function StarTag({ star, isMajorStar = false, forceTextColorClass = '', c
               genderDotColor = '#00aeff'  // 蓝色（生年四化祿）
             } else if (huaJiStar && getStarLookupKey(huaJiStar) === lianzhenKey) {
               genderDotColor = '#ff00ff'  // 粉红色（生年四化忌）
-            } else {
-              genderDotColor = '#AF52DE'  // 紫色（廉贞，一般情况）
             }
-          } else {
-            genderDotColor = '#AF52DE'  // 紫色（廉贞特殊星，一般情况）
           }
-        } else {
-          genderDotColor = '#AF52DE'  // 紫色（廉贞特殊星，一般情况）
         }
       } else if (maleStarParams.includes(starEnglishParam)) {
         genderDotColor = '#00aeff'  // 蓝色（男星）

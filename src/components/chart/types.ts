@@ -68,6 +68,7 @@ export interface StarTagProps {
   decadalLifePalaceStem?: string | null
   annualLifePalaceStem?: string | null
   selectedAnnualGanZhi?: string | null
+  yearGan?: string
 }
 
 export interface PalaceCardProps extends PalaceData {

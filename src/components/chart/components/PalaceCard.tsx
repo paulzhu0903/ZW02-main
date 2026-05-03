@@ -199,6 +199,7 @@ export function PalaceCard({
                   decadalLifePalaceStem={decadalLifePalaceStem}
                   annualLifePalaceStem={annualLifePalaceStem}
                   selectedAnnualGanZhi={selectedAnnualGanZhi}
+                  yearGan={yearGan}
                 />
               </div>
             )
@@ -223,6 +224,7 @@ export function PalaceCard({
                   decadalLifePalaceStem={decadalLifePalaceStem}
                   annualLifePalaceStem={annualLifePalaceStem}
                   selectedAnnualGanZhi={selectedAnnualGanZhi}
+                  yearGan={yearGan}
                 />
               </div>
             ))}

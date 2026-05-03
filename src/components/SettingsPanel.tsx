@@ -11,6 +11,36 @@ import { PROVIDER_CONFIGS } from '@/lib/llm'
 import { t } from '@/lib/i18n'
 
 /* ------------------------------------------------------------
+   共用設定元件
+   ------------------------------------------------------------ */
+
+function SettingToggle({ children, checked, onChange }: { children: React.ReactNode, checked: boolean, onChange: () => void }) {
+  return (
+    <div className="flex items-center gap-3 cursor-pointer group" onClick={onChange}>
+      <div className={`w-10 h-6 rounded-full relative transition-colors shrink-0 ${checked ? 'bg-star' : 'bg-white/10'}`}>
+        <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${checked ? 'left-5' : 'left-1'}`} />
+      </div>
+      <div className="text-sm text-text-secondary group-hover:text-text transition-colors select-none">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function SettingRadio({ children, active, onClick }: { children: React.ReactNode, active: boolean, onClick: () => void }) {
+  return (
+    <div className="flex items-center gap-3 cursor-pointer group" onClick={onClick}>
+      <div className={`w-10 h-6 rounded-full relative transition-colors shrink-0 ${active ? 'bg-star' : 'bg-white/10'}`}>
+        <div className={`absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white transition-transform ${active ? 'left-6' : 'left-1'}`} />
+      </div>
+      <div className="text-sm text-text-secondary group-hover:text-text transition-colors select-none">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------
    厂商选项
    ------------------------------------------------------------ */
 
@@ -196,7 +226,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   const hasCustomModel = localModel.trim() !== ''
 
   return (
-    <div className="glass p-4 sm:p-5 w-full max-w-[24rem] sm:max-w-[25.5rem] relative flex flex-col max-h-[85vh]">
+    <div className="glass p-4 sm:p-5 w-full max-w-[24rem] md:max-w-[48rem] relative flex flex-col max-h-[85vh]">
       {/* 未保存修改确认对话框 */}
       {pendingProvider && (
         <div className="absolute inset-0 bg-black/60 rounded-2xl flex items-center justify-center z-10 p-4">
@@ -229,10 +259,12 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
         <h2 className="text-xl sm:text-2xl font-semibold">{t('settings.title', language)}</h2>
       </div>
 
-      <div className="space-y-3 max-h-[68vh] overflow-y-auto pr-1 sm:pr-2 settings-scrollable flex-1">
-        {/* 新增设置部分 */}
-        <div className="border-t border-white/10 pt-3 space-y-3">
-          {/* ① 介面語言 */}
+      <div className="max-h-[68vh] overflow-y-auto pr-1 sm:pr-2 settings-scrollable flex-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+          {/* 左側欄：一般設定與系統 */}
+          <div className="space-y-4">
+            <div className="border-t border-white/10 pt-3 space-y-3">
+              {/* 1. 介面語言 */}
           <div>
             <h3 className="text-sm font-medium text-text-secondary mb-2">{t('settings.language', language)}</h3>
             <div className="space-y-2">
@@ -277,9 +309,9 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             </div>
           </div>
 
-          {/* 預設盤面 */}
+          {/* 2. 預設盤面 */}
           <div>
-            <h3 className="text-sm font-medium text-text-secondary mb-2">② {t('settings.defaultChart', language).replace('② ', '')}</h3>
+            <h3 className="text-sm font-medium text-text-secondary mb-2"> {t('settings.defaultChart', language)}</h3>
             <div className="space-y-2">
               <label className="flex items-center gap-3 cursor-pointer group">
                 <div
@@ -341,9 +373,9 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             </div>
           </div>
 
-          {/* 排流月 */}
+          {/* 3. 排流月 */}
           <div>
-            <h3 className="text-sm font-medium text-text-secondary mb-2">② {t('settings.monthlyArrangement', language)}</h3>
+            <h3 className="text-sm font-medium text-text-secondary mb-2">{t('settings.monthlyArrangement', language)}</h3>
             <div className="space-y-2">
               <label className="flex items-center gap-3 cursor-pointer group">
                 <div
@@ -388,7 +420,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
           {/* 安星法 */}
           <div>
-            <h3 className="text-sm font-medium text-text-secondary mb-2">③ {t('settings.starPlacement', language).replace('③ ', '')}</h3>
+            <h3 className="text-sm font-medium text-text-secondary mb-2">{t('settings.starPlacement', language)}</h3>
             <div className="space-y-2">
               <label className="flex items-center gap-3 cursor-pointer group">
                 <div
@@ -449,203 +481,93 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               </label>
             </div>
           </div>
-
+        </div>
+ {/* 右側欄：各盤面詳細設定 */}
+      <div className="space-y-4">
+        <div className="border-t border-white/10 pt-3 space-y-4">
           {/* 四化盤面設定 */}
           <div>
-            <h3 className="text-sm font-medium text-text-secondary mb-2">④ {t('settings.transformation', language)}</h3>
+            <h3 className="text-sm font-medium text-text-secondary mb-2">{t('settings.transformation', language)}</h3>
             <div className="space-y-2">
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`w-10 h-6 rounded-full relative transition-colors ${transformationShowGods ? 'bg-star' : 'bg-white/10'}`}
-                  onClick={() => setTransformationShowGods(!transformationShowGods)}
-                >
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${transformationShowGods ? 'left-5' : 'left-1'}`} />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">{t('settings.showGods', language)}</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`w-10 h-6 rounded-full relative transition-colors ${transformationShowDailyMutagen ? 'bg-star' : 'bg-white/10'}`}
-                  onClick={() => setTransformationShowDailyMutagen(!transformationShowDailyMutagen)}
-                >
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${transformationShowDailyMutagen ? 'left-5' : 'left-1'}`} />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">{t('settings.showDailyMutagen', language)}</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`w-10 h-6 rounded-full relative transition-colors ${transformationShowTriremeEnlightenment ? 'bg-star' : 'bg-white/10'}`}
-                  onClick={() => setTransformationShowTriremeEnlightenment(!transformationShowTriremeEnlightenment)}
-                >
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${transformationShowTriremeEnlightenment ? 'left-5' : 'left-1'}`} />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">{t('settings.showCentralEightCharacters', language)}</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`w-10 h-6 rounded-full relative transition-colors ${transformationUseColorMutagen ? 'bg-star' : 'bg-white/10'}`}
-                  onClick={() => setTransformationUseColorMutagen(!transformationUseColorMutagen)}
-                >
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${transformationUseColorMutagen ? 'left-5' : 'left-1'}`} />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">{t('settings.useColorMutagen', language)}</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`w-10 h-6 rounded-full relative transition-colors ${transformationShowAnnualAge ? 'bg-star' : 'bg-white/10'}`}
-                  onClick={() => setTransformationShowAnnualAge(!transformationShowAnnualAge)}
-                >
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${transformationShowAnnualAge ? 'left-5' : 'left-1'}`} />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">{t('settings.showAnnualAge', language)}</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`w-10 h-6 rounded-full relative transition-colors ${transformationShowCentralEightCharacters ? 'bg-star' : 'bg-white/10'}`}
-                  onClick={() => setTransformationShowCentralEightCharacters(!transformationShowCentralEightCharacters)}
-                >
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${transformationShowCentralEightCharacters ? 'left-5' : 'left-1'}`} />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">{t('settings.showCentralEightCharacters', language)}</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`w-10 h-6 rounded-full relative transition-colors ${transformationShowCentralFixBoard ? 'bg-star' : 'bg-white/10'}`}
-                  onClick={() => setTransformationShowCentralFixBoard(!transformationShowCentralFixBoard)}
-                >
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${transformationShowCentralFixBoard ? 'left-5' : 'left-1'}`} />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">{t('settings.showCentralFixBoard', language)}</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`w-10 h-6 rounded-full relative transition-colors ${transformationShowCausePalace ? 'bg-star' : 'bg-white/10'}`}
-                  onClick={() => setTransformationShowCausePalace(!transformationShowCausePalace)}
-                >
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${transformationShowCausePalace ? 'left-5' : 'left-1'}`} />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">{t('settings.showCausePalace', language)}</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`w-10 h-6 rounded-full relative transition-colors ${transformationHideMinorStars ? 'bg-star' : 'bg-white/10'}`}
-                  onClick={() => setTransformationHideMinorStars(!transformationHideMinorStars)}
-                >
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${transformationHideMinorStars ? 'left-5' : 'left-1'}`} />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">隱藏輔星、雜曜</span>
-              </label>
+              <SettingToggle checked={transformationShowGods} onChange={() => setTransformationShowGods(!transformationShowGods)}>
+                {t('settings.showGods', language)}
+              </SettingToggle>
+              <SettingToggle checked={transformationShowDailyMutagen} onChange={() => setTransformationShowDailyMutagen(!transformationShowDailyMutagen)}>
+                {t('settings.showDailyMutagen', language)}
+              </SettingToggle>
+              <SettingToggle checked={transformationShowTriremeEnlightenment} onChange={() => setTransformationShowTriremeEnlightenment(!transformationShowTriremeEnlightenment)}>
+                {t('settings.showCentralEightCharacters', language)}
+              </SettingToggle>
+              <SettingToggle checked={transformationUseColorMutagen} onChange={() => setTransformationUseColorMutagen(!transformationUseColorMutagen)}>
+                {t('settings.useColorMutagen', language)}
+              </SettingToggle>
+              <SettingToggle checked={transformationShowAnnualAge} onChange={() => setTransformationShowAnnualAge(!transformationShowAnnualAge)}>
+                {t('settings.showAnnualAge', language)}
+              </SettingToggle>
+              <SettingToggle checked={transformationShowCentralEightCharacters} onChange={() => setTransformationShowCentralEightCharacters(!transformationShowCentralEightCharacters)}>
+                {t('settings.showCentralEightCharacters', language)}
+              </SettingToggle>
+              <SettingToggle checked={transformationShowCentralFixBoard} onChange={() => setTransformationShowCentralFixBoard(!transformationShowCentralFixBoard)}>
+                {t('settings.showCentralFixBoard', language)}
+              </SettingToggle>
+              <SettingToggle checked={transformationShowCausePalace} onChange={() => setTransformationShowCausePalace(!transformationShowCausePalace)}>
+                {t('settings.showCausePalace', language)}
+              </SettingToggle>
+              <SettingToggle checked={transformationHideMinorStars} onChange={() => setTransformationHideMinorStars(!transformationHideMinorStars)}>
+                隱藏輔星、雜曜
+              </SettingToggle>
             </div>
           </div>
 
           {/* 飛星盤面設定 */}
           <div>
-            <h3 className="text-sm font-medium text-text-secondary mb-2">⑤ {t('settings.flying', language)}</h3>
+            <h3 className="text-sm font-medium text-text-secondary mb-2">{t('settings.flying', language)}</h3>
             <div className="space-y-2">
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`w-10 h-6 rounded-full relative transition-colors ${flyingShowGods ? 'bg-star' : 'bg-white/10'}`}
-                  onClick={() => setFlyingShowGods(!flyingShowGods)}
-                >
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${flyingShowGods ? 'left-5' : 'left-1'}`} />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">{t('settings.showGods', language)}</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`w-10 h-6 rounded-full relative transition-colors ${flyingShowMinorStars ? 'bg-star' : 'bg-white/10'}`}
-                  onClick={() => setFlyingShowMinorStars(!flyingShowMinorStars)}
-                >
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${flyingShowMinorStars ? 'left-5' : 'left-1'}`} />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">{t('settings.showMinorStars', language)}</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`w-10 h-6 rounded-full relative transition-colors ${flyingShowBodyPalace ? 'bg-star' : 'bg-white/10'}`}
-                  onClick={() => setFlyingShowBodyPalace(!flyingShowBodyPalace)}
-                >
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${flyingShowBodyPalace ? 'left-5' : 'left-1'}`} />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">{t('settings.showBodyPalace', language)}</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`w-10 h-6 rounded-full relative transition-colors ${flyingShowCausePalace ? 'bg-star' : 'bg-white/10'}`}
-                  onClick={() => setFlyingShowCausePalace(!flyingShowCausePalace)}
-                >
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${flyingShowCausePalace ? 'left-5' : 'left-1'}`} />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">{t('settings.showCausePalace', language)}</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`w-10 h-6 rounded-full relative transition-colors ${flyingShowCommandMutagen ? 'bg-star' : 'bg-white/10'}`}
-                  onClick={() => setFlyingShowCommandMutagen(!flyingShowCommandMutagen)}
-                >
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${flyingShowCommandMutagen ? 'left-5' : 'left-1'}`} />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">{t('settings.showCommandMutagen', language)}</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`w-10 h-6 rounded-full relative transition-colors ${flyingShowCentralFixBoard ? 'bg-star' : 'bg-white/10'}`}
-                  onClick={() => setFlyingShowCentralFixBoard(!flyingShowCentralFixBoard)}
-                >
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${flyingShowCentralFixBoard ? 'left-5' : 'left-1'}`} />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">{t('settings.showCentralFixBoard', language)}</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`w-10 h-6 rounded-full relative transition-colors ${flyingShowCentralEightCharacters ? 'bg-star' : 'bg-white/10'}`}
-                  onClick={() => setFlyingShowCentralEightCharacters(!flyingShowCentralEightCharacters)}
-                >
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${flyingShowCentralEightCharacters ? 'left-5' : 'left-1'}`} />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">{t('settings.showCentralEightCharacters', language)}</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`w-10 h-6 rounded-full relative transition-colors ${flyingUseColorMultiArrow ? 'bg-star' : 'bg-white/10'}`}
-                  onClick={() => setFlyingUseColorMultiArrow(!flyingUseColorMultiArrow)}
-                >
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${flyingUseColorMultiArrow ? 'left-5' : 'left-1'}`} />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">{t('settings.useColorMultiArrow', language)}</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`w-10 h-6 rounded-full relative transition-colors ${flyingShowTripleQuaternaryLine ? 'bg-star' : 'bg-white/10'}`}
-                  onClick={() => setFlyingShowTripleQuaternaryLine(!flyingShowTripleQuaternaryLine)}
-                >
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${flyingShowTripleQuaternaryLine ? 'left-5' : 'left-1'}`} />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">{t('settings.showTripleQuaternaryLine', language)}</span>
-              </label>
+              <SettingToggle checked={flyingShowGods} onChange={() => setFlyingShowGods(!flyingShowGods)}>
+                {t('settings.showGods', language)}
+              </SettingToggle>
+              <SettingToggle checked={flyingShowMinorStars} onChange={() => setFlyingShowMinorStars(!flyingShowMinorStars)}>
+                {t('settings.showMinorStars', language)}
+              </SettingToggle>
+              <SettingToggle checked={flyingShowBodyPalace} onChange={() => setFlyingShowBodyPalace(!flyingShowBodyPalace)}>
+                {t('settings.showBodyPalace', language)}
+              </SettingToggle>
+              <SettingToggle checked={flyingShowCausePalace} onChange={() => setFlyingShowCausePalace(!flyingShowCausePalace)}>
+                {t('settings.showCausePalace', language)}
+              </SettingToggle>
+              <SettingToggle checked={flyingShowCommandMutagen} onChange={() => setFlyingShowCommandMutagen(!flyingShowCommandMutagen)}>
+                {t('settings.showCommandMutagen', language)}
+              </SettingToggle>
+              <SettingToggle checked={flyingShowCentralFixBoard} onChange={() => setFlyingShowCentralFixBoard(!flyingShowCentralFixBoard)}>
+                {t('settings.showCentralFixBoard', language)}
+              </SettingToggle>
+              <SettingToggle checked={flyingShowCentralEightCharacters} onChange={() => setFlyingShowCentralEightCharacters(!flyingShowCentralEightCharacters)}>
+                {t('settings.showCentralEightCharacters', language)}
+              </SettingToggle>
+              <SettingToggle checked={flyingUseColorMultiArrow} onChange={() => setFlyingUseColorMultiArrow(!flyingUseColorMultiArrow)}>
+                {t('settings.useColorMultiArrow', language)}
+              </SettingToggle>
+              <SettingToggle checked={flyingShowTripleQuaternaryLine} onChange={() => setFlyingShowTripleQuaternaryLine(!flyingShowTripleQuaternaryLine)}>
+                {t('settings.showTripleQuaternaryLine', language)}
+              </SettingToggle>
             </div>
           </div>
 
           {/* 三合盤面設定 */}
           <div>
-            <h3 className="text-sm font-medium text-text-secondary mb-2">⑥ {t('settings.trireme', language)}</h3>
+            <h3 className="text-sm font-medium text-text-secondary mb-2">{t('settings.trireme', language)}</h3>
             <div className="space-y-2">
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className={`w-10 h-6 rounded-full relative transition-colors ${triremeShowStarBrightness ? 'bg-star' : 'bg-white/10'}`}
-                  onClick={() => setTriremeShowStarBrightness(!triremeShowStarBrightness)}
-                >
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${triremeShowStarBrightness ? 'left-5' : 'left-1'}`} />
-                </div>
-                <span className="text-sm text-text-secondary group-hover:text-text transition-colors">{t('settings.showStarBrightness', language)}</span>
-              </label>
+              <SettingToggle checked={triremeShowStarBrightness} onChange={() => setTriremeShowStarBrightness(!triremeShowStarBrightness)}>
+                {t('settings.showStarBrightness', language)}
+              </SettingToggle>
             </div>
           </div>
         </div>
+      </div>
 
         {/* 動畫效果設定 */}
         <div className="border-t border-white/10 pt-3 space-y-3">
-          <h3 className="text-sm font-medium text-text-secondary mb-2">⑦ {language === 'zh-TW' ? '動畫效果' : '动画效果'}</h3>
+          <h3 className="text-sm font-medium text-text-secondary mb-2">{language === 'zh-TW' ? '動畫效果' : '动画效果'}</h3>
           <div className="space-y-2">
             {/* 弧線流動效果 */}
             <label className="flex items-center gap-3 cursor-pointer group">
@@ -676,7 +598,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
         {/* AI 提供廠商 */}
         <div className="border-t border-white/10 pt-3 space-y-3">
-          <h3 className="text-sm font-medium text-text-secondary mb-2">⑧ {t('settings.aiProvider', language)}</h3>
+          <h3 className="text-sm font-medium text-text-secondary mb-2">{t('settings.aiProvider', language)}</h3>
           
           {/* 供應商選擇 */}
           <Select
@@ -888,12 +810,16 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             </div>
           )}
         </div>
-
-        {/* 隐私提示 */}
-        <p className="text-sm text-text-muted text-center">
-          {t('settings.privacyHint', language)}
-        </p>
       </div>
+
+     
+    </div>
+
+    {/* 隐私提示 */}
+    <p className="text-sm text-text-muted text-center mt-6 border-t border-white/10 pt-4">
+      {t('settings.privacyHint', language)}
+    </p>
+  </div>
 
       {/* 保存/取消按钮 - 在容器外 */}
       <div className="flex gap-2.5 mt-3 pt-3 border-t border-white/10">

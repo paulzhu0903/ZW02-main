@@ -153,7 +153,7 @@ export function DecadalAnnualMonthlyTable({
   return (
     <div ref={tableWrapRef} className="pt-px border-t border-white/[0.06]">
       <div className="px-0.5 pb-1 text-[10px] text-text-muted sm:hidden">
-        左右滑動可查看完整大限／流年表格
+        大限 流年 月日表
       </div>
 
       {/* 展開模式：完整表格 */}

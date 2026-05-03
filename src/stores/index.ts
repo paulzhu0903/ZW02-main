@@ -203,6 +203,7 @@ interface SettingsState {
   setTransformationShowCentralFixBoard: (value: boolean) => void
   setTransformationShowCausePalace: (value: boolean) => void
   setTransformationHideMinorStars: (value: boolean) => void
+  setTransformationShowMinorStars: (value: boolean) => void
 
   // 飛星盤面相關的setter
   setFlyingShowGods: (value: boolean) => void
@@ -306,16 +307,16 @@ export const useSettingsStore = create<SettingsState>()(
       setMonthlyArrangementMethod: (method) => set({ monthlyArrangementMethod: method }),
 
       // 四化盤面相關的setter
-      setTransformationShowGods: (value) => set({ transformationShowGods: value }),
-      setTransformationShowDailyMutagen: (value) => set({ transformationShowDailyMutagen: value }),
-      setTransformationShowTriremeEnlightenment: (value) => set({ transformationShowTriremeEnlightenment: value }),
-      setTransformationUseColorMutagen: (value) => set({ transformationUseColorMutagen: value }),
-      setTransformationShowAnnualAge: (value) => set({ transformationShowAnnualAge: value }),
-      setTransformationShowCentralEightCharacters: (value) => set({ transformationShowCentralEightCharacters: value }),
-      setTransformationShowCentralFixBoard: (value) => set({ transformationShowCentralFixBoard: value }),
-      setTransformationShowCausePalace: (value) => set({ transformationShowCausePalace: value }),
-      setTransformationHideMinorStars: (value) => set({ transformationHideMinorStars: value }),
-      setTransformationShowMinorStars: (value) => set({ transformationShowMinorStars: value }),
+      setTransformationShowGods: (value: boolean) => set({ transformationShowGods: value }),
+      setTransformationShowDailyMutagen: (value: boolean) => set({ transformationShowDailyMutagen: value }),
+      setTransformationShowTriremeEnlightenment: (value: boolean) => set({ transformationShowTriremeEnlightenment: value }),
+      setTransformationUseColorMutagen: (value: boolean) => set({ transformationUseColorMutagen: value }),
+      setTransformationShowAnnualAge: (value: boolean) => set({ transformationShowAnnualAge: value }),
+      setTransformationShowCentralEightCharacters: (value: boolean) => set({ transformationShowCentralEightCharacters: value }),
+      setTransformationShowCentralFixBoard: (value: boolean) => set({ transformationShowCentralFixBoard: value }),
+      setTransformationShowCausePalace: (value: boolean) => set({ transformationShowCausePalace: value }),
+      setTransformationHideMinorStars: (value: boolean) => set({ transformationHideMinorStars: value }),
+      setTransformationShowMinorStars: (value: boolean) => set({ transformationShowMinorStars: value }),
 
       // 飛星盤面相關的setter
       setFlyingShowGods: (value) => set({ flyingShowGods: value }),

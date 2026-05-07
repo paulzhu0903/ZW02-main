@@ -158,7 +158,7 @@ export function PalaceCard({
       {/* 星曜排列 - 主星/輔星與雜曜並排容器 */}
       <div className={`relative flex flex-row mb-0 flex-1 justify-start items-start gap-x-0.5 overflow-visible ${chartType === 'transformation' && transformationShowCausePalace && isCausePalace ? 'pr-1 sm:pr-2' : ''}`}>
         {/* 主星 + 輔星容器 */}
-        <div className="flex flex-row flex-wrap items-start gap-x-0 gap-y-0 flex-1 min-w-0">
+        <div className="grid grid-cols-[repeat(4,max-content)] auto-rows-max justify-start items-start gap-x-0 gap-y-0 flex-1 min-w-0 sm:flex sm:flex-row sm:flex-wrap">
           {/* 主星 */}
           {majorStars.map((star, i) => (
             <div key={`major-wrap-${i}`} className={`${STAR_SLOT_WIDTH_CLASS} flex justify-center items-start`}>

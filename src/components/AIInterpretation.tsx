@@ -485,29 +485,25 @@ export function AIInterpretation() {
           {t('ai.title', language)}
         </h2>
         <div className="flex items-center gap-1.5 sm:gap-2">
-          {currentSettings.apiKey && (
-            <HoverHint content={t('ai.promptHintNoApi', language)}>
-              <button
-                type="button"
-                onClick={handleTogglePrompt}
-                className="h-8 sm:h-10 min-w-[5rem] px-2 sm:px-3 rounded-xl text-[10px] sm:text-xs font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors whitespace-nowrap flex items-center justify-center"
-              >
-                {showPrompt ? t('ai.hidePrompt', language) : t('ai.showPrompt', language)}
-              </button>
-            </HoverHint>
-          )}
-          {currentSettings.apiKey && (
+          <HoverHint content={t('ai.promptHintNoApi', language)}>
             <button
               type="button"
-              onClick={handleCopyPrompt}
+              onClick={handleTogglePrompt}
               className="h-8 sm:h-10 min-w-[5rem] px-2 sm:px-3 rounded-xl text-[10px] sm:text-xs font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors whitespace-nowrap flex items-center justify-center"
             >
-              {copied ? t('fortune.copied', language) : t('fortune.copyPrompt', language)}
+              {showPrompt ? t('ai.hidePrompt', language) : t('ai.showPrompt', language)}
             </button>
-          )}
+          </HoverHint>
+          <button
+            type="button"
+            onClick={handleCopyPrompt}
+            className="h-8 sm:h-10 min-w-[5rem] px-2 sm:px-3 rounded-xl text-[10px] sm:text-xs font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors whitespace-nowrap flex items-center justify-center"
+          >
+            {copied ? t('fortune.copied', language) : t('fortune.copyPrompt', language)}
+          </button>
           <Button
-            onClick={currentSettings.apiKey ? handleInterpret : handleTogglePrompt}
-            disabled={loading}
+            onClick={currentSettings.apiKey ? handleInterpret : undefined}
+            disabled={loading || !currentSettings.apiKey}
             size="sm"
             variant="gold"
             className="h-8 sm:h-10 min-w-[5rem] px-2 sm:px-3 text-[10px] sm:text-xs"
@@ -517,7 +513,7 @@ export function AIInterpretation() {
                 <span className="w-3 h-3 border-2 border-night border-t-transparent rounded-full animate-spin" />
                 {t('ai.loading', language)}
               </span>
-            ) : currentSettings.apiKey ? t('ai.start', language) : (showPrompt ? t('ai.hidePrompt', language) : t('ai.showPrompt', language))}
+            ) : t('ai.start', language)}
           </Button>
         </div>
       </div>
@@ -546,18 +542,7 @@ export function AIInterpretation() {
       {/* 未配置提示 */}
       {!currentSettings.apiKey && !displayText && (
         <div className="text-text-muted text-xs sm:text-sm py-6 sm:py-8 text-center space-y-2 sm:space-y-3">
-          <div className="text-2xl sm:text-3xl mb-2 sm:mb-3 opacity-30">☆</div>
           <p className="px-2">{t('ai.configureApiLong', language)}</p>
-          <p className="text-[10px] sm:text-xs text-gold/80 px-2">{t('ai.promptHintNoApi', language)}</p>
-          <div className="pt-2 flex justify-center">
-            <button
-              type="button"
-              onClick={handleTogglePrompt}
-              className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-medium border border-gold/30 bg-gold/10 text-gold hover:bg-gold/15 transition-colors"
-            >
-              {showPrompt ? t('ai.hidePrompt', language) : t('ai.showPrompt', language)}
-            </button>
-          </div>
         </div>
       )}
 

@@ -10,9 +10,9 @@ import { getBrightnessDisplay } from '../utils/localization'
 import type { StarTagProps } from '../types'
 
 // 主星 / 輔星 / 雜曜統一尺寸（base / sm / lg）
-const STAR_SLOT_WIDTH_CLASS = 'w-[14px] min-w-[14px] sm:w-[16px] sm:min-w-[16px] lg:w-[18px] lg:min-w-[18px]'
-const STAR_BASE_TEXT_CLASS = 'text-[10px] sm:text-[11px] md:text-[12px] lg:text-[14px] xl:text-[15px]'
-const TRIREME_MUTAGEN_SQUARE_CLASS = 'flex items-center justify-center w-[14px] h-[14px] text-[10px] sm:w-[14px] sm:h-[14px] sm:text-[11px] md:text-[12px] lg:w-[16px] lg:h-[16px] lg:text-[14px] xl:text-[15px]'
+const STAR_SLOT_WIDTH_CLASS = 'w-[12px] min-w-[12px] sm:w-[16px] sm:min-w-[16px] lg:w-[18px] lg:min-w-[18px]'
+const STAR_BASE_TEXT_CLASS = 'text-[10px] sm:text-[10px] md:text-[12px] lg:text-[14px] xl:text-[15px]'
+const TRIREME_MUTAGEN_SQUARE_CLASS = 'flex items-center justify-center w-[12px] h-[12px] text-[10px] sm:w-[14px] sm:h-[14px] sm:text-[12px] md:text-[12px] lg:w-[16px] lg:h-[16px] lg:text-[14px] xl:text-[15px]'
 
 export function StarTag({ star, isMajorStar = false, forceTextColorClass = '', chartType = 'flying', selectedDecadal = null, selectedAnnual = null, isCurrentDecadalPalace = false, isCurrentAnnualPalace = false, decadalLifePalaceStem = null, annualLifePalaceStem = null, selectedAnnualGanZhi = null, yearGan = '' }: StarTagProps) {
   const { language, triremeShowStarBrightness } = useSettingsStore()
@@ -250,7 +250,7 @@ export function StarTag({ star, isMajorStar = false, forceTextColorClass = '', c
 
   return (
     <div className={`flex flex-col items-center ${STAR_SLOT_WIDTH_CLASS}`} style={{ minHeight: '30px' }}>
-      {/* 四化盤中的性別指示條 */}
+      {/* 四化盤中的性別指示圓點 */}
       {chartType === 'transformation' && genderDotColor !== null && (
         <div
           style={{

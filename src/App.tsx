@@ -292,8 +292,8 @@ export default function App() {
       </nav>
 
       {/* 主頁内容 */}
-      <main className="flex-1 px-0 sm:px-1 lg:px-4 pt-0 sm:pt-1 lg:pt-4 md:pb-4">
-        <div className="max-w-[1600px] mx-auto">
+      <main className="flex-1 px-1 sm:px-2 lg:px-4 pt-1 sm:pt-2 lg:pt-4 pb-12 md:pb-16">
+        <div className="max-w-[600px] mx-auto">
           {/* 命盘解读标签 */}
           {activeTab === 'chart' && (
             !chart ? (

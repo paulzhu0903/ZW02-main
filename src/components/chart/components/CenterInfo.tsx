@@ -7,11 +7,7 @@ import { t } from '@/lib/i18n'
 import { localizeChineseText } from '@/lib/localize-knowledge'
 import { getNayin } from '../mutagenLines'
 import { getLocalizedStarName, getLocalizedZodiacName, getLocalizedAstroSign } from '../utils/localization'
-import TriIcon from '@/icons/Tri.svg'
-import HintIcon from '@/icons/Hint.svg'
-import CounterIcon from '@/icons/Counter.svg'
-import FlyingIcon from '@/icons/Flying.svg'
-import CalendarIcon from '@/icons/calendar.svg'
+import { Toolbox } from './Toolbox'
 import type { FunctionalAstrolabe, BirthInfo } from '@/lib/astro'
 
 interface CenterInfoProps {
@@ -24,19 +20,10 @@ interface CenterInfoProps {
   nativeName?: string
   onHourChange?: (hour: number) => void
   onDayChange?: (day: number) => void
-  showSanFangSiZheng?: boolean
-  onToggleSanFangSiZheng?: () => void
-  showBubbleHint?: boolean
-  onToggleBubbleHint?: () => void
-  showReversalCheck?: boolean
-  onToggleReversalCheck?: () => void
-  showFlyGongToolbox?: boolean
-  onToggleFlyGongToolbox?: () => void
-  onTimeTableClick?: () => void
   showContent?: boolean // 是否顯示內容，按鈕始終顯示
 }
 
-export function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, nativeName, onHourChange, onDayChange, showSanFangSiZheng, onToggleSanFangSiZheng, showBubbleHint, onToggleBubbleHint, showReversalCheck = false, onToggleReversalCheck, showFlyGongToolbox = false, onToggleFlyGongToolbox, onTimeTableClick, showContent = true }: CenterInfoProps) {
+export function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, language, nativeName, onHourChange, onDayChange, showContent = true }: CenterInfoProps) {
   // 分割四柱 - 格式: "甲辰 丙子 己卯 丁酉"
   const fourPillars = chart.chineseDate?.split(' ') || []
   const [yearPillar, monthPillar, dayPillar, hourPillar] = fourPillars
@@ -281,79 +268,6 @@ export function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, lan
         </>
       )}
 
-      {/* 三方四正 與 宮位提示 開關 */}
-      {(onToggleSanFangSiZheng !== undefined || onToggleBubbleHint !== undefined) && (
-        <div className="w-full mt-2.5 pt-2.5 border-t border-white/[0.07] flex items-center justify-center gap-2.5 flex-wrap">
-          <HoverHint content="三方四正" position="bottom">
-            <button
-              onClick={onToggleSanFangSiZheng}
-              className={`flex items-center justify-center px-1 py-1 text-[11px] sm:gap-1.5 sm:px-2 sm:py-2 sm:text-sm font-medium rounded transition cursor-pointer ${
-                showSanFangSiZheng
-                  ? 'bg-gray-300 text-gray-500'
-                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200 active:bg-gray-300'
-              }`}
-            >
-              <img src={TriIcon} alt="三方四正" className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
-          </HoverHint>
-
-          {onToggleBubbleHint !== undefined && (
-            <HoverHint content="宮位提示" position="bottom">
-              <button
-                onClick={onToggleBubbleHint}
-                className={`flex items-center justify-center px-1 py-1 text-[11px] sm:gap-1.5 sm:px-2 sm:py-2 sm:text-sm font-medium rounded transition cursor-pointer ${
-                  showBubbleHint
-                    ? 'bg-gray-300 text-gray-500'
-                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200 active:bg-gray-300'
-                }`}
-              >
-                <img src={HintIcon} alt="宮位提示" className="w-5 h-5 sm:w-6 sm:h-6" />
-              </button>
-            </HoverHint>
-          )}
-
-          {onToggleReversalCheck !== undefined && (
-            <HoverHint content="反背檢查" position="bottom">
-              <button
-                onClick={onToggleReversalCheck}
-                className={`flex items-center justify-center px-1 py-1 text-[11px] sm:gap-1.5 sm:px-2 sm:py-2 sm:text-sm font-medium rounded transition cursor-pointer ${
-                  showReversalCheck
-                    ? 'bg-gray-300 text-gray-500'
-                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200 active:bg-gray-300'
-                }`}
-              >
-                <img src={CounterIcon} alt="反背檢查" className="w-5 h-5 sm:w-6 sm:h-6" />
-              </button>
-            </HoverHint>
-          )}
-
-          {onToggleFlyGongToolbox !== undefined && (
-            <HoverHint content="飛宮" position="bottom">
-              <button
-                onClick={onToggleFlyGongToolbox}
-                className={`flex items-center justify-center px-1 py-1 text-[11px] sm:gap-1.5 sm:px-2 sm:py-2 sm:text-sm font-medium rounded transition cursor-pointer ${
-                  showFlyGongToolbox
-                    ? 'bg-gray-300 text-gray-500'
-                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200 active:bg-gray-300'
-                }`}
-              >
-                <img src={FlyingIcon} alt="飛宮" className="w-5 h-5 sm:w-6 sm:h-6" />
-              </button>
-            </HoverHint>
-          )}
-
-          {onTimeTableClick !== undefined && (
-            <HoverHint content="查詢大限、流年、流月、流日、流時" position="bottom">
-              <button
-                onClick={onTimeTableClick}
-                className="flex items-center justify-center px-1 py-1 text-[11px] sm:gap-1.5 sm:px-2 sm:py-2 sm:text-sm font-medium rounded transition cursor-pointer bg-gray-100 text-gray-500 hover:bg-gray-200 active:bg-gray-300"
-              >
-                <img src={CalendarIcon} alt="時間表查詢" className="w-5 h-5 sm:w-6 sm:h-6" />
-              </button>
-            </HoverHint>
-          )}
-        </div>
-      )}
     </div>
   )
 }

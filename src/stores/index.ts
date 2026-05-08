@@ -150,12 +150,6 @@ interface SettingsState {
 
   // 四化盤面設定
   transformationShowGods: boolean
-  transformationShowDailyMutagen: boolean
-  transformationShowTriremeEnlightenment: boolean
-  transformationUseColorMutagen: boolean
-  transformationShowAnnualAge: boolean
-  transformationShowCentralEightCharacters: boolean
-  transformationShowCentralFixBoard: boolean
   transformationShowCausePalace: boolean
   transformationHideMinorStars: boolean  // 隱藏輔星和雜曜（左輔、右弼、文昌、文曲除外）
   transformationShowMinorStars: boolean
@@ -165,11 +159,6 @@ interface SettingsState {
   flyingShowMinorStars: boolean
   flyingShowBodyPalace: boolean
   flyingShowCausePalace: boolean
-  flyingShowCommandMutagen: boolean
-  flyingShowCentralFixBoard: boolean
-  flyingShowCentralEightCharacters: boolean
-  flyingUseColorMultiArrow: boolean
-  flyingShowTripleQuaternaryLine: boolean
 
   // 三合盤面設定
   triremeShowStarBrightness: boolean
@@ -195,12 +184,6 @@ interface SettingsState {
 
   // 四化盤面相關的setter
   setTransformationShowGods: (value: boolean) => void
-  setTransformationShowDailyMutagen: (value: boolean) => void
-  setTransformationShowTriremeEnlightenment: (value: boolean) => void
-  setTransformationUseColorMutagen: (value: boolean) => void
-  setTransformationShowAnnualAge: (value: boolean) => void
-  setTransformationShowCentralEightCharacters: (value: boolean) => void
-  setTransformationShowCentralFixBoard: (value: boolean) => void
   setTransformationShowCausePalace: (value: boolean) => void
   setTransformationHideMinorStars: (value: boolean) => void
   setTransformationShowMinorStars: (value: boolean) => void
@@ -210,11 +193,6 @@ interface SettingsState {
   setFlyingShowMinorStars: (value: boolean) => void
   setFlyingShowBodyPalace: (value: boolean) => void
   setFlyingShowCausePalace: (value: boolean) => void
-  setFlyingShowCommandMutagen: (value: boolean) => void
-  setFlyingShowCentralFixBoard: (value: boolean) => void
-  setFlyingShowCentralEightCharacters: (value: boolean) => void
-  setFlyingUseColorMultiArrow: (value: boolean) => void
-  setFlyingShowTripleQuaternaryLine: (value: boolean) => void
 
   // 三合盤面相關的setter
   setTriremeShowStarBrightness: (value: boolean) => void
@@ -253,12 +231,6 @@ export const useSettingsStore = create<SettingsState>()(
 
       // 四化盤面設定
       transformationShowGods: false,
-      transformationShowDailyMutagen: false,
-      transformationShowTriremeEnlightenment: false,
-      transformationUseColorMutagen: false,
-      transformationShowAnnualAge: true,
-      transformationShowCentralEightCharacters: true,
-      transformationShowCentralFixBoard: true,
       transformationShowCausePalace: true,
       transformationHideMinorStars: false,
       transformationShowMinorStars: false,
@@ -268,11 +240,6 @@ export const useSettingsStore = create<SettingsState>()(
       flyingShowMinorStars: false,
       flyingShowBodyPalace: false,
       flyingShowCausePalace: true,
-      flyingShowCommandMutagen: true,
-      flyingShowCentralFixBoard: false,
-      flyingShowCentralEightCharacters: true,
-      flyingUseColorMultiArrow: true,
-      flyingShowTripleQuaternaryLine: true,
 
       // 三合盤面設定
       triremeShowStarBrightness: true,
@@ -308,12 +275,6 @@ export const useSettingsStore = create<SettingsState>()(
 
       // 四化盤面相關的setter
       setTransformationShowGods: (value: boolean) => set({ transformationShowGods: value }),
-      setTransformationShowDailyMutagen: (value: boolean) => set({ transformationShowDailyMutagen: value }),
-      setTransformationShowTriremeEnlightenment: (value: boolean) => set({ transformationShowTriremeEnlightenment: value }),
-      setTransformationUseColorMutagen: (value: boolean) => set({ transformationUseColorMutagen: value }),
-      setTransformationShowAnnualAge: (value: boolean) => set({ transformationShowAnnualAge: value }),
-      setTransformationShowCentralEightCharacters: (value: boolean) => set({ transformationShowCentralEightCharacters: value }),
-      setTransformationShowCentralFixBoard: (value: boolean) => set({ transformationShowCentralFixBoard: value }),
       setTransformationShowCausePalace: (value: boolean) => set({ transformationShowCausePalace: value }),
       setTransformationHideMinorStars: (value: boolean) => set({ transformationHideMinorStars: value }),
       setTransformationShowMinorStars: (value: boolean) => set({ transformationShowMinorStars: value }),
@@ -323,11 +284,6 @@ export const useSettingsStore = create<SettingsState>()(
       setFlyingShowMinorStars: (value) => set({ flyingShowMinorStars: value }),
       setFlyingShowBodyPalace: (value) => set({ flyingShowBodyPalace: value }),
       setFlyingShowCausePalace: (value) => set({ flyingShowCausePalace: value }),
-      setFlyingShowCommandMutagen: (value) => set({ flyingShowCommandMutagen: value }),
-      setFlyingShowCentralFixBoard: (value) => set({ flyingShowCentralFixBoard: value }),
-      setFlyingShowCentralEightCharacters: (value) => set({ flyingShowCentralEightCharacters: value }),
-      setFlyingUseColorMultiArrow: (value) => set({ flyingUseColorMultiArrow: value }),
-      setFlyingShowTripleQuaternaryLine: (value) => set({ flyingShowTripleQuaternaryLine: value }),
 
       // 三合盤面相關的setter
       setTriremeShowStarBrightness: (value) => set({ triremeShowStarBrightness: value }),

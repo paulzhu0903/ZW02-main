@@ -36,6 +36,7 @@ import { HoverHint } from '@/components/ui'
 // 模組化組件和函數導入
 import { PalaceCard } from './components/PalaceCard'
 import { CenterInfo } from './components/CenterInfo'
+import { Toolbox } from './components/Toolbox'
 import { DecadalAnnualMonthlyTable } from './components/DecadalAnnualMonthlyTable'
 
 // 拆分後的輔助函數和常數
@@ -765,29 +766,6 @@ export function ChartDisplay() {
             gender={genderDisplay} 
             language={language} 
             nativeName={birthInfo?.name}
-            showSanFangSiZheng={showSanFangSiZheng}
-            onToggleSanFangSiZheng={() => setShowSanFangSiZheng(v => !v)}
-            showBubbleHint={showBubbleHint}
-            onToggleBubbleHint={() => {
-              setShowBubbleHint((v) => {
-                // 僅在主動點擊 BubbleHint 關閉時才清空 bubblePalace
-                if (v) setBubblePalace(null)
-                return !v
-              })
-            }}
-            showReversalCheck={showReversalCheck}
-            onToggleReversalCheck={() => {
-              setShowReversalCheck((prev) => {
-                if (prev) setDirectionFocus(null)
-                return !prev
-              })
-            }}
-            showFlyGongToolbox={showFlyGongToolbox}
-            onToggleFlyGongToolbox={() => {
-              // 切換飛宮工具箱時不影響 BubbleHint
-              setShowFlyGongToolbox((v) => !v)
-            }}
-            onTimeTableClick={() => setIsTimeTableModalOpen(true)}
             onHourChange={(hour) => {
               if (birthInfo && birthInfo.year && birthInfo.month && birthInfo.day && birthInfo.gender) {
                 const updatedBirthInfo: BirthInfo = {
@@ -996,6 +974,33 @@ export function ChartDisplay() {
           }
           setIsTimeTableModalOpen(false)
         }}
+      />
+
+      {/* 可拖動工具箱 */}
+      <Toolbox
+        showSanFangSiZheng={showSanFangSiZheng}
+        onToggleSanFangSiZheng={() => setShowSanFangSiZheng(v => !v)}
+        showBubbleHint={showBubbleHint}
+        onToggleBubbleHint={() => {
+          setShowBubbleHint((v) => {
+            // 僅在主動點擊 BubbleHint 關閉時才清空 bubblePalace
+            if (v) setBubblePalace(null)
+            return !v
+          })
+        }}
+        showReversalCheck={showReversalCheck}
+        onToggleReversalCheck={() => {
+          setShowReversalCheck((prev) => {
+            if (prev) setDirectionFocus(null)
+            return !prev
+          })
+        }}
+        showFlyGongToolbox={showFlyGongToolbox}
+        onToggleFlyGongToolbox={() => {
+          // 切換飛宮工具箱時不影響 BubbleHint
+          setShowFlyGongToolbox((v) => !v)
+        }}
+        onTimeTableClick={() => setIsTimeTableModalOpen(true)}
       />
     </div>
   )

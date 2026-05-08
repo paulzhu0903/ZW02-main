@@ -23,7 +23,7 @@ export function PalaceCard({
   name, stem, branch, majorStars, minorStars, adjectiveStars,
   boshi12Deity, longlifeDeity, isLife, isBody, isCausePalace, isSelected, onClick, chartType = 'flying', selectedDecadal = null, selectedAnnual = null, monthlySequenceLabels = [], selectedDailyLabel = '', selectedHourlyLabel = '', selectedAnnualAge = null, selectedAnnualYear = null, selectedAnnualGanZhi = null, selectedAnnualLabel = '', selectedDecadalLabel = '', yearGan = '', gender = 'male', birthInfo = null, palaceData = null, decadalLifePalaceStem = null, annualLifePalaceStem = null, directionMark = null, directionFocus = null, selectedMonthlyPalaceBranch = null, selectedDailyPalaceBranch = null, selectedHourlyPalaceBranch = null
 }: PalaceCardProps) {
-  const { language, transformationShowGods, flyingShowGods, transformationShowCausePalace, transformationHideMinorStars, transformationShowMinorStars, flyingShowMinorStars, triremeShowMinorStars } = useSettingsStore()
+  const { language, transformationShowGods, flyingShowGods, transformationShowCausePalace, transformationHideMinorStars, transformationShowMinorStars, flyingShowMinorStars, triremeShowMinorStars, flyingShowBodyPalace, flyingShowCausePalace } = useSettingsStore()
   const hasMergedDailyHourly = !!selectedDailyLabel && !!selectedHourlyLabel && selectedHourlyLabel.startsWith(selectedDailyLabel)
   
   // 計算流年和虛歲 - 基於當前宮位在大限中的相對位置
@@ -150,13 +150,13 @@ export function PalaceCard({
         hover:bg-white/[0.06] hover:border-gray-400
         ${isLife ? 'bg-gold/[0.03]' : ''}
         ${isBody ? 'bg-star/[0.03]' : ''}
-        ${chartType === 'transformation' && transformationShowCausePalace && isCausePalace ? 'bg-amber/[0.03]' : ''}
+        ${((chartType === 'transformation' && transformationShowCausePalace) || (chartType === 'flying' && flyingShowCausePalace)) && isCausePalace ? 'bg-amber/[0.03]' : ''}
         ${isSelected ? 'ring-1 sm:ring-2 ring-star border-star z-10' : ''}
         ${isCurrentHighlightPalace ? 'ring-2 sm:ring-[3px] ring-blue-400/60 border-blue-400/80 shadow-[0_0_12px_rgba(96,165,250,0.4)]' : ''}
       `}
     >
       {/* 星曜排列 - 主星/輔星與雜曜並排容器 */}
-      <div className={`relative flex flex-row mb-0 flex-1 justify-start items-start gap-x-0.5 overflow-visible ${chartType === 'transformation' && transformationShowCausePalace && isCausePalace ? 'pr-1 sm:pr-2' : ''}`}>
+      <div className={`relative flex flex-row mb-0 flex-1 justify-start items-start gap-x-0.5 overflow-visible ${((chartType === 'transformation' && transformationShowCausePalace) || (chartType === 'flying' && flyingShowCausePalace)) && isCausePalace ? 'pr-1 sm:pr-2' : ''}`}>
         {/* 主星 + 輔星容器 */}
         <div className="grid grid-cols-[repeat(4,max-content)] auto-rows-max justify-start items-start gap-x-0 gap-y-0 flex-1 min-w-0 sm:flex sm:flex-row sm:flex-wrap">
           {/* 主星 */}
@@ -219,17 +219,6 @@ export function PalaceCard({
         {/* 雜曜獨立容器 */}
         {((chartType === 'flying' && flyingShowMinorStars) || (chartType === 'trireme' && triremeShowMinorStars) || (chartType === 'transformation' && transformationShowMinorStars)) && adjectiveStars.length > 0 && (
           <div className="flex flex-row flex-wrap justify-end items-start content-start gap-x-0 gap-y-0 w-[42px] sm:w-[48px] lg:w-[54px] shrink-0 relative">
-            {/* 身宮標籤 - 與雜曜同容器，超出容器顯示 */}
-            {isBody && chartType !== 'transformation' && (
-              <div className="absolute -top-2 -right-2 pointer-events-none">
-                <div
-                  className="px-0.5 py-0.5 rounded border border-red-500 text-red-500 text-[11px] sm:text-[12px] lg:text-[15px] font-medium bg-white/70"
-                  style={{ writingMode: 'vertical-rl', lineHeight: 1 }}
-                >
-                  {language === 'zh-TW' ? '身宮' : '身宫'}
-                </div>
-              </div>
-            )}
             {adjectiveStars.map((name, i) => (
               <div key={`adj-wrap-${i}`} className={`${STAR_SLOT_WIDTH_CLASS} flex justify-center items-start`}>
                 <StarTag
@@ -253,7 +242,7 @@ export function PalaceCard({
         )}
 
         {/* 來因標籤 - 星耀區右上角 */}
-        {chartType === 'transformation' && transformationShowCausePalace && isCausePalace && (
+        {((chartType === 'transformation' && transformationShowCausePalace) || (chartType === 'flying' && flyingShowCausePalace)) && isCausePalace && (
           <div 
             className="absolute top-0 right-0 h-full flex items-start justify-end pointer-events-none"
           >
@@ -267,6 +256,18 @@ export function PalaceCard({
         )}
 
       </div>
+
+      {/* 身宮標籤 - 卡片中心 */}
+      {isBody && chartType !== 'transformation' && (chartType !== 'flying' || flyingShowBodyPalace) && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+          <div
+            className="px-0.5 py-0.5 rounded border border-red-500 text-red-500 text-[11px] sm:text-[12px] lg:text-[15px] font-medium bg-white/70"
+            style={{ writingMode: 'vertical-rl', lineHeight: 1 }}
+          >
+            {language === 'zh-TW' ? '身宮' : '身宫'}
+          </div>
+        </div>
+      )}
 
       {/* 十二神显示 - 由 i18n.ts 中的定义完全控制显示内容和语言 */}
       {((chartType === 'flying' && flyingShowGods) || (chartType === 'transformation' && transformationShowGods)) && (

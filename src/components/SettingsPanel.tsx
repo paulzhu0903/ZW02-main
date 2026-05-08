@@ -72,28 +72,15 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     language,
     defaultChartType,
     starPlacementMethod,
-    monthlyArrangementMethod,
     // 四化盤面設定
     transformationShowGods,
-    transformationShowDailyMutagen,
-    transformationShowTriremeEnlightenment,
-    transformationUseColorMutagen,
-    transformationShowAnnualAge,
-    transformationShowCentralEightCharacters,
-    transformationShowCentralFixBoard,
     transformationShowCausePalace,
-    transformationHideMinorStars,
     transformationShowMinorStars,
     // 飛星盤面設定
     flyingShowGods,
     flyingShowMinorStars,
     flyingShowBodyPalace,
     flyingShowCausePalace,
-    flyingShowCommandMutagen,
-    flyingShowCentralFixBoard,
-    flyingShowCentralEightCharacters,
-    flyingUseColorMultiArrow,
-    flyingShowTripleQuaternaryLine,
     // 三合盤面設定
     triremeShowStarBrightness,
     triremeShowMinorStars,
@@ -109,28 +96,15 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     setLanguage,
     setDefaultChartType,
     setStarPlacementMethod,
-    setMonthlyArrangementMethod,
     // 四化盤面相關的setter
     setTransformationShowGods,
-    setTransformationShowDailyMutagen,
-    setTransformationShowTriremeEnlightenment,
-    setTransformationUseColorMutagen,
-    setTransformationShowAnnualAge,
-    setTransformationShowCentralEightCharacters,
-    setTransformationShowCentralFixBoard,
     setTransformationShowCausePalace,
-    setTransformationHideMinorStars,
     setTransformationShowMinorStars,
     // 飛星盤面相關的setter
     setFlyingShowGods,
     setFlyingShowMinorStars,
     setFlyingShowBodyPalace,
     setFlyingShowCausePalace,
-    setFlyingShowCommandMutagen,
-    setFlyingShowCentralFixBoard,
-    setFlyingShowCentralEightCharacters,
-    setFlyingUseColorMultiArrow,
-    setFlyingShowTripleQuaternaryLine,
     // 三合盤面相關的setter
     setTriremeShowStarBrightness,
     setTriremeShowMinorStars,
@@ -302,19 +276,6 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             </div>
           </div>
 
-          {/* 3. 排流月 */}
-          <div>
-            <h3 className="text-sm font-medium text-text-secondary mb-2">{t('settings.monthlyArrangement', language)}</h3>
-            <div className="space-y-2">
-              <SettingRadio active={monthlyArrangementMethod === 'yuanYuePositioning'} onClick={() => setMonthlyArrangementMethod('yuanYuePositioning')}>
-                {t('settings.yuanYuePositioning', language)}
-              </SettingRadio>
-              <SettingRadio active={monthlyArrangementMethod === 'douJun'} onClick={() => setMonthlyArrangementMethod('douJun')}>
-                {t('settings.douJun', language)}
-              </SettingRadio>
-            </div>
-          </div>
-
           {/* 安星法 */}
           <div>
             <h3 className="text-sm font-medium text-text-secondary mb-2">{t('settings.starPlacement', language)}</h3>
@@ -331,31 +292,39 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             </div>
           </div>
         </div>
- {/* 右側欄：各盤面詳細設定 */}
+
+    {/* 右側欄：各盤面詳細設定 */}
       <div className="space-y-4">
-        <div className="border-t border-white/10 pt-3 space-y-4">
-          {/* 四化盤面設定 */}
-          <div>
+        <div className="border-t border-white/10 pt-1 space-y-4">
+
+        {/* 中宮顯示設定 */}
+        <div>
+          <h3 className="text-sm font-medium text-text-secondary mb-2">{language === 'zh-TW' ? '中宮顯示' : '中宫显示'}</h3>
+          <div className="space-y-2">
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <div
+                className={`w-10 h-6 rounded-full relative transition-colors ${showCenterInfo ? 'bg-star' : 'bg-white/10'}`}
+                onClick={() => setShowCenterInfo(!showCenterInfo)}
+              >
+                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${showCenterInfo ? 'left-5' : 'left-1'}`} />
+              </div>
+              <span className="text-sm text-text-secondary group-hover:text-text transition-colors">
+                {language === 'zh-TW' ? '顯示中宮資訊' : '显示中宫信息'}
+              </span>
+            </label>
+          </div>
+        </div>
+
+        {/* 四化盤面設定 */}
+        <div>
             <h3 className="text-sm font-medium text-text-secondary mb-2">{t('settings.transformation', language)}</h3>
             <div className="space-y-2">
               <SettingToggle checked={transformationShowGods} onChange={() => setTransformationShowGods(!transformationShowGods)}>
                 {t('settings.showGods', language)}
               </SettingToggle>
 
-              <SettingToggle checked={transformationUseColorMutagen} onChange={() => setTransformationUseColorMutagen(!transformationUseColorMutagen)}>
-                {t('settings.useColorMutagen', language)}
-              </SettingToggle>
-              
-              <SettingToggle checked={transformationShowAnnualAge} onChange={() => setTransformationShowAnnualAge(!transformationShowAnnualAge)}>
-                {t('settings.showAnnualAge', language)}
-              </SettingToggle>
-
-              <SettingToggle checked={transformationShowTriremeEnlightenment} onChange={() => setTransformationShowTriremeEnlightenment(!transformationShowTriremeEnlightenment)}>
-                {t('settings.showTriremeEnlightenment', language)}
-              </SettingToggle>
-
-              <SettingToggle checked={transformationShowCentralFixBoard} onChange={() => setTransformationShowCentralFixBoard(!transformationShowCentralFixBoard)}>
-                {t('settings.showCentralFixBoard', language)}
+              <SettingToggle checked={transformationShowMinorStars} onChange={() => setTransformationShowMinorStars(!transformationShowMinorStars)}>
+                {t('settings.showMinorStars', language)}
               </SettingToggle>
 
               <SettingToggle checked={transformationShowCausePalace} onChange={() => setTransformationShowCausePalace(!transformationShowCausePalace)}>
@@ -368,6 +337,8 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
             </div>
           </div>
+
+     
 
           {/* 飛星盤面設定 */}
           <div>
@@ -387,21 +358,6 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
               <SettingToggle checked={flyingShowCausePalace} onChange={() => setFlyingShowCausePalace(!flyingShowCausePalace)}>
                 {t('settings.showCausePalace', language)}
-              </SettingToggle>
-              <SettingToggle checked={flyingShowCommandMutagen} onChange={() => setFlyingShowCommandMutagen(!flyingShowCommandMutagen)}>
-                {t('settings.showCommandMutagen', language)}
-              </SettingToggle>
-              <SettingToggle checked={flyingShowCentralFixBoard} onChange={() => setFlyingShowCentralFixBoard(!flyingShowCentralFixBoard)}>
-                {t('settings.showCentralFixBoard', language)}
-              </SettingToggle>
-              <SettingToggle checked={flyingShowCentralEightCharacters} onChange={() => setFlyingShowCentralEightCharacters(!flyingShowCentralEightCharacters)}>
-                {t('settings.showCentralEightCharacters', language)}
-              </SettingToggle>
-              <SettingToggle checked={flyingUseColorMultiArrow} onChange={() => setFlyingUseColorMultiArrow(!flyingUseColorMultiArrow)}>
-                {t('settings.useColorMultiArrow', language)}
-              </SettingToggle>
-              <SettingToggle checked={flyingShowTripleQuaternaryLine} onChange={() => setFlyingShowTripleQuaternaryLine(!flyingShowTripleQuaternaryLine)}>
-                {t('settings.showTripleQuaternaryLine', language)}
               </SettingToggle>
             </div>
           </div>
@@ -452,23 +408,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           </div>
         </div>
 
-        {/* 中宮顯示設定 */}
-        <div className="border-t border-white/10 pt-3 space-y-3">
-          <h3 className="text-sm font-medium text-text-secondary mb-2">{language === 'zh-TW' ? '中宮顯示' : '中宫显示'}</h3>
-          <div className="space-y-2">
-            <label className="flex items-center gap-3 cursor-pointer group">
-              <div
-                className={`w-10 h-6 rounded-full relative transition-colors ${showCenterInfo ? 'bg-star' : 'bg-white/10'}`}
-                onClick={() => setShowCenterInfo(!showCenterInfo)}
-              >
-                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${showCenterInfo ? 'left-5' : 'left-1'}`} />
-              </div>
-              <span className="text-sm text-text-secondary group-hover:text-text transition-colors">
-                {language === 'zh-TW' ? '顯示中宮資訊' : '显示中宫信息'}
-              </span>
-            </label>
-          </div>
-        </div>
+        
 
         {/* AI 提供廠商 */}
         <div className="border-t border-white/10 pt-3 space-y-3">

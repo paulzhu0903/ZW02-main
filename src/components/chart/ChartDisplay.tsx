@@ -494,7 +494,7 @@ export function ChartDisplay() {
                   const cardTop = cardRect.top - gridRect.top
                   const cardBottom = cardRect.bottom - gridRect.top
                   const arrowLength = isCompactMobile ? 7 : 10 // 箭頭長度
-                  const arrowExtension = 2 * arrowLength
+                  const arrowExtension = 1.5 * arrowLength
                   
                   const starCenterX = starRect.left - gridRect.left + starRect.width / 2
                   const starTop = starRect.top - gridRect.top
@@ -513,7 +513,7 @@ export function ChartDisplay() {
                   } else if (fromPalacePos.row === 0) {
                     // 上排：從star頂部垂直向上到card邊界外延伸（直接用cardTop）
                     line1X1 = starCenterX
-                    line1Y1 = starTop
+                    line1Y1 = starTop+ 0.5 * arrowLength
                     line1X2 = starCenterX
                     line1Y2 = cardTop - arrowExtension
                   } else if (fromPalacePos.col === 0) {
@@ -815,11 +815,10 @@ export function ChartDisplay() {
         {grid[3].map((p, c) => renderPalace(p, `3-${c}`))}
       </div>
 
-      {/* 盤面类型切换按钮 - 移到盘面下方 */}
-      <div className="mt-4 sm:mt-10 mb-2 sm:mb-3 w-full px-0.5 sm:px-0">
+      {/* 盤面类型切换按钮 - 盘面下方 */}
+      <div className="mt-4 sm:mt-10 mb-0 sm:mb-3 w-full px-0.5 sm:px-0">
         <div className="flex items-center justify-between gap-1 sm:gap-3 w-full min-w-max">
         {/* 第一部分：盤面類型按鈕（左邊） */}
-        {/* 選擇盤面之後 prompt 會隨著改變 */}
         <div className="flex flex-nowrap justify-start gap-1 sm:gap-1.5 items-center shrink-0">
           {[
             { value: 'flying', label: '飛星' },
@@ -834,7 +833,7 @@ export function ChartDisplay() {
                 setBubblePalace(null) // 切換盤型時自動關閉 bubble hint
               }}
               className={`
-                h-6 sm:h-7 px-2 sm:px-3 rounded-md sm:rounded-lg font-medium transition-all duration-200 text-[10px] sm:text-[13px] whitespace-nowrap inline-flex items-center justify-center shrink-0
+                h-5 sm:h-6 px-2 sm:px-3 rounded-md sm:rounded-lg font-medium transition-all duration-200 text-[10px] sm:text-[13px] whitespace-nowrap inline-flex items-center justify-center shrink-0
                 ${chartType === item.value
                   ? 'bg-star text-white shadow-lg'
                   : 'bg-white/[0.05] text-text-secondary hover:bg-white/[0.1]'
@@ -856,7 +855,7 @@ export function ChartDisplay() {
               setIsDecadalExpanded(!isDecadalExpanded)
               setBubblePalace(null) // 展開/收合時自動關閉 bubble hint
             }}
-            className="rounded-md sm:rounded-lg font-medium transition-all bg-star text-white hover:bg-star-light shadow-lg flex items-center justify-center w-7 h-6 sm:w-7 sm:h-7 shrink-0"
+            className="rounded-md sm:rounded-lg font-medium transition-all bg-star text-white hover:bg-star-light shadow-lg flex items-center justify-center w-7 h-5 sm:w-7 sm:h-7 shrink-0"
           >
             {isDecadalExpanded ? (
               <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" stroke="currentColor" fill="none" viewBox="0 0 24 24" strokeWidth="2.5">

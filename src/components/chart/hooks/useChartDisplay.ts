@@ -67,6 +67,7 @@ export function useChartDisplay(
   chart: FunctionalAstrolabe | null,
   birthInfo: BirthInfo | null,
   defaultChartType: 'flying' | 'trireme' | 'transformation',
+  _monthlyArrangementMethod?: 'yuanYuePositioning' | 'douJun',
 ) {
   const [selectedPalace, setSelectedPalace] = useState<string | null>(null)
   const [chartType, setChartType] = useState<'flying' | 'trireme' | 'transformation'>(defaultChartType)

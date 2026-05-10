@@ -65,7 +65,9 @@ export function CenterInfo({ chart, solarDate, birthTime, birthInfo, gender, lan
   }
 
   return (
-    <div className="
+    <div 
+      data-centerinfo
+      className="
       relative h-full min-h-[260px] sm:min-h-[320px] lg:min-h-[400px] p-2 sm:p-3 lg:p-4
       flex flex-col items-center justify-start
       bg-gradient-to-br from-white/[0.08] via-white/[0.04] to-transparent

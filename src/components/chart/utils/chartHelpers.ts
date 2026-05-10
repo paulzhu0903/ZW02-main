@@ -41,6 +41,7 @@ export function getMonthlySequenceByBranch(
   selectedAnnual: number | null,
   selectedAnnualGanZhi: string | null,
   selectedAnnualYear: number | null,
+  _monthlyArrangementMethod?: 'yuanYuePositioning' | 'douJun',
 ): Record<string, string[]> {
   if (selectedDecadal === null || selectedAnnual === null || !selectedAnnualGanZhi || selectedAnnualYear === null) return {}
 
@@ -61,7 +62,6 @@ export function getMonthlySequenceByBranch(
     
     // 使用斗君法
     const monthlyIndex = normalizeIndex(yearlyIndex - birthLunarMonth + birthTimeBranchIndex + lunarMonth)
-    
     const targetPalace = palaceData.find((palace) => (PALACE_BRANCH_INDEX[palace.branch] ?? -1) === monthlyIndex)
 
     if (targetPalace) {

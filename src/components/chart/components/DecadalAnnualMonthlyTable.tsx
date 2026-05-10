@@ -2,7 +2,7 @@
  * 大限-流年-流月-流日-流時表格組件（支持展開/收闔）
  */
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { getYearGanZhi, DISPLAY_MONTH_NAMES, EARTHLY_BRANCH_ORDER, CHINESE_DAY_NAMES, SHICHEN_NAMES } from '../utils/lunar'
 import { getMonthlyGan } from '../utils/lunar'
 import type { DecadalAnnualMonthlyTableProps } from '../types'
@@ -44,10 +44,13 @@ export function DecadalAnnualMonthlyTable({
   const [internalSelectedHourly, internalSetSelectedHourly] = useState<number | null>(null)
   const selectedHourly = externalSelectedHourly !== undefined ? externalSelectedHourly : internalSelectedHourly
   const setSelectedHourly = externalSetSelectedHourly || internalSetSelectedHourly
+  const PAGE_SIZE = 10
   const [dailyScrollOffset, setDailyScrollOffset] = useState(0)
-  const [needsScrollSpacer, setNeedsScrollSpacer] = useState(false)
-  const [annualYearsToShow, setAnnualYearsToShow] = useState(10) // 显示10个流年年份
-  const tableWrapRef = useRef<HTMLDivElement>(null)
+  const [decadalScrollOffset, setDecadalScrollOffset] = useState(0)
+  const [annualScrollOffset, setAnnualScrollOffset] = useState(0)
+  const [monthlyScrollOffset, setMonthlyScrollOffset] = useState(0)
+  const [hourlyScrollOffset, setHourlyScrollOffset] = useState(0)
+  const annualYearsToShow = 10 // 显示10个流年年份
   
   // 當選擇新月份時，重置流日窗口位置
   const handleSetSelectedMonthly = (index: number | null) => {
@@ -59,6 +62,7 @@ export function DecadalAnnualMonthlyTable({
       setSelectedDaily(null)
       setSelectedHourly(null)
     }
+    setHourlyScrollOffset(0)
     setDailyScrollOffset(0)
   }
   
@@ -94,75 +98,76 @@ export function DecadalAnnualMonthlyTable({
   const annualData = getAnnualData()
 
   useEffect(() => {
-    const updateScrollSpacer = () => {
-      const root = tableWrapRef.current
-      if (!root) return
-
-      // 所有设备都显示10个流年
-      setAnnualYearsToShow(10)
-
-      const scrollAreas = Array.from(root.querySelectorAll<HTMLElement>('[data-scroll-area="true"]'))
-      const hasOverflow = scrollAreas.some((el) => el.scrollWidth > el.clientWidth + 1)
-      setNeedsScrollSpacer(hasOverflow)
-    }
-
-    const frameId = window.requestAnimationFrame(updateScrollSpacer)
-    window.addEventListener('resize', updateScrollSpacer)
-
-    return () => {
-      window.cancelAnimationFrame(frameId)
-      window.removeEventListener('resize', updateScrollSpacer)
-    }
-  }, [isExpanded, selectedDecadal, selectedAnnual, selectedMonthly, dailyScrollOffset, palaceData])
-
-  useEffect(() => {
     if (selectedMonthly === null || selectedDaily === null) return
 
-    const pageSize = 10
-    const maxOffset = Math.max(0, CHINESE_DAY_NAMES.length - pageSize)
-    const targetOffset = Math.min(Math.floor(selectedDaily / pageSize) * pageSize, maxOffset)
+    const maxOffset = Math.max(0, CHINESE_DAY_NAMES.length - PAGE_SIZE)
+    const targetOffset = Math.min(Math.floor(selectedDaily / PAGE_SIZE) * PAGE_SIZE, maxOffset)
 
     if (dailyScrollOffset !== targetOffset) {
       setDailyScrollOffset(targetOffset)
     }
-  }, [selectedMonthly, selectedDaily, dailyScrollOffset])
+  }, [selectedMonthly, selectedDaily, dailyScrollOffset, PAGE_SIZE])
 
   const rowClass = 'flex items-stretch gap-0 leading-none'
-  const rowLabelClass = 'shrink-0 flex items-center justify-center px-1 py-0.5 sm:px-1.5 sm:py-0 text-[8px] sm:text-[12px] lg:text-[16px] text-text-muted font-medium leading-tight bg-[#f5f5f7] min-w-[18px] sm:min-w-[40px] border border-white/[0.12] rounded-sm whitespace-nowrap'
-  const scrollAreaClass = `flex-1 min-w-0 overflow-x-auto overflow-y-hidden [-webkit-overflow-scrolling:touch] ${needsScrollSpacer ? 'pb-1 sm:pb-1.5' : 'pb-0'}`
-  const scrollTableClass = 'w-full min-w-full text-[8px] sm:text-[12px] lg:text-[16px] leading-tight table-fixed border-collapse border border-white/[0.12]'
-  const arrowButtonClass = 'px-0.5 py-0.5 sm:px-1.5 sm:py-1 rounded-md sm:rounded-lg transition-all bg-white/[0.05] text-text-secondary hover:bg-white/[0.1] disabled:opacity-50 disabled:cursor-not-allowed min-w-5 h-5 sm:min-w-7 sm:h-7 text-[10px] sm:text-base'
+  const rowLabelClass = 'flex items-center justify-center px-1 py-1 sm:px-1 sm:py-1 text-[10px] sm:text-[12px] lg:text-[16px] text-text-muted font-medium leading-tight bg-[#f5f5f7] min-w-[18px] sm:min-w-[40px] border border-gray-500/[0.12] rounded-sm whitespace-nowrap'
+  const tableWrapClass = 'overflow-hidden flex-1 min-w-0'
+  const scrollTableClass = 'w-full min-w-full text-[10px] sm:text-[12px] lg:text-[16px] leading-tight table-fixed border-collapse border border-gray-500/[0.12]'
+  const arrowButtonClass = 'self-center px-0 py-0.5 sm:px-0 sm:py-0.5 rounded-md sm:rounded-lg transition-all bg-white/[0.05] text-text-secondary hover:bg-white/[0.1] disabled:opacity-50 disabled:cursor-not-allowed w-3 h-5 sm:w-3 sm:h-6 text-[10px] sm:text-sm'
+  const tableCellClass = 'relative z-0 h-[30px] sm:h-[36px] lg:h-[42px] px-0.5 sm:px-1 text-center cursor-pointer transition-colors border-r border-gray-500/[0.12] whitespace-nowrap align-middle'
+  const tableCellInnerClass = 'h-full w-full rounded-[3px] px-0.5 py-0 sm:px-1 sm:py-0.5 flex flex-col items-center justify-center gap-0 leading-tight'
 
-  const renderScrollRow = (label: string, cells: any) => (
-    <div className={rowClass}>
-      <div className={rowLabelClass}>{label}</div>
-      <div
-        className={scrollAreaClass}
-        data-scroll-area="true"
-        style={{ scrollbarGutter: needsScrollSpacer ? 'stable' : 'auto' }}
-      >
-        <table className={scrollTableClass}>
-          <tbody>
-            <tr className="border-b border-white/[0.12]">{cells}</tr>
-          </tbody>
-        </table>
+  const renderPagedRow = (label: string, cells: any[], offset: number, setOffset: (value: number) => void) => {
+    const maxOffset = Math.max(0, cells.length - PAGE_SIZE)
+    const safeOffset = Math.min(offset, maxOffset)
+    const visibleCells = cells.slice(safeOffset, safeOffset + PAGE_SIZE)
+    const emptyCount = Math.max(0, PAGE_SIZE - visibleCells.length)
+
+    return (
+      <div className={rowClass}>
+        <div className={rowLabelClass}>{label}</div>
+
+        <button
+          onClick={() => setOffset(Math.max(0, safeOffset - 1))}
+          disabled={safeOffset === 0}
+          className={arrowButtonClass}
+        >
+          &lt;
+        </button>
+
+        <div className={tableWrapClass}>
+          <table className={scrollTableClass}>
+            <tbody>
+              <tr className="border-b border-gray-500/[0.12]">
+                {visibleCells}
+                {Array.from({ length: emptyCount }, (_, i) => (
+                  <td key={`empty-${label}-${i}`} className={tableCellClass} />
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <button
+          onClick={() => setOffset(Math.min(maxOffset, safeOffset + 1))}
+          disabled={safeOffset >= maxOffset}
+          className={arrowButtonClass}
+        >
+          &gt;
+        </button>
       </div>
-    </div>
-  )
+    )
+  }
 
   return (
-    <div ref={tableWrapRef} className="pt-px border-t border-white/[0.06]">
-      <div className="px-0.5 pb-1 text-[10px] text-text-muted sm:hidden">
-        大限 流年 月日表
-      </div>
+    <div className="pt-px border-t border-gray-500/[0.06] -mx-1 sm:-mx-2 lg:-mx-3">
 
       {/* 展開模式：完整表格 */}
       {isExpanded && (
         <div className="space-y-0">
-          {renderScrollRow('大限', decadalData.map((item, i) => (
+          {renderPagedRow('大限', decadalData.map((item, i) => (
             <td 
               key={i} 
-              className={`relative z-0 px-0 py-0.5 sm:px-1.5 sm:py-1.5 text-center cursor-pointer transition-colors border-r border-white/[0.12] font-medium text-[7px] sm:text-[12px] lg:text-[16px] min-w-[44px] sm:min-w-[64px] ${
+              className={`${tableCellClass} font-medium text-[9px] sm:text-[12px] lg:text-[16px] ${
                 selectedDecadal === i 
                   ? 'bg-white/[0.01] text-star-light' 
                   : 'bg-white/[0.01] text-text-secondary hover:bg-white/[0.05]'
@@ -174,6 +179,9 @@ export function DecadalAnnualMonthlyTable({
                   setSelectedMonthly(null)
                   setSelectedDaily(null)
                   setSelectedHourly(null)
+                  setAnnualScrollOffset(0)
+                  setMonthlyScrollOffset(0)
+                  setHourlyScrollOffset(0)
                   setDailyScrollOffset(0)
                   return
                 }
@@ -183,24 +191,27 @@ export function DecadalAnnualMonthlyTable({
                 setSelectedMonthly(null)
                 setSelectedDaily(null)
                 setSelectedHourly(null)
+                setAnnualScrollOffset(0)
+                setMonthlyScrollOffset(0)
+                setHourlyScrollOffset(0)
                 setDailyScrollOffset(0)
               }}
             >
-              <div className={`flex flex-col items-center gap-px leading-tight rounded-[2px] px-0.5 py-0 sm:px-1.5 sm:py-0.5 ${selectedDecadal === i ? 'bg-star/20' : ''}`}>
-                <div className="whitespace-nowrap">
+              <div className={`${tableCellInnerClass} rounded-[2px] ${selectedDecadal === i ? 'bg-star/20' : ''}`}>
+                <div className="whitespace-nowrap text-[9px] sm:text-[12px]">
                   {item.ageStart}~{item.ageEnd}
                 </div>
-                <div className="text-[7px] sm:text-[12px] text-text-muted whitespace-nowrap">
+                <div className="whitespace-nowrap text-[9px] sm:text-[10px] text-text-muted">
                   {item.stem}{item.branch}限
                 </div>
               </div>
             </td>
-          )))}
+          )), decadalScrollOffset, setDecadalScrollOffset)}
 
-          {selectedDecadal !== null && annualData.length > 0 && renderScrollRow('流年', annualData.map((item, i) => (
+          {selectedDecadal !== null && annualData.length > 0 && renderPagedRow('流年', annualData.map((item, i) => (
             <td 
               key={i} 
-              className={`relative z-0 px-0 py-0.5 sm:px-1.5 sm:py-1.5 text-center cursor-pointer transition-colors border-r border-white/[0.12] font-medium text-[7px] sm:text-[12px] lg:text-[16px] min-w-[54px] sm:min-w-[72px] ${
+              className={`${tableCellClass} font-medium text-[9px] sm:text-[12px] lg:text-[16px] ${
                 selectedAnnual === i 
                   ? 'bg-white/[0.01] text-fortune' 
                   : 'bg-white/[0.01] text-text-secondary hover:bg-white/[0.05]'
@@ -211,26 +222,29 @@ export function DecadalAnnualMonthlyTable({
                   setSelectedMonthly(null)
                   setSelectedDaily(null)
                   setSelectedHourly(null)
+                  setMonthlyScrollOffset(0)
+                  setHourlyScrollOffset(0)
                   setDailyScrollOffset(0)
                   return
                 }
 
                 setSelectedAnnual(i)
+                setMonthlyScrollOffset(0)
                 handleSetSelectedMonthly(null)
               }}
             >
-              <div className={`flex flex-col items-center gap-0 leading-tight rounded-[2px] px-1 py-0.5 sm:px-1.5 sm:py-1 ${selectedAnnual === i ? 'bg-fortune/20' : ''}`}>
-                <div className="whitespace-nowrap text-[7px] sm:text-[12px]">
+              <div className={`${tableCellInnerClass} rounded-[2px] ${selectedAnnual === i ? 'bg-fortune/20' : ''}`}>
+                <div className="whitespace-nowrap text-[9px] sm:text-[12px]">
                   {item.year}年
                 </div>
-                <div className="text-[7px] sm:text-[10px] text-text-muted whitespace-nowrap">
+                <div className="text-[9px] sm:text-[10px] text-text-muted whitespace-nowrap">
                   {getYearGanZhi(item.year)}{item.age}歲
                 </div>
               </div>
             </td>
-          )))}
+          )), annualScrollOffset, setAnnualScrollOffset)}
 
-          {selectedAnnual !== null && renderScrollRow('流月', monthNames.map((month, i) => {
+          {selectedAnnual !== null && renderPagedRow('流月', monthNames.map((month, i) => {
             const monthIndex = i + 1
             // 獲取當前流年的年份
             const currentYear = annualData[selectedAnnual]?.year
@@ -248,7 +262,7 @@ export function DecadalAnnualMonthlyTable({
             return (
             <td 
               key={i} 
-              className={`relative z-0 px-0 py-0.5 sm:px-1.5 sm:py-2 text-center cursor-pointer transition-colors border-r border-white/[0.12] font-medium text-[10px] sm:text-[12px] lg:text-[16px] min-w-[38px] sm:min-w-[48px] ${
+              className={`${tableCellClass} font-medium text-[12px] sm:text-[12px] lg:text-[16px] ${
                 selectedMonthly === i 
                   ? 'bg-white/[0.01] text-gold' 
                   : 'bg-white/[0.01] text-text-secondary hover:bg-white/[0.05]'
@@ -257,17 +271,17 @@ export function DecadalAnnualMonthlyTable({
                 handleSetSelectedMonthly(selectedMonthly === i ? null : i)
               }}
             >
-              <div className={`rounded-[4px] px-1 py-0.5 sm:px-1.5 sm:py-0.5 flex flex-col items-center gap-0 leading-tight ${selectedMonthly === i ? 'bg-gold/20' : ''}`}>
-                <div className="text-[8px] sm:text-[9px] lg:text-[10px]">{getDisplayMonth(month)}月</div>
+              <div className={`${tableCellInnerClass} ${selectedMonthly === i ? 'bg-gold/20' : ''}`}>
+                <div className="text-[10px] sm:text-[9px] lg:text-[10px]">{getDisplayMonth(month)}月</div>
                 {monthlyGanZhi && (
-                  <div className="text-[8px] sm:text-[9px] lg:text-[10px] text-text-muted">
+                  <div className="text-[10px] sm:text-[9px] lg:text-[10px] text-text-muted">
                     {monthlyGanZhi}
                   </div>
                 )}
               </div>
             </td>
             )
-          }))}
+          }), monthlyScrollOffset, setMonthlyScrollOffset)}
 
           {/* 流日表格 - 使用左右箭頭控制 */}
           {selectedMonthly !== null && (
@@ -275,25 +289,29 @@ export function DecadalAnnualMonthlyTable({
               <div className={rowLabelClass}>流日</div>
 
               <button
-                onClick={() => setDailyScrollOffset(Math.max(0, dailyScrollOffset - 1))}
+                onClick={() => {
+                  setSelectedDaily(null)
+                  setSelectedHourly(null)
+                  setDailyScrollOffset(Math.max(0, dailyScrollOffset - PAGE_SIZE))
+                }}
                 disabled={dailyScrollOffset === 0}
                 className={arrowButtonClass}
               >
                 &lt;
               </button>
 
-              <div className="overflow-hidden flex-1 min-w-0">
+              <div className={tableWrapClass}>
                 <table className={scrollTableClass}>
                   <tbody>
-                    <tr className="border-b border-white/[0.12]">
-                      {Array.from({ length: 10 }, (_, i) => {
+                    <tr className="border-b border-gray-500/[0.12]">
+                      {Array.from({ length: PAGE_SIZE }, (_, i) => {
                         const dayIndex = dailyScrollOffset + i
                         if (dayIndex >= 30) return null
                         const dayLabel = CHINESE_DAY_NAMES[dayIndex]
                         return (
                           <td 
                             key={dayIndex} 
-                            className={`relative z-0 px-0 py-1 sm:px-1.5 sm:py-2 text-center cursor-pointer transition-colors font-medium text-[8px] sm:text-[12px] lg:text-[16px] min-w-[30px] sm:min-w-[52px] border-r border-white/[0.12] whitespace-nowrap ${
+                            className={`${tableCellClass} font-medium text-[10px] sm:text-[12px] lg:text-[16px] ${
                               selectedDaily === dayIndex 
                                 ? 'bg-white/[0.01] text-star-light' 
                                 : 'bg-white/[0.01] text-text-secondary hover:bg-white/[0.05]'
@@ -308,7 +326,7 @@ export function DecadalAnnualMonthlyTable({
                               }
                             }}
                           >
-                            <div className={`whitespace-nowrap rounded-[4px] px-1 py-0 sm:px-1.5 sm:py-0.5 ${selectedDaily === dayIndex ? 'bg-star-light/20' : ''}`}>
+                            <div className={`${tableCellInnerClass} ${selectedDaily === dayIndex ? 'bg-star-light/20' : ''}`}>
                               {dayLabel}
                             </div>
                           </td>
@@ -320,7 +338,11 @@ export function DecadalAnnualMonthlyTable({
               </div>
 
               <button
-                onClick={() => setDailyScrollOffset(Math.min(20, dailyScrollOffset + 1))}
+                onClick={() => {
+                  setSelectedDaily(null)
+                  setSelectedHourly(null)
+                  setDailyScrollOffset(Math.min(20, dailyScrollOffset + PAGE_SIZE))
+                }}
                 disabled={dailyScrollOffset >= 20}
                 className={arrowButtonClass}
               >
@@ -329,10 +351,10 @@ export function DecadalAnnualMonthlyTable({
             </div>
           )}
 
-          {selectedMonthly !== null && selectedDaily !== null && renderScrollRow('流時', shichen.map((time, i) => (
+          {selectedMonthly !== null && selectedDaily !== null && renderPagedRow('流時', shichen.map((time, i) => (
             <td 
               key={i} 
-              className={`relative z-0 px-0 py-1 sm:px-1.5 sm:py-2 text-center cursor-pointer transition-colors border-r border-white/[0.12] font-medium text-[8px] sm:text-[12px] lg:text-[16px] whitespace-nowrap min-w-[30px] sm:min-w-[52px] ${
+              className={`${tableCellClass} font-medium text-[10px] sm:text-[12px] lg:text-[16px] ${
                 selectedHourly === i
                   ? 'bg-white/[0.01] text-gold'
                   : 'bg-white/[0.01] text-text-secondary hover:bg-white/[0.05]'
@@ -345,21 +367,21 @@ export function DecadalAnnualMonthlyTable({
                 }
               }}
             >
-              <div className={`whitespace-nowrap rounded-[4px] px-1 py-0 sm:px-1.5 sm:py-0.5 ${selectedHourly === i ? 'bg-gold/20' : ''}`}>
+              <div className={`${tableCellInnerClass} ${selectedHourly === i ? 'bg-gold/20' : ''}`}>
                 {time}
               </div>
             </td>
-          )))}
+          )), hourlyScrollOffset, setHourlyScrollOffset)}
         </div>
       )}
 
       {/* 收闔模式：只顯示大限及流年表格 */}
       {!isExpanded && (
         <div className="space-y-0">
-          {renderScrollRow('大限', decadalData.map((item, i) => (
+          {renderPagedRow('大限', decadalData.map((item, i) => (
             <td 
               key={i} 
-              className={`relative z-0 px-1 py-1 sm:px-1.5 sm:py-1.5 text-center cursor-pointer transition-colors border-r border-white/[0.12] font-mono text-[10px] sm:text-[12px] lg:text-[16px] min-w-[50px] sm:min-w-[64px] ${
+              className={`${tableCellClass} font-medium text-[9px] sm:text-[12px] lg:text-[16px] ${
                 selectedDecadal === i 
                   ? 'bg-white/[0.01] text-star-light' 
                   : 'bg-white/[0.01] text-text-secondary hover:bg-white/[0.05]'
@@ -371,6 +393,9 @@ export function DecadalAnnualMonthlyTable({
                   setSelectedMonthly(null)
                   setSelectedDaily(null)
                   setSelectedHourly(null)
+                  setAnnualScrollOffset(0)
+                  setMonthlyScrollOffset(0)
+                  setHourlyScrollOffset(0)
                   setDailyScrollOffset(0)
                   return
                 }
@@ -380,24 +405,27 @@ export function DecadalAnnualMonthlyTable({
                 setSelectedMonthly(null)
                 setSelectedDaily(null)
                 setSelectedHourly(null)
+                setAnnualScrollOffset(0)
+                setMonthlyScrollOffset(0)
+                setHourlyScrollOffset(0)
                 setDailyScrollOffset(0)
               }}
             >
-              <div className={`flex flex-col items-center gap-0 leading-tight rounded-[4px] px-1 py-0.5 sm:px-1.5 sm:py-1 ${selectedDecadal === i ? 'bg-star/20' : ''}`}>
-                <div className="whitespace-nowrap text-[7px] sm:text-[12px]">
+              <div className={`${tableCellInnerClass} ${selectedDecadal === i ? 'bg-star/20' : ''}`}>
+                <div className="whitespace-nowrap text-[9px] sm:text-[12px]">
                   {item.ageStart}~{item.ageEnd}
                 </div>
-                <div className="text-[6.5px] sm:text-[10px] text-text-muted whitespace-nowrap">
+                <div className="whitespace-nowrap text-[9px] sm:text-[10px] text-text-muted">
                   {item.stem}{item.branch}限
                 </div>
               </div>
             </td>
-          )))}
+          )), decadalScrollOffset, setDecadalScrollOffset)}
 
-          {selectedDecadal !== null && annualData.length > 0 && renderScrollRow('流年', annualData.map((item, i) => (
+          {selectedDecadal !== null && annualData.length > 0 && renderPagedRow('流年', annualData.map((item, i) => (
             <td 
               key={i} 
-              className={`relative z-0 px-1 py-1 sm:px-1.5 sm:py-1.5 text-center cursor-pointer transition-colors border-r border-white/[0.12] font-mono text-[10px] sm:text-[12px] lg:text-[16px] min-w-[54px] sm:min-w-[72px] ${
+              className={`${tableCellClass} font-medium text-[9px] sm:text-[12px] lg:text-[16px] ${
                 selectedAnnual === i 
                   ? 'bg-white/[0.01] text-fortune' 
                   : 'bg-white/[0.01] text-text-secondary hover:bg-white/[0.05]'
@@ -408,27 +436,31 @@ export function DecadalAnnualMonthlyTable({
                   setSelectedMonthly(null)
                   setSelectedDaily(null)
                   setSelectedHourly(null)
+                  setMonthlyScrollOffset(0)
+                  setHourlyScrollOffset(0)
                   setDailyScrollOffset(0)
                   return
                 }
 
                 setSelectedAnnual(i)
+                setMonthlyScrollOffset(0)
                 setSelectedMonthly(null)
                 setSelectedDaily(null)
                 setSelectedHourly(null)
+                setHourlyScrollOffset(0)
                 setDailyScrollOffset(0)
               }}
             >
-              <div className={`flex flex-col items-center gap-0 leading-tight rounded-[4px] px-1 py-0.5 sm:px-1.5 sm:py-1 ${selectedAnnual === i ? 'bg-fortune/20' : ''}`}>
-                <div className="whitespace-nowrap text-[7px] sm:text-[12px]">
+              <div className={`${tableCellInnerClass} ${selectedAnnual === i ? 'bg-fortune/20' : ''}`}>
+                <div className="whitespace-nowrap text-[9px] sm:text-[12px]">
                   {item.year}年
                 </div>
-                <div className="text-[6.5px] sm:text-[10px] text-text-muted whitespace-nowrap">
+                <div className="text-[9px] sm:text-[10px] text-text-muted whitespace-nowrap">
                   {getYearGanZhi(item.year)}{item.age}歲
                 </div>
               </div>
             </td>
-          )))}
+          )), annualScrollOffset, setAnnualScrollOffset)}
         </div>
       )}
     </div>

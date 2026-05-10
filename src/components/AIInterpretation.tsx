@@ -172,6 +172,32 @@ export function AIInterpretation() {
   }
 
   /**
+   * 遞迴轉換指標中「輔星及雜曜」欄位的英文字段為中文，
+   * 確保 prompt 預覽不出現 name/type/scope 等英文參數名。
+   */
+  const normalizeHelperStarsInIndicators = (data: any): any => {
+    if (Array.isArray(data)) {
+      return data.map(item => normalizeHelperStarsInIndicators(item))
+    }
+
+    if (!data || typeof data !== 'object') {
+      return data
+    }
+
+    const result: Record<string, any> = {}
+
+    Object.entries(data).forEach(([key, value]) => {
+      if (key === '輔星及雜曜' && Array.isArray(value)) {
+        result[key] = convertHelperStarsToChineseFields(value)
+        return
+      }
+      result[key] = normalizeHelperStarsInIndicators(value)
+    })
+
+    return result
+  }
+
+  /**
    * 為三合派轉換指標 JSON 格式
    * 從標準指標轉換為三合派所需的星曜清單與廟旺狀態
    */
@@ -309,7 +335,8 @@ export function AIInterpretation() {
       indicatorsData = convertToTripleHarmonyFormat(indicators, chart, language)
     }
 
-    const indicatorsJson = JSON.stringify(indicatorsData, null, 2)
+    const normalizedIndicatorsData = normalizeHelperStarsInIndicators(indicatorsData)
+    const indicatorsJson = JSON.stringify(normalizedIndicatorsData, null, 2)
     const contextStr = buildPromptContext(knowledge, language)
 
     const promptChartType = mapUIChartTypeToPromptChartType(currentChartType)

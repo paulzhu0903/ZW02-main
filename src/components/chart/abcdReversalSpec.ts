@@ -7,11 +7,7 @@ import type { MutagenLine } from './types'
 
 export type ABCDCode = 'A' | 'B' | 'C' | 'D'
 export type ReversalSeverity = 'weak' | 'medium' | 'strong'
-export type ReversalMechanism =
-  | 'gainThenLoss'
-  | 'counterpartyConflict'
-  | 'centrifugalDissipation'
-  | 'mixed'
+export type ReversalMechanism = 'crossPalaceBidirectional'
 
 export interface ReversalEvidence {
   ingressLine: MutagenLine
@@ -77,96 +73,22 @@ const REVERSAL_TITLE_MAP = {
 
 const MECHANISM_TEXT_MAP = {
   'zh-TW': {
-    gainThenLoss: '呈現得而復失',
-    counterpartyConflict: '呈現對宮互耗',
-    mixed: '呈現混合反背',
-    centrifugalDissipation: '呈現離心消散',
+    crossPalaceBidirectional: '呈現同類跨宮雙向牴觸（不同宮位向性相反）',
   },
   'zh-CN': {
-    gainThenLoss: '呈现得而复失',
-    counterpartyConflict: '呈现对宫互耗',
-    mixed: '呈现混合反背',
-    centrifugalDissipation: '呈现离心消散',
+    crossPalaceBidirectional: '呈现同类跨宫双向抵触（不同宫位向性相反）',
   },
 } as const
 
 /**
- * 僅以四化飛線判定「反背」的最小規則：
- * 1) 先有承接：A/B/C 向心線化入某宮
- * 2) 後有反向：該宮出現離心（自化外放）或對待沖突（對宮/他宮 D 化入）
- * 3) 反向成立時才標記為反背，避免把所有凶象都視為反背
+ * ABCD 反背檢測：專注於跨宮同類雙向牴觸
+ * 同一 ABCD 類型在不同宮位同時存在離心（外放）與向心（承接），
+ * 整體方向性相互矛盾，形成跨宮反背。
+ * 例：福德有 B 離心、兄弟有 B 向心 → B 跨宮雙向牴觸
  */
 export function detectABCDReversals(input: ReversalDetectionInput): ABCDReversalSignal[] {
   const { lines, language = 'zh-TW' } = input
-
-  const inboundABC = lines.filter((line) => {
-    const code = getCodeFromLine(line)
-    return !!line.isCounterMutagen && (code === 'A' || code === 'B' || code === 'C')
-  })
-
-  const signals: ABCDReversalSignal[] = []
-
-  inboundABC.forEach((ingress) => {
-    const palace = ingress.toPalace
-
-    const reverseLine = lines.find((line) => {
-      if (line.fromPalace !== palace) return false
-      if (!line.isSelfCentrifugal) return false
-      return true
-    })
-
-    const conflictLine = lines.find((line) => {
-      if (!line.isCounterMutagen) return false
-      if (line.toPalace !== palace) return false
-      return getCodeFromLine(line) === 'D'
-    })
-
-    if (!reverseLine && !conflictLine) return
-
-    const ingressCode = getCodeFromLine(ingress) || 'A'
-    const reverseCode = reverseLine ? getCodeFromLine(reverseLine) : null
-
-    let score = 0
-    score += 2 // 先有承接
-    if (reverseLine) score += 2
-    if (conflictLine) score += 2
-    if (reverseCode === 'D') score += 2
-    if (reverseLine && conflictLine) score += 1
-
-    const severity =
-      score >= 7 ? 'strong' :
-      score >= 5 ? 'medium' :
-      'weak'
-
-    const mechanism = inferMechanism(reverseLine, conflictLine)
-    const title = buildTitle(ingressCode, mechanism, language)
-    const summary = buildSummary({
-      language,
-      palace,
-      ingressCode,
-      reverseCode,
-      hasConflict: !!conflictLine,
-      mechanism,
-    })
-
-    signals.push({
-      id: `${palace}-${ingressCode}-${reverseCode ?? 'N'}-${conflictLine ? 'C' : 'N'}`,
-      code: ingressCode,
-      palace,
-      severity,
-      score,
-      mechanism,
-      title,
-      summary,
-      evidence: {
-        ingressLine: ingress,
-        reverseLine,
-        conflictLine,
-      },
-    })
-  })
-
-  return dedupeById(signals)
+  return detectCrossPalaceBidirectional(lines, language)
 }
 
 export interface ReversalBadgeSpec {
@@ -199,52 +121,82 @@ function getCodeFromLine(line: MutagenLine): ABCDCode | null {
   return null
 }
 
-function inferMechanism(
-  reverseLine?: MutagenLine,
-  conflictLine?: MutagenLine
-): ReversalMechanism {
-  if (reverseLine && conflictLine) return 'mixed'
-  if (conflictLine) return 'counterpartyConflict'
-  if (reverseLine && getCodeFromLine(reverseLine) === 'D') return 'gainThenLoss'
-  return 'centrifugalDissipation'
-}
-
 function buildTitle(
   code: ABCDCode,
   mechanism: ReversalMechanism,
   language: 'zh-TW' | 'zh-CN'
 ): string {
   const base = REVERSAL_TITLE_MAP[language][code]
-
-  if (mechanism === 'mixed') {
-    return language === 'zh-TW' ? `${base}（混合）` : `${base}（混合）`
-  }
-
-  return base
+  return language === 'zh-TW' ? `${base}（跨宮雙向）` : `${base}（跨宫双向）`
 }
 
-function buildSummary(args: {
-  language: 'zh-TW' | 'zh-CN'
-  palace: string
-  ingressCode: ABCDCode
-  reverseCode: ABCDCode | null
-  hasConflict: boolean
-  mechanism: ReversalMechanism
-}): string {
-  const { language, palace, ingressCode, reverseCode, hasConflict, mechanism } = args
+function detectCrossPalaceBidirectional(
+  lines: MutagenLine[],
+  language: 'zh-TW' | 'zh-CN',
+): ABCDReversalSignal[] {
+  const CODES: ABCDCode[] = ['A', 'B', 'C', 'D']
+  const signals: ABCDReversalSignal[] = []
   const isTW = language === 'zh-TW'
 
-  const reversePart = reverseCode 
-    ? (isTW ? `後續轉為 ${reverseCode}` : `后续转为 ${reverseCode}`) 
-    : (isTW ? '後續出現能量外放' : '后续出现能量外放')
-  const conflictPart = hasConflict 
-    ? (isTW ? '並伴隨對待沖突' : '并伴随对待冲突') 
-    : (isTW ? '但尚未見明顯對待沖突' : '但尚未见明显对待冲突')
-  const mechanismPart = MECHANISM_TEXT_MAP[language][mechanism]
+  for (const code of CODES) {
+    const centripetalLines = lines.filter(
+      (l) => !!l.isCounterMutagen && getCodeFromLine(l) === code,
+    )
+    const centrifugalLines = lines.filter(
+      (l) => !!l.isSelfCentrifugal && getCodeFromLine(l) === code,
+    )
 
-  return isTW
-    ? `${palace}宮先承接 ${ingressCode}，${reversePart}，${conflictPart}，${mechanismPart}。`
-    : `${palace}宫先承接 ${ingressCode}，${reversePart}，${conflictPart}，${mechanismPart}。`
+    if (centripetalLines.length === 0 || centrifugalLines.length === 0) continue
+
+    // 找第一組跨宮配對（離心宮 ≠ 向心宮）
+    let ingress: MutagenLine | null = null
+    let cfLine: MutagenLine | null = null
+    outer: for (const cp of centripetalLines) {
+      for (const cf of centrifugalLines) {
+        if (cf.fromPalace === cp.toPalace) continue
+        ingress = cp
+        cfLine = cf
+        break outer
+      }
+    }
+    if (!ingress || !cfLine) continue
+
+    const centripetalPalace = ingress.toPalace
+    const centrifugalPalace = cfLine.fromPalace
+
+    // 收集該 code 所有涉及的向心宮與離心宮，用於摘要
+    const centripetalPalaces = [...new Set(
+      centripetalLines
+        .filter((cp) => centrifugalLines.some((cf) => cf.fromPalace !== cp.toPalace))
+        .map((cp) => cp.toPalace)
+    )]
+    const centrifugalPalaces = [...new Set(
+      centrifugalLines
+        .filter((cf) => centripetalLines.some((cp) => cp.toPalace !== cf.fromPalace))
+        .map((cf) => cf.fromPalace)
+    )]
+
+    const cfPart = centrifugalPalaces.join('、')
+    const cpPart = centripetalPalaces.join('、')
+
+    const summary = isTW
+      ? `${cfPart}宮有 ${code} 離心外放，${cpPart}宮有 ${code} 向心承接，同類四化在不同宮位呈相反向性，${MECHANISM_TEXT_MAP['zh-TW'].crossPalaceBidirectional}。`
+      : `${cfPart}宫有 ${code} 离心外放，${cpPart}宫有 ${code} 向心承接，同类四化在不同宫位呈相反向性，${MECHANISM_TEXT_MAP['zh-CN'].crossPalaceBidirectional}。`
+
+    signals.push({
+      id: `cross-palace-${code}-${centrifugalPalace}-${centripetalPalace}`,
+      code,
+      palace: centripetalPalace,
+      severity: 'medium',
+      score: 0,
+      mechanism: 'crossPalaceBidirectional',
+      title: buildTitle(code, 'crossPalaceBidirectional', language),
+      summary,
+      evidence: { ingressLine: ingress, reverseLine: cfLine },
+    })
+  }
+
+  return dedupeById(signals)
 }
 
 function dedupeById(signals: ABCDReversalSignal[]): ABCDReversalSignal[] {

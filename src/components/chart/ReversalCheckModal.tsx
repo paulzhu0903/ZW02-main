@@ -123,7 +123,7 @@ export function ReversalCheckModal({
               className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
                 activeTab === 'sanFangSiZheng'
                   ? 'bg-fortune text-white shadow-sm'
-                  : 'text-gray-500 hover:text-text hover:bg-white/20'
+                  : 'bg-gray-200 text-gray-500 hover:bg-gray-300 hover:text-text'
               }`}
             >
               {isTW ? '三方四正' : '三方四正'}
@@ -135,11 +135,11 @@ export function ReversalCheckModal({
               className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
                 activeTab === 'abcd'
                   ? 'bg-misfortune text-white shadow-sm'
-                  : 'text-gray-500 hover:text-text hover:bg-white/20'
+                  : 'bg-gray-200 text-gray-500 hover:bg-gray-300 hover:text-text'
               }`}
             >
               ABCD {isTW ? '反背' : '反背'}
-              <span className="ml-1 inline-block px-1.5 py-0.5 bg-white/20 rounded text-[10px] font-semibold">
+              <span className="ml-1 inline-block px-1.5 py-0.5 bg-black/10 rounded text-[10px] font-semibold">
                 {abcdReversalSignals.length}
               </span>
             </button>
@@ -201,14 +201,13 @@ export function ReversalCheckModal({
               return (
                 <div key={signal.id} className="border-l-2 border-white/20 pl-2 py-1">
                   <div className="flex items-center gap-1 mb-0.5">
-                    <span className="font-semibold text-[11px]">{signal.title}</span>
+                    <span className="font-semibold text-[12px]">{signal.title}</span>
                     <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${badgeSpec.className}`}>
                       {badgeSpec.label}
                     </span>
                   </div>
-                  <div className="text-[10px] text-gray-400 leading-snug">
+                  <div className="text-[12px] text-gray-00 leading-snug">
                     <span className="block">{signal.summary}</span>
-                    <span className="text-[9px] opacity-75 block mt-0.5">{isTW ? '強度' : '强度'}: {signal.score}/7</span>
                   </div>
                 </div>
               )

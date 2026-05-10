@@ -235,13 +235,21 @@ export function Toolbox({
     }
   ]
 
+  // 計算展開時的左邊界位置（使 pill 的右圓心與漢堡中心對齐）
+  const expandedWidth = 240 // pill shape 展開寬度（調整以適應按鈕寬度）
+  const collapsedWidth = 40 // 圓形寬度
+  const adjustedLeft = isExpanded 
+    ? position.x + collapsedWidth - expandedWidth
+    : position.x
+
   return (
     <div
       ref={toolboxRef}
-      className="fixed z-50"
+      className={`fixed z-50 ${!isDragging ? 'transition-all duration-300' : ''}`}
       style={{
-        left: `${position.x}px`,
+        left: `${adjustedLeft}px`,
         top: `${position.y}px`,
+        width: isExpanded ? `${expandedWidth}px` : `${collapsedWidth}px`,
         cursor: isDragging ? 'grabbing' : (isExpanded ? 'default' : 'grab')
       }}
     >
@@ -250,6 +258,8 @@ export function Toolbox({
         <div 
           className="flex flex-row-reverse items-center gap-1 bg-white/90 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg border border-gray-200" 
           onClick={(e) => e.stopPropagation()}
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
         >
           {/* 拖動句柄 */}
           <div
@@ -273,17 +283,20 @@ export function Toolbox({
           >
             ✕
           </button>
-          {buttons.map((button) => (
-            button.onClick && (
+          {buttons.map((button) => {
+            const handleButtonClick = button.onClick
+            if (!handleButtonClick) return null
+
+            return (
               <HoverHint key={button.key} content={button.tooltip} position="top">
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    button.onClick()
+                    handleButtonClick()
                   }}
                   className={`flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200 ${
                     button.active
-                      ? 'bg-gray-500 text-white shadow-md'
+                      ? 'bg-cyan-400 text-white shadow-md'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
@@ -291,7 +304,7 @@ export function Toolbox({
                 </button>
               </HoverHint>
             )
-          ))}
+          })}
         </div>
       ) : (
         // 收起狀態：藍底圓形漢堡菜單

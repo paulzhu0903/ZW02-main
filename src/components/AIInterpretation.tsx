@@ -52,10 +52,6 @@ const MarkdownComponents = {
   ),
 }
 
-/* ============================================================
-   輔助函數
-   ============================================================ */
-
 /* ------------------------------------------------------------
    AI 解读面板组件
    ------------------------------------------------------------ */
@@ -100,15 +96,6 @@ export function AIInterpretation() {
   const syncDisplayText = useCallback(() => {
     setDisplayText(fullTextRef.current)
     displayIndexRef.current = fullTextRef.current.length
-  }, [])
-
-  // 组件卸载时清理定时器
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current)
-      }
-    }
   }, [])
 
   /**
@@ -291,7 +278,7 @@ export function AIInterpretation() {
       groupedByGan.get(m.星曜)!.push(mutagenType)
     })
 
-    // 格式化為 "干(星曜四化、星曜四化...)"
+    // 格式化為 "干(星曜四化...)"
     return Array.from(groupedByGan.entries())
       .map(([star, mutagens]) => `${star}(${mutagens.join('、')})`)
       .join(' ')
@@ -388,12 +375,6 @@ export function AIInterpretation() {
     setDisplayText('')
     fullTextRef.current = ''
     displayIndexRef.current = 0
-
-    // 清理旧定时器
-    if (timerRef.current) {
-      clearInterval(timerRef.current)
-      timerRef.current = null
-    }
 
     try {
       const promptData = buildPromptPreview()

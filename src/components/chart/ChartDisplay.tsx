@@ -38,6 +38,7 @@ import { PalaceCard } from './components/PalaceCard'
 import { CenterInfo } from './components/CenterInfo'
 import { Toolbox } from './components/Toolbox'
 import { DecadalAnnualMonthlyTable } from './components/DecadalAnnualMonthlyTable'
+import { PALACE_CLOCKWISE_BRANCHES } from './utils/types'
 
 // 拆分後的輔助函數和常數
 import { 
@@ -305,6 +306,177 @@ export function ChartDisplay() {
       language: language as 'zh-TW' | 'zh-CN',
     })
     return signals
+  })()
+
+  const qualityMutationResults = (() => {
+    const mapMutagenToCode = (value: string): 'A' | 'B' | 'C' | 'D' | null => {
+      const token = String(value || '').trim()
+      if (!token) return null
+      if (token === 'A' || token.includes('化祿') || token.includes('化禄') || token === '祿' || token === '禄') return 'A'
+      if (token === 'B' || token.includes('化權') || token.includes('化权') || token === '權' || token === '权') return 'B'
+      if (token === 'C' || token.includes('化科') || token === '科') return 'C'
+      if (token === 'D' || token.includes('化忌') || token === '忌') return 'D'
+      return null
+    }
+
+    const parseMutagenCodes = (mutagen: unknown): Array<'A' | 'B' | 'C' | 'D'> => {
+      if (!mutagen) return []
+      const rawValues = Array.isArray(mutagen)
+        ? mutagen.map((v) => String(v))
+        : String(mutagen).split(/[、,\/\s]+/)
+      return rawValues
+        .map((token) => mapMutagenToCode(token))
+        .filter((code): code is 'A' | 'B' | 'C' | 'D' => !!code)
+    }
+
+    const sameStar = (a: string, b: string): boolean => {
+      const aSet = new Set(getChineseVariantCandidates(a))
+      return getChineseVariantCandidates(b).some((v) => aSet.has(v))
+    }
+
+    const natalEntries: Array<{
+      code: 'A' | 'B' | 'C' | 'D'
+      star: string
+      palaceName: string
+      palaceBranch: string
+      palaceStem: string
+    }> = []
+    const natalSeen = new Set<string>()
+
+    for (const palace of palaceData) {
+      const stars = [...palace.majorStars, ...palace.minorStars]
+      for (const star of stars) {
+        const starName = String(star.name || '').trim()
+        if (!starName) continue
+        for (const code of parseMutagenCodes(star.mutagen)) {
+          const key = `${code}:${starName}:${palace.branch}`
+          if (natalSeen.has(key)) continue
+          natalSeen.add(key)
+          natalEntries.push({
+            code,
+            star: starName,
+            palaceName: palace.name,
+            palaceBranch: palace.branch,
+            palaceStem: palace.stem,
+          })
+        }
+      }
+    }
+
+    const natalPalacesByCode: Record<'A' | 'B' | 'C' | 'D', Array<{ palaceName: string; palaceBranch: string; palaceStem: string }>> = {
+      A: [],
+      B: [],
+      C: [],
+      D: [],
+    }
+
+    ;(['A', 'B', 'C', 'D'] as const).forEach((code) => {
+      natalPalacesByCode[code] = Array.from(
+        new Map(
+          natalEntries
+            .filter((entry) => entry.code === code)
+            .map((entry) => [entry.palaceBranch, {
+              palaceName: entry.palaceName,
+              palaceBranch: entry.palaceBranch,
+              palaceStem: entry.palaceStem,
+            }]),
+        ).values(),
+      )
+    })
+
+    const sourceCodeByBalanceRule: Record<'A' | 'B' | 'C' | 'D', 'A' | 'B' | 'C' | 'D'> = {
+      A: 'D',
+      D: 'A',
+      B: 'C',
+      C: 'B',
+    }
+
+    const transformLabelByCode: Record<'A' | 'B' | 'C' | 'D', string> = {
+      A: '化A',
+      B: '化B',
+      C: '化C',
+      D: '化D',
+    }
+
+    const getNextBranch = (branch: string): string | null => {
+      const idx = PALACE_CLOCKWISE_BRANCHES.indexOf(branch as typeof PALACE_CLOCKWISE_BRANCHES[number])
+      if (idx === -1) return null
+      return PALACE_CLOCKWISE_BRANCHES[(idx + 1) % PALACE_CLOCKWISE_BRANCHES.length]
+    }
+
+    return natalEntries
+      .map((entry) => {
+        const directions = new Set<'向心' | '離心'>()
+        const centripetalPalaces = new Set<string>()
+        const centrifugalPalaces = new Set<string>()
+        for (const line of allMutagenLines) {
+          if (!line.label || line.label !== entry.code) continue
+          if (!line.starName) continue
+          if (!sameStar(entry.star, line.starName)) continue
+          if (line.isCounterMutagen) {
+            directions.add('向心')
+            if (line.toPalace) centripetalPalaces.add(line.toPalace)
+          }
+          if (line.isSelfCentrifugal) {
+            directions.add('離心')
+            if (line.fromPalace) centrifugalPalaces.add(line.fromPalace)
+          }
+        }
+
+        if (directions.size === 0) return null
+
+        const shouldApplyBalanceRule = directions.size > 0
+        const balanceSourceCode = sourceCodeByBalanceRule[entry.code]
+        const balanceTransformLabel = transformLabelByCode[balanceSourceCode]
+        const sourcePalaces = natalPalacesByCode[balanceSourceCode]
+
+        const balanceLinks = shouldApplyBalanceRule
+          ? sourcePalaces
+              .map((palace) => {
+                const targetBranch = getNextBranch(palace.palaceBranch)
+                return targetBranch
+                  ? {
+                      sourceBranch: palace.palaceBranch,
+                      targetBranch,
+                    }
+                  : null
+              })
+              .filter((item): item is { sourceBranch: string; targetBranch: string } => !!item)
+          : []
+
+        const balanceSourcePalaces = shouldApplyBalanceRule
+          ? Array.from(new Set(sourcePalaces.map((palace) => palace.palaceBranch)))
+          : []
+
+        const balanceTargetPalaces = shouldApplyBalanceRule
+          ? Array.from(new Set(balanceLinks.map((link) => link.targetBranch)))
+          : []
+
+        return {
+          code: entry.code,
+          star: entry.star,
+          directions: Array.from(directions),
+          centripetalPalaces: Array.from(centripetalPalaces),
+          centrifugalPalaces: Array.from(centrifugalPalaces),
+          balanceSourceCode,
+          balanceTransformLabel,
+          balanceSourcePalaces,
+          balanceTargetPalaces,
+          balanceLinks,
+        }
+      })
+      .filter((item): item is {
+        code: 'A' | 'B' | 'C' | 'D'
+        star: string
+        directions: Array<'向心' | '離心'>
+        centripetalPalaces: string[]
+        centrifugalPalaces: string[]
+        balanceSourceCode: 'A' | 'B' | 'C' | 'D'
+        balanceTransformLabel: string
+        balanceSourcePalaces: string[]
+        balanceTargetPalaces: string[]
+        balanceLinks: Array<{ sourceBranch: string; targetBranch: string }>
+      } => !!item)
   })()
 
   const effectiveDirectionFocus = showReversalCheck ? directionFocus : null
@@ -935,6 +1107,14 @@ export function ChartDisplay() {
           sanFangSiZhengResult={sanFangSiZhengResult}
           abcdReversalSignals={abcdReversalSignals}
           selectedPalaceName={selectedPalace}
+          decadalLabelsByPalaceName={decadalLabelsByPalaceName}
+          annualLabelsByPalaceName={annualLabelsByPalaceName}
+          palaceData={palaceData}
+          selectedDecadal={selectedDecadal}
+          selectedAnnualYear={selectedAnnualYear}
+          selectedAnnualAge={selectedAnnualAge}
+          selectedAnnualGanZhi={selectedAnnualGanZhi}
+          qualityMutationResults={qualityMutationResults}
         />
       )}
 

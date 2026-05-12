@@ -9,14 +9,12 @@ import {
   PALACE_BRANCH_INDEX,
   PALACE_ORDER,
   PALACE_NAME_TO_ENGLISH_MAP,
-  MUTAGEN_COLORS,
   type PalaceCardProps,
 } from '../types'
 import {
   isMajorStarName,
   getDecadalPalaceIndex,
 } from '../mutagenLines'
-import { SIHUA_BY_GAN } from '@/knowledge/sihua'
 import { StarTag } from './StarTag'
 
 export function PalaceCard({

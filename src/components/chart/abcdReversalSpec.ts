@@ -25,6 +25,8 @@ export interface ABCDReversalSignal {
   title: string
   summary: string
   evidence: ReversalEvidence
+  centrifugalPalaces: string[]   // 離心宮位列表（外放方）
+  centripetalPalaces: string[]   // 向心宮位列表（承接方）
 }
 
 export interface ReversalDetectionInput {
@@ -193,6 +195,8 @@ function detectCrossPalaceBidirectional(
       title: buildTitle(code, 'crossPalaceBidirectional', language),
       summary,
       evidence: { ingressLine: ingress, reverseLine: cfLine },
+      centrifugalPalaces,
+      centripetalPalaces,
     })
   }
 

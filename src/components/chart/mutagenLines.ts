@@ -259,6 +259,7 @@ export function collectMutagenLines(palaceData: PalaceData[]): MutagenLine[] {
             color: colorInfo.color,
             markerColor: colorInfo.marker,
             isCounterMutagen: true,
+            starName: mutagenStar,
             label,
           })
         }

@@ -358,6 +358,47 @@ export const MUTAGEN_SIMPLIFIED_TO_TRADITIONAL: Record<string, string> = {
 }
 
 /* ============================================================
+   簡體文字到繁體轉換（通用函數）
+   ============================================================ */
+
+export const SIMPLIFIED_TO_TRADITIONAL_MAP: Record<string, string> = {
+  '禄': '祿',
+  '权': '權',
+  '科': '科',
+  '忌': '忌',
+  '宫': '宮',
+  '财': '財',
+  '迁': '遷',
+  '测': '測',
+  '检': '檢',
+  '无': '無',
+  '现': '現',
+  '阴': '陰',
+  '阳': '陽',
+  '贪': '貪',
+  '廉': '廉',
+  '破': '破',
+  '杀': '殺',
+  '梁': '梁',
+  '曲': '曲',
+  '昌': '昌',
+  '巨': '巨',
+  '同': '同',
+  '机': '機',
+  '星': '星',
+  '微': '微',
+  '斗': '鬥',
+}
+
+export function toTraditionalText(value: string): string {
+  let result = value
+  for (const [simplified, traditional] of Object.entries(SIMPLIFIED_TO_TRADITIONAL_MAP)) {
+    result = result.replace(new RegExp(simplified, 'g'), traditional)
+  }
+  return result
+}
+
+/* ============================================================
    四化盤面類型
    ============================================================ */
 

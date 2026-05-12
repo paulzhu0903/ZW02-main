@@ -148,53 +148,42 @@ function detectCrossPalaceBidirectional(
       (l) => !!l.isSelfCentrifugal && getCodeFromLine(l) === code,
     )
 
-    if (centripetalLines.length === 0 || centrifugalLines.length === 0) continue
+    const centripetalPalaces = [...new Set(centripetalLines.map((cp) => cp.toPalace))]
+    const centrifugalPalaces = [...new Set(centrifugalLines.map((cf) => cf.fromPalace))]
 
-    // 找第一組跨宮配對（離心宮 ≠ 向心宮）
-    let ingress: MutagenLine | null = null
-    let cfLine: MutagenLine | null = null
-    outer: for (const cp of centripetalLines) {
-      for (const cf of centrifugalLines) {
-        if (cf.fromPalace === cp.toPalace) continue
-        ingress = cp
-        cfLine = cf
-        break outer
-      }
-    }
-    if (!ingress || !cfLine) continue
+    const hasCrossDirection = centripetalPalaces.length > 0 && centrifugalPalaces.length > 0
+    const hasSameDirectionChain = centripetalPalaces.length > 1 || centrifugalPalaces.length > 1
+    if (!hasCrossDirection && !hasSameDirectionChain) continue
 
-    const centripetalPalace = ingress.toPalace
-    const centrifugalPalace = cfLine.fromPalace
+    const ingress = centripetalLines[0]
+    const cfLine = centrifugalLines[0]
+    const primaryLine = ingress || cfLine
+    if (!primaryLine) continue
 
-    // 收集該 code 所有涉及的向心宮與離心宮，用於摘要
-    const centripetalPalaces = [...new Set(
-      centripetalLines
-        .filter((cp) => centrifugalLines.some((cf) => cf.fromPalace !== cp.toPalace))
-        .map((cp) => cp.toPalace)
-    )]
-    const centrifugalPalaces = [...new Set(
-      centrifugalLines
-        .filter((cf) => centripetalLines.some((cp) => cp.toPalace !== cf.fromPalace))
-        .map((cf) => cf.fromPalace)
-    )]
+    const centripetalPalace = ingress?.toPalace || centripetalPalaces[0] || ''
+    const centrifugalPalace = cfLine?.fromPalace || centrifugalPalaces[0] || ''
 
     const cfPart = centrifugalPalaces.join('、')
     const cpPart = centripetalPalaces.join('、')
 
-    const summary = isTW
-      ? `${cfPart}宮有 ${code} 離心外放，${cpPart}宮有 ${code} 向心承接，同類四化在不同宮位呈相反向性，${MECHANISM_TEXT_MAP['zh-TW'].crossPalaceBidirectional}。`
-      : `${cfPart}宫有 ${code} 离心外放，${cpPart}宫有 ${code} 向心承接，同类四化在不同宫位呈相反向性，${MECHANISM_TEXT_MAP['zh-CN'].crossPalaceBidirectional}。`
+    const summary = hasCrossDirection
+      ? (isTW
+          ? `${cfPart}宮有 ${code} 離心外放，${cpPart}宮有 ${code} 向心承接，同類四化在不同宮位呈相反向性，${MECHANISM_TEXT_MAP['zh-TW'].crossPalaceBidirectional}。`
+          : `${cfPart}宫有 ${code} 离心外放，${cpPart}宫有 ${code} 向心承接，同类四化在不同宫位呈相反向性，${MECHANISM_TEXT_MAP['zh-CN'].crossPalaceBidirectional}。`)
+      : (isTW
+          ? `同類 ${code} 在不同宮位形成同向串聯。`
+          : `同类 ${code} 在不同宫位形成同向串联。`)
 
     signals.push({
       id: `cross-palace-${code}-${centrifugalPalace}-${centripetalPalace}`,
       code,
       palace: centripetalPalace,
-      severity: 'medium',
+      severity: hasCrossDirection ? 'medium' : 'weak',
       score: 0,
       mechanism: 'crossPalaceBidirectional',
       title: buildTitle(code, 'crossPalaceBidirectional', language),
       summary,
-      evidence: { ingressLine: ingress, reverseLine: cfLine },
+      evidence: { ingressLine: primaryLine, reverseLine: cfLine },
       centrifugalPalaces,
       centripetalPalaces,
     })

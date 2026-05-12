@@ -398,10 +398,21 @@ export function ChartDisplay() {
       D: '化D',
     }
 
-    const getNextBranch = (branch: string): string | null => {
-      const idx = PALACE_CLOCKWISE_BRANCHES.indexOf(branch as typeof PALACE_CLOCKWISE_BRANCHES[number])
-      if (idx === -1) return null
-      return PALACE_CLOCKWISE_BRANCHES[(idx + 1) % PALACE_CLOCKWISE_BRANCHES.length]
+    // 將 code 映射到四化類型 key（對應 SIHUA_BY_GAN 的鍵）
+    const codeToSihuaKey: Record<'A' | 'B' | 'C' | 'D', string> = {
+      'A': '化禄',
+      'B': '化权',
+      'C': '化科',
+      'D': '化忌',
+    }
+
+    // 查詢目標宮位的輔助函數
+    const findPalaceByStarName = (starName: string): PalaceData | undefined => {
+      const starCandidates = getChineseVariantCandidates(starName)
+      return palaceData.find((palace) => {
+        const allStars = [...palace.majorStars, ...palace.minorStars]
+        return allStars.some((s) => starCandidates.includes(s.name))
+      })
     }
 
     return natalEntries
@@ -430,18 +441,29 @@ export function ChartDisplay() {
         const balanceTransformLabel = transformLabelByCode[balanceSourceCode]
         const sourcePalaces = natalPalacesByCode[balanceSourceCode]
 
+        // 根據源宫位天干查四化表，找出實際指向的宮位
         const balanceLinks = shouldApplyBalanceRule
           ? sourcePalaces
-              .map((palace) => {
-                const targetBranch = getNextBranch(palace.palaceBranch)
-                return targetBranch
-                  ? {
-                      sourceBranch: palace.palaceBranch,
-                      targetBranch,
-                    }
-                  : null
+              .flatMap((palace) => {
+                // 查源宫位天干的四化表
+                const sihuaMap = SIHUA_BY_GAN[palace.palaceStem]
+                if (!sihuaMap) return []
+
+                // 從四化表中查詢目標星曜
+                const sihuaKey = codeToSihuaKey[balanceSourceCode]
+                const transformStar = sihuaMap[sihuaKey]
+                if (!transformStar) return []
+
+                // 查該星在哪個宮位
+                const targetPalace = findPalaceByStarName(transformStar)
+                if (!targetPalace) return []
+
+                return [{
+                  sourceBranch: palace.palaceBranch,
+                  targetBranch: targetPalace.branch,
+                }]
               })
-              .filter((item): item is { sourceBranch: string; targetBranch: string } => !!item)
+              .filter((item, idx, self) => self.findIndex((i) => i.sourceBranch === item.sourceBranch && i.targetBranch === item.targetBranch) === idx)
           : []
 
         const balanceSourcePalaces = shouldApplyBalanceRule

@@ -9,7 +9,7 @@ import { useSettingsStore } from '@/stores'
 import type { ABCDReversalSignal } from './abcdReversalSpec'
 import { getReversalBadgeSpec } from './abcdReversalSpec'
 import type { PalaceData } from './types'
-import { PALACE_NAME_TO_ENGLISH_MAP } from './types'
+import { NATAL_PALACE_MAP, PALACE_NAME_TO_ENGLISH_MAP, toTraditionalText } from './types'
 
 export interface SanFangSiZhengResult {
   sanFang: {
@@ -137,21 +137,6 @@ export function ReversalCheckModal({
 
   const isTW = language === 'zh-TW'
 
-  function toTraditionalText(value: string): string {
-    return value
-      .replace(/禄/g, '祿')
-      .replace(/权/g, '權')
-      .replace(/宫/g, '宮')
-      .replace(/财/g, '財')
-      .replace(/迁/g, '遷')
-      .replace(/禄/g, '祿')
-      .replace(/测/g, '測')
-      .replace(/检/g, '檢')
-      .replace(/无/g, '無')
-      .replace(/现/g, '現')
-      .replace(/象/g, '象')
-  }
-
   // 根據本命宮名查找大限/流年角色標籤
   // branch → 本命宮名
   const branchToPalaceName = new Map<string, string>(
@@ -160,8 +145,9 @@ export function ReversalCheckModal({
 
   // 根據地支查找大限/流年角色標籤
   function getPalaceRoleLabels(branch: string): { palaceName: string; decadal: string; annual: string } {
-    const palaceName = branchToPalaceName.get(branch) || branch
-    const engKey = PALACE_NAME_TO_ENGLISH_MAP[palaceName] || ''
+    const rawPalaceName = branchToPalaceName.get(branch) || branch
+    const engKey = PALACE_NAME_TO_ENGLISH_MAP[rawPalaceName] || ''
+    const palaceName = engKey ? NATAL_PALACE_MAP[engKey] || rawPalaceName : rawPalaceName
     return {
       palaceName: toTraditionalText(palaceName),
       decadal: engKey ? toTraditionalText(decadalLabelsByPalaceName[engKey] || '') : '',
@@ -309,71 +295,132 @@ export function ReversalCheckModal({
                 </div>
               </div>
             )}
-            {abcdReversalSignals.map((signal) => {
-              const badgeSpec = getReversalBadgeSpec(signal.severity, language as 'zh-TW' | 'zh-CN')
-              const hasLabelData = Object.keys(decadalLabelsByPalaceName).length > 0 || Object.keys(annualLabelsByPalaceName).length > 0
+            {(() => {
+              const CODE_ORDER: Array<'A' | 'B' | 'C' | 'D'> = ['A', 'B', 'C', 'D']
+              const codeMap = new Map(abcdReversalSignals.map((s) => [s.code, s]))
+
+              const buildRoleText = (branch: string, direction: '離心' | '向心') => {
+                const { palaceName, decadal, annual } = getPalaceRoleLabels(branch)
+                return [direction, annual, decadal, palaceName].filter(Boolean).join(' ')
+              }
+
+              const cells = CODE_ORDER.map((code) => {
+                const signal = codeMap.get(code)
+                if (!signal) {
+                  return {
+                    code,
+                    badgeClass: '',
+                    badgeLabel: '',
+                    chainLines: [] as string[],
+                    reverseLines: [] as string[],
+                  }
+                }
+
+                const badgeSpec = getReversalBadgeSpec(signal.severity, language as 'zh-TW' | 'zh-CN')
+                const centrifugalCount = signal.centrifugalPalaces.length
+                const centripetalCount = signal.centripetalPalaces.length
+                const chainDirection: '離心' | '向心' = centrifugalCount >= centripetalCount ? '離心' : '向心'
+                const reverseDirection: '離心' | '向心' = chainDirection === '離心' ? '向心' : '離心'
+                const chainPalaces = chainDirection === '離心' ? signal.centrifugalPalaces : signal.centripetalPalaces
+                const reversePalaces = chainDirection === '離心' ? signal.centripetalPalaces : signal.centrifugalPalaces
+
+                return {
+                  code,
+                  badgeClass: badgeSpec.className,
+                  badgeLabel: toTraditionalText(badgeSpec.label),
+                  chainLines: chainPalaces.map((branch) => buildRoleText(branch, chainDirection)),
+                  reverseLines: reversePalaces.map((branch) => buildRoleText(branch, reverseDirection)),
+                }
+              })
+
               return (
-                <div key={signal.id} className="border-l-2 border-white/20 pl-2 py-1">
-                  <div className="flex items-center gap-1 mb-0.5">
-                    <span className="font-semibold text-[12px]">{toTraditionalText(signal.title)}</span>
-                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${badgeSpec.className}`}>
-                      {toTraditionalText(badgeSpec.label)}
-                    </span>
+                <div className="border border-white/20 rounded overflow-hidden">
+                  <div className="grid grid-cols-[42px_repeat(4,minmax(0,1fr))] text-[12px]">
+                    <div className="bg-white/20 border-r border-white/20" />
+                    {cells.map((cell) => (
+                      <div key={`head-${cell.code}`} className="bg-white/20 border-r border-white/20 last:border-r-0 px-2 py-1 font-semibold text-text flex items-center justify-between">
+                        <span>{cell.code}</span>
+                        {cell.badgeLabel && (
+                          <span className={`px-1 py-0.5 rounded text-[9px] font-semibold ${cell.badgeClass}`}>
+                            {cell.badgeLabel}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+
+                    <div className="bg-white/10 border-t border-r border-white/20 px-1 py-1 text-[11px] font-semibold text-text">串聯</div>
+                    {cells.map((cell) => (
+                      <div key={`chain-${cell.code}`} className="border-t border-r border-white/20 last:border-r-0 px-2 py-1 text-[11px] text-text-secondary space-y-0.5 min-h-[44px]">
+                        {cell.chainLines.length > 0 ? cell.chainLines.map((line, idx) => (
+                          <div key={`chain-${cell.code}-${idx}`}>{line}</div>
+                        )) : <div className="text-gray-400">-</div>}
+                      </div>
+                    ))}
+
+                    <div className="bg-white/10 border-t border-r border-white/20 px-1 py-1 text-[11px] font-semibold text-text">反背</div>
+                    {cells.map((cell) => (
+                      <div key={`reverse-${cell.code}`} className="border-t border-r border-white/20 last:border-r-0 px-2 py-1 text-[11px] text-text-secondary space-y-0.5 min-h-[44px]">
+                        {cell.reverseLines.length > 0 ? cell.reverseLines.map((line, idx) => (
+                          <div key={`reverse-${cell.code}-${idx}`}>{line}</div>
+                        )) : <div className="text-gray-400">-</div>}
+                      </div>
+                    ))}
                   </div>
-                  {/* 宮位角色統計：本命 / 大限 / 流年 */}
-                  {hasLabelData ? (
-                    <div className="mt-1 space-y-0.5">
-                      {signal.centrifugalPalaces.map((p) => renderPalaceRoleRow(p, '離心', signal.code))}
-                      {signal.centripetalPalaces.map((p) => renderPalaceRoleRow(p, '向心', signal.code))}
-                    </div>
-                  ) : (
-                    <div className="text-[12px] text-gray-00 leading-snug">
-                      <span className="block">{toTraditionalText(signal.summary)}</span>
-                    </div>
-                  )}
                 </div>
               )
-            })}
+            })()}
           </div>
         )}
 
         {/* 質能變檢查 */}
         {activeTab === 'qualityMutation' && qualityMutationResults.length > 0 && (
-          <div className="space-y-2">
-            <div className="text-[12px] text-text">
-              生年 ABCD 與同星曜、同類向心或離心四化重疊，判定為質能變。
-            </div>
-            {qualityMutationResults.map((item) => (
-              <div key={`${item.code}-${item.star}`} className="border-l-2 border-white/20 pl-2 py-1">
-                <div className="text-[12px] font-semibold text-text">
-                  {`${item.code} ${toTraditionalText(item.star)}`}
+          <div className="space-y-1">
+            {qualityMutationResults.map((item: (typeof qualityMutationResults)[number]) => {
+              // 生成宮位信息：向心和離心宮位的組合
+              const palaceLines: string[] = []
+              
+              // 向心宮位：宮有生年{code}又有向心{code}
+              if (item.centripetalPalaces.length > 0) {
+                item.centripetalPalaces.forEach((branch) => {
+                  const palaceName = getPalaceRoleLabels(branch).palaceName
+                  palaceLines.push(`${palaceName}有生年${item.code}又有向心${item.code}`)
+                })
+              }
+
+              // 離心宮位：宮有生年{code}又有離心{code}
+              if (item.centrifugalPalaces.length > 0) {
+                item.centrifugalPalaces.forEach((branch) => {
+                  const palaceName = getPalaceRoleLabels(branch).palaceName
+                  palaceLines.push(`${palaceName}有生年${item.code}又有離心${item.code}`)
+                })
+              }
+
+              return (
+                <div key={`${item.code}-${item.star}`} className="border-l-2 border-white/20 pl-2 py-1">
+                  <div className="text-[12px] font-semibold text-text">
+                    {`${item.code} ${toTraditionalText(item.star)}`}
+                  </div>
+                  {palaceLines.length > 0 && (
+                    <div className="text-[12px] text-text-secondary space-y-0.5">
+                      {palaceLines.map((line, idx) => (
+                        <div key={idx}>{line}</div>
+                      ))}
+                    </div>
+                  )}
+                  {item.balanceLinks.length > 0 && (
+                    <div className="text-[12px] text-text-secondary">
+                      {`同組平衡：${item.balanceLinks
+                        .map((link) => {
+                          const sourceName = getPalaceRoleLabels(link.sourceBranch).palaceName
+                          const targetName = getPalaceRoleLabels(link.targetBranch).palaceName
+                          return `${sourceName}生年${item.balanceSourceCode}${item.balanceTransformLabel}到${targetName}`
+                        })
+                        .join('；')}`}
+                    </div>
+                  )}
                 </div>
-                <div className="text-[12px] text-text-secondary">
-                  {`方向：${item.directions.map((d) => toTraditionalText(d)).join(' / ')}`}
-                </div>
-                {item.centripetalPalaces.length > 0 && (
-                  <div className="text-[12px] text-text-secondary">
-                    {`向心宮位：${item.centripetalPalaces.map((branch) => getPalaceRoleLabels(branch).palaceName).join('、')}`}
-                  </div>
-                )}
-                {item.centrifugalPalaces.length > 0 && (
-                  <div className="text-[12px] text-text-secondary">
-                    {`離心宮位：${item.centrifugalPalaces.map((branch) => getPalaceRoleLabels(branch).palaceName).join('、')}`}
-                  </div>
-                )}
-                {item.balanceLinks.length > 0 && (
-                  <div className="text-[12px] text-text-secondary">
-                    {`平衡宮位：${item.balanceLinks
-                      .map((link) => {
-                        const sourceName = getPalaceRoleLabels(link.sourceBranch).palaceName
-                        const targetName = getPalaceRoleLabels(link.targetBranch).palaceName
-                        return `追生年${item.balanceSourceCode}:${sourceName}生年${item.balanceSourceCode}${item.balanceTransformLabel}到${targetName}`
-                      })
-                      .join('；')}`}
-                  </div>
-                )}
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
 

@@ -9,9 +9,10 @@
 import { useEffect } from 'react'
 import { useChartStore, useSettingsStore } from '@/stores'
 import { getChineseVariantCandidates } from '@/lib/localize-knowledge'
+import { getStarEnglishParam, normalizeStarName as normalizeStarNameShared } from '@/lib/star-name'
 import type { BirthInfo } from '@/lib/astro'
 import { generateChart } from '@/lib/astro'
-import { SIHUA_BY_GAN } from '@/knowledge/sihua'
+import { SIHUA_BY_GAN, SIHUA_BY_GAN_TRADITIONAL } from '@/knowledge/sihua'
 import { 
   type PalaceData,
   PALACE_POSITIONS,
@@ -306,6 +307,70 @@ export function ChartDisplay() {
       language: language as 'zh-TW' | 'zh-CN',
     })
     return signals
+  })()
+
+  const birthCodeMetaByCode = (() => {
+    const emptyMeta = { A: null, B: null, C: null, D: null } as Record<'A' | 'B' | 'C' | 'D', { palaceName: string; starName: string } | null>
+    if (!yearGan) return emptyMeta
+
+    const sihuaMap = SIHUA_BY_GAN[yearGan] || SIHUA_BY_GAN_TRADITIONAL[yearGan]
+    if (!sihuaMap) return emptyMeta
+
+    const findPalaceByStarName = (starName: string): PalaceData | null => {
+      const targetNormalized = normalizeStarNameShared(starName)
+      const targetEnglish = getStarEnglishParam(starName)
+      const candidates = new Set<string>([
+        starName,
+        targetNormalized,
+        ...getChineseVariantCandidates(starName),
+        ...getChineseVariantCandidates(targetNormalized),
+      ])
+
+      const matched = palaceData.find((palace) => {
+        const stars = [...palace.majorStars, ...palace.minorStars]
+        return stars.some((star) => {
+          const starNameRaw = String(star.name || '').trim()
+          const starNormalized = normalizeStarNameShared(starNameRaw)
+          if (candidates.has(starNameRaw) || candidates.has(starNormalized)) return true
+
+          if (!targetEnglish) return false
+          const starEnglish = getStarEnglishParam(starNameRaw)
+          return !!starEnglish && starEnglish === targetEnglish
+        })
+      })
+      return matched || null
+    }
+
+    const codeToSihuaKeys: Record<'A' | 'B' | 'C' | 'D', string[]> = {
+      A: ['化祿', '化禄'],
+      B: ['化權', '化权'],
+      C: ['化科'],
+      D: ['化忌'],
+    }
+
+    ;(['A', 'B', 'C', 'D'] as const).forEach((code) => {
+      const starName = codeToSihuaKeys[code]
+        .map((key) => sihuaMap[key])
+        .find((name): name is string => !!name)
+
+      if (!starName) {
+        emptyMeta[code] = null
+        return
+      }
+
+      const palace = findPalaceByStarName(starName)
+      if (!palace) {
+        emptyMeta[code] = { palaceName: '', starName }
+        return
+      }
+
+      emptyMeta[code] = {
+        palaceName: palace.name,
+        starName,
+      }
+    })
+
+    return emptyMeta
   })()
 
   const qualityMutationResults = (() => {
@@ -1122,12 +1187,13 @@ export function ChartDisplay() {
       )}
 
       {/* 三方四正反背檢測 & ABCD 反背 Modal */}
-      {showReversalCheck && (sanFangSiZhengResult || abcdReversalSignals.length > 0) && (
+      {showReversalCheck && (
         <ReversalCheckModal
           isOpen={true}
           onClose={() => setShowReversalCheck(false)}
           sanFangSiZhengResult={sanFangSiZhengResult}
           abcdReversalSignals={abcdReversalSignals}
+          birthCodeMetaByCode={birthCodeMetaByCode}
           selectedPalaceName={selectedPalace}
           decadalLabelsByPalaceName={decadalLabelsByPalaceName}
           annualLabelsByPalaceName={annualLabelsByPalaceName}

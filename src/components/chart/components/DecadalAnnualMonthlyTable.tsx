@@ -44,13 +44,23 @@ export function DecadalAnnualMonthlyTable({
   const [internalSelectedHourly, internalSetSelectedHourly] = useState<number | null>(null)
   const selectedHourly = externalSelectedHourly !== undefined ? externalSelectedHourly : internalSelectedHourly
   const setSelectedHourly = externalSetSelectedHourly || internalSetSelectedHourly
-  const PAGE_SIZE = 10
+  const [isMobile, setIsMobile] = useState(false)
+  const PAGE_SIZE = isMobile ? 8 : 10
   const [dailyScrollOffset, setDailyScrollOffset] = useState(0)
   const [decadalScrollOffset, setDecadalScrollOffset] = useState(0)
   const [annualScrollOffset, setAnnualScrollOffset] = useState(0)
   const [monthlyScrollOffset, setMonthlyScrollOffset] = useState(0)
   const [hourlyScrollOffset, setHourlyScrollOffset] = useState(0)
   const annualYearsToShow = 10 // 显示10个流年年份
+
+  useEffect(() => {
+    const updateIsMobile = () => {
+      setIsMobile(window.innerWidth < 640)
+    }
+    updateIsMobile()
+    window.addEventListener('resize', updateIsMobile)
+    return () => window.removeEventListener('resize', updateIsMobile)
+  }, [])
   
   // 當選擇新月份時，重置流日窗口位置
   const handleSetSelectedMonthly = (index: number | null) => {
@@ -115,6 +125,7 @@ export function DecadalAnnualMonthlyTable({
   const arrowButtonClass = 'self-center px-0 py-0.5 sm:px-0 sm:py-0.5 rounded-md sm:rounded-lg transition-all bg-white/[0.05] text-text-secondary hover:bg-white/[0.1] disabled:opacity-50 disabled:cursor-not-allowed w-3 h-5 sm:w-3 sm:h-6 text-[10px] sm:text-sm'
   const tableCellClass = 'relative z-0 h-[30px] sm:h-[36px] lg:h-[42px] px-0.5 sm:px-1 text-center cursor-pointer transition-colors border-r border-gray-500/[0.12] whitespace-nowrap align-middle'
   const tableCellInnerClass = 'h-full w-full rounded-[3px] px-0.5 py-0 sm:px-1 sm:py-0.5 flex flex-col items-center justify-center gap-0 leading-tight'
+  const maxDailyOffset = Math.max(0, CHINESE_DAY_NAMES.length - PAGE_SIZE)
 
   const renderPagedRow = (label: string, cells: any[], offset: number, setOffset: (value: number) => void) => {
     const maxOffset = Math.max(0, cells.length - PAGE_SIZE)
@@ -341,9 +352,9 @@ export function DecadalAnnualMonthlyTable({
                 onClick={() => {
                   setSelectedDaily(null)
                   setSelectedHourly(null)
-                  setDailyScrollOffset(Math.min(20, dailyScrollOffset + PAGE_SIZE))
+                  setDailyScrollOffset(Math.min(maxDailyOffset, dailyScrollOffset + PAGE_SIZE))
                 }}
-                disabled={dailyScrollOffset >= 20}
+                disabled={dailyScrollOffset >= maxDailyOffset}
                 className={arrowButtonClass}
               >
                 &gt;

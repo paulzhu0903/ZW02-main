@@ -375,7 +375,7 @@ export function ReversalCheckModal({
 
               return (
                 <div className="border border-white/20 rounded overflow-hidden">
-                  <div className="grid grid-cols-[130px_minmax(0,1fr)_minmax(0,1fr)] text-[12px]">
+                  <div className="grid grid-cols-[90px_minmax(0,1fr)_minmax(0,1fr)] text-[12px]">
                     <div className="bg-white/20 border-white/20" />
                     <div className="bg-white/20 border-white/20 px-2 py-0.5 text-[11px] font-semibold text-text">串聯</div>
                     <div className="bg-white/20 border-white/20 px-2 py-0.5 text-[11px] font-semibold text-text">反背</div>

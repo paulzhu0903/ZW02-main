@@ -12,6 +12,7 @@ import { streamChat, type ChatMessage, type LLMConfig } from '@/lib/llm'
 import { getSystemPrompt, buildUserPrompt, mapUIChartTypeToPromptChartType } from '@/lib/prompts'
 import { Button, HoverHint } from '@/components/ui'
 import { t } from '@/lib/i18n'
+import { localizeChineseText } from '@/lib/localize-knowledge'
 import { getBrightnessDisplay } from '@/components/chart/utils/localization'
 
 /* ------------------------------------------------------------
@@ -184,6 +185,28 @@ export function AIInterpretation() {
     return result
   }
 
+  const localizeIndicatorText = (data: any, language: 'zh-TW' | 'zh-CN'): any => {
+    if (Array.isArray(data)) {
+      return data.map(item => localizeIndicatorText(item, language))
+    }
+
+    if (typeof data === 'string') {
+      return localizeChineseText(data, language)
+    }
+
+    if (!data || typeof data !== 'object') {
+      return data
+    }
+
+    const result: Record<string, any> = {}
+
+    Object.entries(data).forEach(([key, value]) => {
+      result[key] = localizeIndicatorText(value, language)
+    })
+
+    return result
+  }
+
   /**
    * 為三合派轉換指標 JSON 格式
    * 從標準指標轉換為三合派所需的星曜清單與廟旺狀態
@@ -208,7 +231,7 @@ export function AIInterpretation() {
           輔星: convertHelperStarsToChineseFields(palace.輔星及雜曜 || []), // 轉換英文字段為中文
           三方四正會照: sanFangSiZheng,
           四化引動: {
-            生年: extractBirthYearMutagen(indicators.基本資料?.生年四化 || [], palaceName),
+            生年: extractBirthYearMutagen(indicators.基本資料?.生年四化 || [], palaceName, language),
             大限: extractDecadalMutagen(indicators.運限焦點?.當前大限)
           }
         }
@@ -263,19 +286,28 @@ export function AIInterpretation() {
   /**
    * 提取該宮位的生年四化
    */
-  const extractBirthYearMutagen = (birthYearMutagens: any[], palaceName: string): string => {
+  const extractBirthYearMutagen = (
+    birthYearMutagens: any[],
+    palaceName: string,
+    language: 'zh-TW' | 'zh-CN',
+  ): string => {
     if (!Array.isArray(birthYearMutagens)) return ''
-    
-    const mutagensInPalace = birthYearMutagens.filter((m: any) => m.宮位 === palaceName)
+
+    const localizedPalaceName = localizeChineseText(String(palaceName || ''), language)
+    const mutagensInPalace = birthYearMutagens.filter((m: any) => {
+      const sourcePalaceName = localizeChineseText(String(m?.宮位 || ''), language)
+      return sourcePalaceName === localizedPalaceName
+    })
     if (mutagensInPalace.length === 0) return ''
 
     const groupedByGan = new Map<string, string[]>()
     mutagensInPalace.forEach((m: any) => {
-      // 從四化類型反推干（需要從命盤數據中提取）
-      // 暫時使用簡化版本
-      const mutagenType = m.四化
-      if (!groupedByGan.has(m.星曜)) groupedByGan.set(m.星曜, [])
-      groupedByGan.get(m.星曜)!.push(mutagenType)
+      const starName = localizeChineseText(String(m?.星曜 || ''), language)
+      const mutagenType = localizeChineseText(String(m?.四化 || ''), language)
+      if (!starName || !mutagenType) return
+
+      if (!groupedByGan.has(starName)) groupedByGan.set(starName, [])
+      groupedByGan.get(starName)!.push(mutagenType)
     })
 
     // 格式化為 "干(星曜四化...)"
@@ -323,7 +355,8 @@ export function AIInterpretation() {
     }
 
     const normalizedIndicatorsData = normalizeHelperStarsInIndicators(indicatorsData)
-    const indicatorsJson = JSON.stringify(normalizedIndicatorsData, null, 2)
+    const localizedIndicatorsData = localizeIndicatorText(normalizedIndicatorsData, language)
+    const indicatorsJson = JSON.stringify(localizedIndicatorsData, null, 2)
     const contextStr = buildPromptContext(knowledge, language)
 
     const promptChartType = mapUIChartTypeToPromptChartType(currentChartType)
@@ -351,6 +384,15 @@ export function AIInterpretation() {
       promptText,
     }
   }, [chart, birthInfo, language])
+
+  useEffect(() => {
+    if (!showPrompt) return
+
+    const promptData = buildPromptPreview()
+    if (promptData) {
+      setPromptPreview(promptData.promptText)
+    }
+  }, [showPrompt, buildPromptPreview])
 
   /* ------------------------------------------------------------
      开始解读

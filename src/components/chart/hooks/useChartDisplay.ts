@@ -109,15 +109,26 @@ export function useChartDisplay(
     if (!chart || !birthInfo) return
 
     const currentBirthInfoKey = `${birthInfo.year}-${birthInfo.month}-${birthInfo.day}-${birthInfo.hour}`
+    // 「年月」相同 = 僅日/時調整；「年月」不同 = 讀入新命例
+    const currentYearMonth = `${birthInfo.year}-${birthInfo.month}`
+    const prevYearMonth = birthInfoKeyRef.current.split('-').slice(0, 2).join('-')
+    const isDayHourAdjustment = initializedRef.current && prevYearMonth === currentYearMonth
+
     if (currentBirthInfoKey !== birthInfoKeyRef.current) {
       birthInfoKeyRef.current = currentBirthInfoKey
-      const defaults = getDefaultDecadalAnnualSelection(chart, birthInfo.year, new Date().getFullYear())
-      setSelectedDecadal(defaults.decadal)
-      setSelectedAnnual(defaults.annual)
-      setSelectedMonthly(null)
-      setSelectedDaily(null)
-      setSelectedHourly(null)
-      initializedRef.current = true
+
+      if (isDayHourAdjustment) {
+        // 日/時調整：保留 DecadalAnnualMonthlyTable 現有選擇，不重設大限/流年
+      } else {
+        // 讀入新命例（或首次初始化）：套用今年為基礎的預設大限/流年
+        const defaults = getDefaultDecadalAnnualSelection(chart, birthInfo.year, new Date().getFullYear())
+        setSelectedDecadal(defaults.decadal)
+        setSelectedAnnual(defaults.annual)
+        setSelectedMonthly(null)
+        setSelectedDaily(null)
+        setSelectedHourly(null)
+        initializedRef.current = true
+      }
     } else if (!initializedRef.current) {
       const defaults = getDefaultDecadalAnnualSelection(chart, birthInfo.year, new Date().getFullYear())
       setSelectedDecadal(defaults.decadal)

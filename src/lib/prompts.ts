@@ -6,6 +6,7 @@
 
 import { t } from './i18n'
 import type { Language } from './i18n'
+import { localizeChineseText } from './localize-knowledge'
 
 /* 派別與盤型定義 */
 export type ChartType = 'northern-flying' | 'triple-harmony' | 'flying-star'  // 盤面類型：四化、三合、飛星
@@ -245,7 +246,7 @@ export function getSystemPrompt(language: Language, chartType: ChartType = 'nort
   }
 
   const langHint = isTraditional ? '請使用繁體中文輸出全部內容。' : '请使用简体中文输出全部内容。'
-  return `${basePrompt}\n\n${langHint}`
+  return localizeChineseText(`${basePrompt}\n\n${langHint}`, language)
 }
 
 /* ============================================================
@@ -257,7 +258,7 @@ export function getSystemPrompt(language: Language, chartType: ChartType = 'nort
  */
 export const USER_PROMPT_NORTHERN_FLYING_ZH_TW = 
 `【分析派別】北派四化（飛星紫微）
-
+ 
 【分析優化重點】
 1. 優先鎖定「四化串聯」區塊——這是命主性格的主軸
 2. 結合「離心/向心」的動態，追蹤能量流向與碰撞點
@@ -493,14 +494,14 @@ export function buildUserPrompt(params: UserPromptParams): string {
   // 是否包含補充上下文和大限信息
   const includeContext = false
 
-  return `${prefix}
+  return localizeChineseText(`${prefix}
 
 ## ${jsonLabel}
 ${jsonHint}
 ${indicatorsJson}
 
 ${instructions}
-${includeContext ? `\n## ${contextLabel}\n${contextStr}` : ''}`
+${includeContext ? `\n## ${contextLabel}\n${contextStr}` : ''}`, language)
 }
 
 /**

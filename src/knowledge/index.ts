@@ -173,8 +173,12 @@ const OPPOSITE_BRANCH_MAP: Record<string, string> = {
   '申': '寅', '酉': '卯', '戌': '辰', '亥': '巳',
 }
 
-const SELF_PALACE_SET = new Set(['命宫', '兄弟', '夫妻', '子女', '财帛', '疾厄'])
-const OTHER_PALACE_SET = new Set(['迁移', '交友', '官禄', '田宅', '福德', '父母'])
+const SELF_PALACE_SET = new Set([
+  '命宫', '財帛', '财帛', '官祿', '官禄', '疾厄', '田宅', '福德', '命宮',
+])
+const OTHER_PALACE_SET = new Set([
+  '兄弟', '夫妻', '子女', '遷移', '迁移', '交友', '僕役', '仆役', '父母',
+])
 
 function normalizeStar(name: unknown): string {
   return normalizeStarNameShared(String(name || ''))
@@ -183,12 +187,6 @@ function normalizeStar(name: unknown): string {
 function normalizePalaceName(name: unknown): string {
   return String(name || '')
     .trim()
-    .replace('命宮', '命宫')
-    .replace('財帛', '财帛')
-    .replace('遷移', '迁移')
-    .replace('官祿', '官禄')
-    .replace('仆役', '交友')
-    .replace('僕役', '交友')
 }
 
 function getPalaceRole(name: unknown): '我宮' | '他宮' | '' {

@@ -83,6 +83,17 @@ const SIMPLIFIED_TO_TRADITIONAL_CHARS: Record<string, string> = {
     '阴': '陰',
     '阳': '陽',
     '类': '類',
+    '辅': '輔',
+    '杂': '雜',
+    '质': '質',
+    '变': '變',
+    '贪': '貪',
+    '杀': '殺',
+    '机': '機',
+    '测': '測',
+    '检': '檢',
+    '无': '無',
+    '现': '現',
 }
 
 const TRADITIONAL_TO_SIMPLIFIED_PHRASES: Array<[string, string]> = SIMPLIFIED_TO_TRADITIONAL_PHRASES

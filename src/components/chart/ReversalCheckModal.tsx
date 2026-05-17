@@ -5,9 +5,10 @@
 import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useSettingsStore } from '@/stores'
+import { localizeChineseText } from '@/lib/localize-knowledge'
 import type { ABCDReversalSignal } from './abcdReversalSpec'
 import type { PalaceData } from './types'
-import { NATAL_PALACE_MAP, PALACE_NAME_TO_ENGLISH_MAP, toTraditionalText } from './types'
+import { NATAL_PALACE_MAP, PALACE_NAME_TO_ENGLISH_MAP } from './types'
 
 export interface SanFangSiZhengResult {
   sanFang: {
@@ -155,6 +156,7 @@ export function ReversalCheckModal({
   const contentMaxHeight = Math.max(56, maxModalHeight - 46)
 
   const isTW = language === 'zh-TW'
+  const localize = (text: string) => localizeChineseText(text, language as 'zh-TW' | 'zh-CN')
 
   // 根據本命宮名查找大限/流年角色標籤
   // branch → 本命宮名
@@ -168,9 +170,9 @@ export function ReversalCheckModal({
     const engKey = PALACE_NAME_TO_ENGLISH_MAP[rawPalaceName] || ''
     const palaceName = engKey ? NATAL_PALACE_MAP[engKey] || rawPalaceName : rawPalaceName
     return {
-      palaceName: toTraditionalText(palaceName),
-      decadal: engKey ? toTraditionalText(decadalLabelsByPalaceName[engKey] || '') : '',
-      annual: engKey ? toTraditionalText(annualLabelsByPalaceName[engKey] || '') : '',
+      palaceName: localize(palaceName),
+      decadal: engKey ? localize(decadalLabelsByPalaceName[engKey] || '') : '',
+      annual: engKey ? localize(annualLabelsByPalaceName[engKey] || '') : '',
     }
   }
 
@@ -184,11 +186,11 @@ export function ReversalCheckModal({
       : null
 
   const decadalTimeText = selectedDecadalPalace
-    ? `大限: ${selectedDecadalPalace.decadal.range[0]}~${selectedDecadalPalace.decadal.range[1]} ${toTraditionalText(selectedDecadalPalace.stem)}${toTraditionalText(selectedDecadalPalace.branch)}限`
+    ? `${localize('大限')}: ${selectedDecadalPalace.decadal.range[0]}~${selectedDecadalPalace.decadal.range[1]} ${localize(selectedDecadalPalace.stem)}${localize(selectedDecadalPalace.branch)}${localize('限')}`
     : ''
 
   const annualTimeText = selectedAnnualYear && selectedAnnualGanZhi && selectedAnnualAge
-    ? `流年: ${selectedAnnualYear}年 ${toTraditionalText(selectedAnnualGanZhi)}${selectedAnnualAge}歲`
+    ? `${localize('流年')}: ${selectedAnnualYear}年 ${localize(selectedAnnualGanZhi)}${localize('歲')}`
     : ''
 
   const abcdReversalCount = abcdReversalSignals.filter(
@@ -203,7 +205,7 @@ export function ReversalCheckModal({
     const { palaceName, decadal, annual } = getPalaceRoleLabels(branch)
     return (
       <div key={`${direction}-${branch}`} className="flex items-center gap-1.5 flex-wrap text-[12px] font-medium text-text">
-        <span>{`${toTraditionalText(direction)}${code}`}</span>
+        <span>{`${localize(direction)}${code}`}</span>
         <span>{palaceName}</span>
         {decadal && <span>{decadal}</span>}
         {annual && <span>{annual}</span>}
@@ -228,7 +230,7 @@ export function ReversalCheckModal({
                 : 'bg-gray-200 text-gray-500 hover:bg-gray-300 hover:text-text'
             }`}
           >
-            {`串聯${abcdChainCount}/反背${abcdReversalCount}`}
+            {`${localize('串聯')}${abcdChainCount}/${localize('反背')}${abcdReversalCount}`}
           </button>
           <button
             onClick={() => setActiveTab('qualityMutation')}
@@ -238,7 +240,7 @@ export function ReversalCheckModal({
                 : 'bg-gray-200 text-gray-500 hover:bg-gray-300 hover:text-text'
             }`}
           >
-            質能變
+            {localize('質能變')}
             <span className="ml-1 inline-block px-1.5 py-0.5 bg-black/10 rounded text-[10px] font-semibold">
               {qualityMutationResults.length}
             </span>
@@ -252,7 +254,7 @@ export function ReversalCheckModal({
                   : 'bg-gray-200 text-gray-500 hover:bg-gray-300 hover:text-text'
               }`}
             >
-              {isTW ? '三方四正' : '三方四正'}
+              {localize('三方四正')}
             </button>
           )}
         </div>
@@ -260,7 +262,7 @@ export function ReversalCheckModal({
         <button
           onClick={onClose}
           className="ml-auto w-5 h-5 rounded-full bg-black/80 text-white hover:bg-black shadow-md transition-colors flex items-center justify-center text-[12px] leading-none"
-          aria-label={isTW ? '關閉' : '關閉'}
+          aria-label={localize('關閉')}
         >
           ×
         </button>
@@ -276,23 +278,23 @@ export function ReversalCheckModal({
           <div className="flex flex-row gap-x-3 gap-y-0">
             {/* 三方統計 */}
             <div className="flex-1 flex items-center gap-x-1">
-              <span className="font-semibold whitespace-nowrap text-[11px]">{isTW ? '三方' : '三方'}</span>
-              <span className="text-gray-400 font-semibold text-[10px]">得{finalSanFangSiZhengResult.sanFang.getCount}</span>
-              <span className="text-gray-400 text-[10px]">/</span>
-              <span className="text-gray-400 font-semibold text-[10px]">失{finalSanFangSiZhengResult.sanFang.lossCount}</span>
-              <span className="text-gray-400 font-semibold text-[10px] ml-1">
-                {isTW ? '反背' : '反背'}{finalSanFangSiZhengResult.sanFang.hasReversal ? '✓' : '✗'}
-              </span>
+                <span className="font-semibold whitespace-nowrap text-[11px]">{localize('三方')}</span>
+                <span className="text-gray-400 font-semibold text-[10px]">得{finalSanFangSiZhengResult.sanFang.getCount}</span>
+                <span className="text-gray-400 text-[10px]">/</span>
+                <span className="text-gray-400 font-semibold text-[10px]">失{finalSanFangSiZhengResult.sanFang.lossCount}</span>
+                <span className="text-gray-400 font-semibold text-[10px] ml-1">
+                  {localize('反背')}{finalSanFangSiZhengResult.sanFang.hasReversal ? '✓' : '✗'}
+                </span>
             </div>
 
             {/* 四正統計 */}
             <div className="flex-1 flex items-center gap-x-1">
-              <span className="font-semibold whitespace-nowrap text-[11px]">{isTW ? '四正' : '四正'}</span>
+              <span className="font-semibold whitespace-nowrap text-[11px]">{localize('四正')}</span>
               <span className="text-gray-400 font-semibold text-[10px]">得{finalSanFangSiZhengResult.siZheng.getCount}</span>
               <span className="text-gray-400 text-[10px]">/</span>
               <span className="text-gray-400 font-semibold text-[10px]">失{finalSanFangSiZhengResult.siZheng.lossCount}</span>
               <span className="text-gray-400 font-semibold text-[10px] ml-1">
-                {isTW ? '反背' : '反背'}{finalSanFangSiZhengResult.siZheng.hasReversal ? '✓' : '✗'}
+                {localize('反背')}{finalSanFangSiZhengResult.siZheng.hasReversal ? '✓' : '✗'}
               </span>
             </div>
           </div>
@@ -317,14 +319,13 @@ export function ReversalCheckModal({
 
               const buildRoleText = (branch: string, direction: '離心' | '向心') => {
                 const { palaceName, decadal, annual } = getPalaceRoleLabels(branch)
-                return [palaceName, direction, annual, decadal].filter(Boolean).join(' ')
+                return [palaceName, decadal, annual, localize(direction)].filter(Boolean).join(' ')
               }
-
               const buildCodeMetaText = (signal: ABCDReversalSignal | undefined, code: 'A' | 'B' | 'C' | 'D') => {
                 const birthMeta = birthCodeMetaByCode?.[code]
                 if (birthMeta?.starName) {
-                  const palaceName = birthMeta.palaceName ? toTraditionalText(birthMeta.palaceName) : '-'
-                  const starName = toTraditionalText(birthMeta.starName)
+                  const palaceName = birthMeta.palaceName ? localize(birthMeta.palaceName) : '-'
+                  const starName = localize(birthMeta.starName)
                   return `${code}: ${palaceName} ${starName}${code}`
                 }
 
@@ -342,7 +343,7 @@ export function ReversalCheckModal({
                   signal.evidence.reverseLine?.starName ||
                   signal.evidence.conflictLine?.starName ||
                   ''
-                const starName = rawStarName ? toTraditionalText(rawStarName) : '-'
+                const starName = rawStarName ? localize(rawStarName) : '-'
 
                 return `${code}: ${palaceName} ${starName}${code}`
               }
@@ -377,8 +378,8 @@ export function ReversalCheckModal({
                 <div className="border border-white/20 rounded overflow-hidden">
                   <div className="grid grid-cols-[90px_minmax(0,1fr)_minmax(0,1fr)] text-[12px]">
                     <div className="bg-white/20 border-white/20" />
-                    <div className="bg-white/20 border-white/20 px-2 py-0.5 text-[11px] font-semibold text-text">串聯</div>
-                    <div className="bg-white/20 border-white/20 px-2 py-0.5 text-[11px] font-semibold text-text">反背</div>
+                    <div className="bg-white/20 border-white/20 px-2 py-0.5 text-[11px] font-semibold text-text">{localize('串聯')}</div>
+                    <div className="bg-white/20 border-white/20 px-2 py-0.5 text-[11px] font-semibold text-text">{localize('反背')}</div>
 
                     {cells.map((cell) => (
                       <div key={`row-${cell.code}`} className="contents">
@@ -415,7 +416,7 @@ export function ReversalCheckModal({
               if (item.centripetalPalaces.length > 0) {
                 item.centripetalPalaces.forEach((branch) => {
                   const palaceName = getPalaceRoleLabels(branch).palaceName
-                  palaceLines.push(`${palaceName}有生年${item.code}又有向心${item.code}`)
+                  palaceLines.push(localize(`${palaceName}有生年${item.code}又有向心${item.code}`))
                 })
               }
 
@@ -423,14 +424,14 @@ export function ReversalCheckModal({
               if (item.centrifugalPalaces.length > 0) {
                 item.centrifugalPalaces.forEach((branch) => {
                   const palaceName = getPalaceRoleLabels(branch).palaceName
-                  palaceLines.push(`${palaceName}有生年${item.code}又有離心${item.code}`)
+                  palaceLines.push(localize(`${palaceName}有生年${item.code}又有離心${item.code}`))
                 })
               }
 
               return (
                 <div key={`${item.code}-${item.star}`} className="border-l-2 border-white/20 pl-2 py-1">
                   <div className="text-[12px] font-semibold text-text">
-                    {`${item.code} ${toTraditionalText(item.star)}`}
+                    {`${item.code} ${localize(item.star)}`}
                   </div>
                   {palaceLines.length > 0 && (
                     <div className="text-[12px] text-text-secondary space-y-0.5">
@@ -441,13 +442,13 @@ export function ReversalCheckModal({
                   )}
                   {item.balanceLinks.length > 0 && (
                     <div className="text-[12px] text-text-secondary">
-                      {`同組平衡：${item.balanceLinks
+                      {localize(`同組平衡：${item.balanceLinks
                         .map((link) => {
                           const sourceName = getPalaceRoleLabels(link.sourceBranch).palaceName
                           const targetName = getPalaceRoleLabels(link.targetBranch).palaceName
                           return `${sourceName}生年${item.balanceSourceCode}${item.balanceTransformLabel}到${targetName}`
                         })
-                        .join('；')}`}
+                        .join('；')}`)}
                     </div>
                   )}
                 </div>
@@ -459,17 +460,17 @@ export function ReversalCheckModal({
         {/* 空狀態 */}
         {activeTab === 'abcd' && abcdReversalSignals.length === 0 && (
           <div className="text-center text-[10px] text-gray-400 py-2">
-            {isTW ? '無串聯/反背現象' : '無串聯/反背現象'}
+            {localize('無串聯/反背現象')}
           </div>
         )}
         {activeTab === 'sanFangSiZheng' && !finalSanFangSiZhengResult && (
           <div className="text-center text-[10px] text-gray-400 py-2">
-            {isTW ? '無三方四正反背現象' : '無三方四正反背現象'}
+            {localize('無三方四正反背現象')}
           </div>
         )}
         {activeTab === 'qualityMutation' && qualityMutationResults.length === 0 && (
           <div className="text-center text-[10px] text-gray-400 py-2">
-            無質能變現象
+            {localize('無質能變現象')}
           </div>
         )}
       </div>

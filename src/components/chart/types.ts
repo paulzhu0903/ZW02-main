@@ -74,6 +74,9 @@ export interface StarTagProps {
 export interface PalaceCardProps extends PalaceData {
   isSelected?: boolean
   onClick?: () => void
+  transformedLabel?: string
+  transformedLevel?: 'natal' | 'decadal' | 'annual' | null
+  transformedKind?: 'natal' | 'decadal' | 'annual' | null
   chartType?: 'flying' | 'trireme' | 'transformation'
   selectedDecadal?: number | null
   selectedAnnual?: number | null

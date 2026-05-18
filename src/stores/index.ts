@@ -153,6 +153,7 @@ interface SettingsState {
   transformationShowCausePalace: boolean
   transformationHideMinorStars: boolean  // 隱藏輔星和雜曜（左輔、右弼、文昌、文曲除外）
   transformationShowMinorStars: boolean
+  showPalaceTransformation: boolean
 
   // 飛星盤面設定
   flyingShowGods: boolean
@@ -187,6 +188,7 @@ interface SettingsState {
   setTransformationShowCausePalace: (value: boolean) => void
   setTransformationHideMinorStars: (value: boolean) => void
   setTransformationShowMinorStars: (value: boolean) => void
+  setShowPalaceTransformation: (value: boolean) => void
 
   // 飛星盤面相關的setter
   setFlyingShowGods: (value: boolean) => void
@@ -234,6 +236,7 @@ export const useSettingsStore = create<SettingsState>()(
       transformationShowCausePalace: true,
       transformationHideMinorStars: false,
       transformationShowMinorStars: false,
+      showPalaceTransformation: true,
 
       // 飛星盤面設定
       flyingShowGods: true,
@@ -278,6 +281,7 @@ export const useSettingsStore = create<SettingsState>()(
       setTransformationShowCausePalace: (value: boolean) => set({ transformationShowCausePalace: value }),
       setTransformationHideMinorStars: (value: boolean) => set({ transformationHideMinorStars: value }),
       setTransformationShowMinorStars: (value: boolean) => set({ transformationShowMinorStars: value }),
+      setShowPalaceTransformation: (value: boolean) => set({ showPalaceTransformation: value }),
 
       // 飛星盤面相關的setter
       setFlyingShowGods: (value) => set({ flyingShowGods: value }),

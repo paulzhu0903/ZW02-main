@@ -18,6 +18,8 @@ import {
   PALACE_POSITIONS,
   PALACE_BRANCH_INDEX,
   PALACE_NAME_TO_ENGLISH_MAP,
+  PALACE_ORDER,
+  NATAL_PALACE_MAP,
   MUTAGEN_COLORS,
 } from './types'
 import {
@@ -25,6 +27,7 @@ import {
   getCenterBoundaryPointForPalace,
   collectMutagenLines,
   getMutagenType,
+  getDecadalPalaceIndex,
 } from './mutagenLines'
 import { MutagenControls } from './MutagenControls'
 import { PalaceHintBubble } from './Bubble'
@@ -263,6 +266,73 @@ export function ChartDisplay() {
   const selectedPalaceBranch = selectedPalace
     ? palaceData.find((palace) => palace.name === selectedPalace)?.branch
     : null
+
+  // 計算選中宮位的「轉換宮位名稱」映射（例如：選中兄弟宮，則其他宮位標示為「兄之X」）
+  const transformedLabelsByBranch: Record<string, string> = (() => {
+    const map: Record<string, string> = {}
+    if (!selectedPalace || !palaceData) return map
+
+    const getEnglish = (name: string) => PALACE_NAME_TO_ENGLISH_MAP[name] || ''
+    const subjectEnglish = getEnglish(selectedPalace)
+    if (!subjectEnglish) return map
+
+    // 決定當前層級：流年 > 大限 > 本命
+    const activeLevel: 'annual' | 'decadal' | 'natal' = (selectedAnnual !== null && selectedAnnual !== undefined && selectedAnnualGanZhi) ? 'annual' : (selectedDecadal !== null && selectedDecadal !== undefined && selectedDecadal !== 0 && yearGan) ? 'decadal' : 'natal'
+
+    // 取得某個宮位的 natal index
+    const getNatalIndex = (englishName: string) => PALACE_ORDER.indexOf(englishName)
+
+    // 若為 annual，取得年命宮 index
+    let yearlyIndex: number | null = null
+    if (activeLevel === 'annual' && selectedAnnualGanZhi) {
+      const yearlyBranch = selectedAnnualGanZhi.slice(-1)
+      const yearlyLifePalace = palaceData.find(p => p.branch === yearlyBranch)
+      if (yearlyLifePalace) {
+        const yearlyEnglish = PALACE_NAME_TO_ENGLISH_MAP[yearlyLifePalace.name] || ''
+        yearlyIndex = getNatalIndex(yearlyEnglish)
+      }
+    }
+
+    // 計算 subject index 在當前層級的表示
+    const natalSubjectIndex = PALACE_ORDER.indexOf(subjectEnglish)
+    if (natalSubjectIndex === -1) return map
+
+      const getIndexAtLevel = (natalIndex: number) => {
+      if (activeLevel === 'decadal') {
+        return getDecadalPalaceIndex(natalIndex, selectedDecadal, gender ?? 'male', yearGan ?? '')
+      }
+      if (activeLevel === 'annual' && yearlyIndex !== null) {
+        return (natalIndex - yearlyIndex + 12) % 12
+      }
+      return natalIndex
+    }
+
+    const subjectIndexAtLevel = getIndexAtLevel(natalSubjectIndex)
+    const subjectShort = (NATAL_PALACE_MAP[PALACE_ORDER[subjectIndexAtLevel]] || '').replace(/^(本|年|月|大)/, '') || selectedPalace.replace(/宮|宫$/, '')
+
+    for (const p of palaceData) {
+      const targEnglish = PALACE_NAME_TO_ENGLISH_MAP[p.name] || ''
+      const targNatalIndex = getNatalIndex(targEnglish)
+      if (targNatalIndex === -1) continue
+      const targIndexAtLevel = getIndexAtLevel(targNatalIndex)
+      const relative = (targIndexAtLevel - subjectIndexAtLevel + 12) % 12
+      const relativeEnglish = PALACE_ORDER[relative]
+      const token = (NATAL_PALACE_MAP[relativeEnglish] || '').replace(/^(本|年|月|大)/, '') || ''
+      map[p.branch] = `${subjectShort}之${token}`
+    }
+
+    // attach active level info separately by encoding into map key? We'll create a parallel map below when passing props
+    return map
+  })()
+
+  // 再建立一個 parallel map 保存層級資訊
+  const transformedLevelByBranch: Record<string, 'natal' | 'decadal' | 'annual' | null> = (() => {
+    const map: Record<string, 'natal' | 'decadal' | 'annual' | null> = {}
+    if (!selectedPalace || !palaceData) return map
+    const activeLevel: 'annual' | 'decadal' | 'natal' = (selectedAnnual !== null && selectedAnnual !== undefined && selectedAnnualGanZhi) ? 'annual' : (selectedDecadal !== null && selectedDecadal !== undefined && selectedDecadal !== 0 && yearGan) ? 'decadal' : 'natal'
+    for (const p of palaceData) map[p.branch] = activeLevel
+    return map
+  })()
 
   const sanFangSiZhengResult = (() => {
     if (!selectedPalaceBranch || !singleActiveMutagenLabel) return null
@@ -621,6 +691,8 @@ export function ChartDisplay() {
           onClick={() => {
             setSelectedPalace(selectedPalace === palace.name ? null : palace.name)
           }}
+          transformedLabel={transformedLabelsByBranch[palace.branch]}
+          transformedLevel={transformedLevelByBranch[palace.branch]}
           chartType={chartType}
           selectedDecadal={selectedDecadal}
           selectedAnnual={selectedAnnual}

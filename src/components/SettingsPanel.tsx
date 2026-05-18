@@ -76,6 +76,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     transformationShowGods,
     transformationShowCausePalace,
     transformationShowMinorStars,
+    showPalaceTransformation,
     // 飛星盤面設定
     flyingShowGods,
     flyingShowMinorStars,
@@ -100,6 +101,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     setTransformationShowGods,
     setTransformationShowCausePalace,
     setTransformationShowMinorStars,
+    setShowPalaceTransformation,
     // 飛星盤面相關的setter
     setFlyingShowGods,
     setFlyingShowMinorStars,
@@ -331,8 +333,8 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                 {t('settings.showCausePalace', language)}
               </SettingToggle>
 
-              <SettingToggle checked={transformationShowMinorStars} onChange={() => setTransformationShowMinorStars(!transformationShowMinorStars)}>
-                {t('settings.showMinorStars', language)}
+              <SettingToggle checked={showPalaceTransformation} onChange={() => setShowPalaceTransformation(!showPalaceTransformation)}>
+                {t('settings.showPalaceTransformation', language)}
               </SettingToggle>
 
             </div>

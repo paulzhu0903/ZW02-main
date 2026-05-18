@@ -11,6 +11,8 @@ import {
   PALACE_NAME_TO_ENGLISH_MAP,
   type PalaceCardProps,
 } from '../types'
+import { getSmallLimitBranchForAge } from '../utils/chartHelpers'
+import { getYearGanZhi } from '../utils/lunar'
 import {
   isMajorStarName,
   getDecadalPalaceIndex,
@@ -20,8 +22,10 @@ import { StarTag } from './StarTag'
 export function PalaceCard({
   name, stem, branch, majorStars, minorStars, adjectiveStars,
   boshi12Deity, longlifeDeity, isLife, isBody, isCausePalace, isSelected, onClick, chartType = 'flying', selectedDecadal = null, selectedAnnual = null, monthlySequenceLabels = [], selectedDailyLabel = '', selectedHourlyLabel = '', selectedAnnualAge = null, selectedAnnualYear = null, selectedAnnualGanZhi = null, selectedAnnualLabel = '', selectedDecadalLabel = '', yearGan = '', gender = 'male', birthInfo = null, palaceData = null, decadalLifePalaceStem = null, annualLifePalaceStem = null, directionMark = null, directionFocus = null, selectedMonthlyPalaceBranch = null, selectedDailyPalaceBranch = null, selectedHourlyPalaceBranch = null
+  , transformedLabel
+  , transformedLevel = null
 }: PalaceCardProps) {
-  const { language, transformationShowGods, flyingShowGods, transformationShowCausePalace, transformationHideMinorStars, transformationShowMinorStars, flyingShowMinorStars, triremeShowMinorStars, flyingShowBodyPalace, flyingShowCausePalace } = useSettingsStore()
+  const { language, transformationShowGods, flyingShowGods, transformationShowCausePalace, transformationHideMinorStars, transformationShowMinorStars, showPalaceTransformation, flyingShowMinorStars, triremeShowMinorStars, flyingShowBodyPalace, flyingShowCausePalace } = useSettingsStore()
   const hasMergedDailyHourly = !!selectedDailyLabel && !!selectedHourlyLabel && selectedHourlyLabel.startsWith(selectedDailyLabel)
   
   // 計算流年和虛歲 - 基於當前宮位在大限中的相對位置
@@ -128,6 +132,21 @@ export function PalaceCard({
   const originalPalaceName = englishPalaceName 
     ? t(`palace.${englishPalaceName}`, language) || name
     : name
+
+  // 小限：當在流年層級時，計算當時虛歲的小限所在宮位（地支）並標注
+  let isSmallLimitPalace = false
+  if (selectedAnnual !== null && selectedAnnual !== undefined && birthInfo && palaceData && selectedAnnualAge !== null) {
+    try {
+      const birthGanZhi = getYearGanZhi(birthInfo.year)
+      const birthZhi = birthGanZhi.slice(-1)
+      const smallBranch = getSmallLimitBranchForAge(birthZhi, selectedAnnualAge, gender as 'male' | 'female')
+      if (smallBranch) {
+        isSmallLimitPalace = branch === smallBranch
+      }
+    } catch (e) {
+      // ignore calculation errors
+    }
+  }
 
   // 宮位名稱固定為原始序列，不因大限/流年切換而改名
   const displayPalaceName = originalPalaceName
@@ -267,6 +286,18 @@ export function PalaceCard({
         </div>
       )}
 
+      {/* 小限標籤 - 與身宮類似的垂直標示，當流年層級（有 selectedAnnualAge）且此宮為小限所在時顯示 */}
+      {isSmallLimitPalace && chartType !== 'transformation' && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+          <div
+            className="px-0.5 py-0.5 rounded border border-blue-500 text-blue-500 text-[11px] sm:text-[12px] lg:text-[15px] font-medium bg-white/70"
+            style={{ writingMode: 'vertical-rl', lineHeight: 1 }}
+          >
+            {language === 'zh-TW' ? '小限' : '小限'}
+          </div>
+        </div>
+      )}
+
       {/* 十二神显示 - 由 i18n.ts 中的定义完全控制显示内容和语言 */}
       {((chartType === 'flying' && flyingShowGods) || (chartType === 'transformation' && transformationShowGods)) && (
         <div className="flex justify-between text-[9px] sm:text-[10px] lg:text-[13px] text-text-muted mb-0.5 border-t border-white/[0.04] pt-0.5 px-1 sm:px-1.5">
@@ -329,6 +360,22 @@ export function PalaceCard({
                   {selectedHourlyLabel && <span>{selectedHourlyLabel}</span>}
                 </>
               )}
+            </div>
+          )}
+
+          {/* 轉換標籤：整合在流年/流月/流時容器中，顯示於最下方並與原宮位名稱右對齊 */}
+          {!isSelected && transformedLabel && showPalaceTransformation && (
+            <div className="w-full flex justify-center">
+              <span
+                className="text-[10px] sm:text-[11px] lg:text-[12px] font-medium leading-none inline-block text-center"
+                style={{
+                  minWidth: 36,
+                  maxWidth: 72,
+                  color: transformedLevel === 'decadal' ? '#34C759' : transformedLevel === 'annual' ? '#007AFF' : '#FF3B30',
+                }}
+              >
+                {transformedLabel}
+              </span>
             </div>
           )}
         </div>

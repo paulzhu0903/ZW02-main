@@ -7,6 +7,40 @@ import { MINOR_STAR_STANDARD_BRIGHTNESS } from '@/lib/brightness'
 
 export { normalizeIndex }
 
+/**
+ * 根據出生年地支決定一歲時的小限所在宮位（地支）
+ * 規則：
+ *  寅、午、戌年生： 一歲在 辰宮
+ *  申、子、辰年生： 一歲在 戌宮
+ *  巳、酉、丑年生： 一歲在 未宮
+ *  亥、卯、未年生： 一歲在 丑宮
+ */
+export function getSmallLimitStartBranch(birthYearBranch: string): string | null {
+  if (!birthYearBranch) return null
+  const b = birthYearBranch
+  if (['寅', '午', '戌'].includes(b)) return '辰'
+  if (['申', '子', '辰'].includes(b)) return '戌'
+  if (['巳', '酉', '丑'].includes(b)) return '未'
+  if (['亥', '卯', '未'].includes(b)) return '丑'
+  return null
+}
+
+/**
+ * 計算某虛歲（age，虛歲）的小限所在宮位（地支）
+ * age: 虛歲（1 為一歲）
+ * gender: 'male' 為順時針（順序陣列中往前），'female' 為逆時針（往後）
+ */
+export function getSmallLimitBranchForAge(birthYearBranch: string, age: number, gender: 'male' | 'female' = 'male'): string | null {
+  const start = getSmallLimitStartBranch(birthYearBranch)
+  if (!start || !age || age < 1) return null
+  const startIndex = PALACE_CLOCKWISE_BRANCHES.indexOf(start as typeof PALACE_CLOCKWISE_BRANCHES[number])
+  if (startIndex === -1) return null
+
+  const step = (age - 1) * (gender === 'male' ? 1 : -1)
+  const finalIndex = normalizeIndex(startIndex + step)
+  return PALACE_CLOCKWISE_BRANCHES[finalIndex]
+}
+
 export function hasDirection(mark: '得' | '失' | '得失' | undefined, target: '得' | '失'): boolean {
   if (!mark) return false
   if (mark === '得失') return true

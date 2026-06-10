@@ -175,10 +175,16 @@ export function AIInterpretation() {
     const result: Record<string, any> = {}
 
     Object.entries(data).forEach(([key, value]) => {
-      if (key === '輔星及雜曜' && Array.isArray(value)) {
-        result[key] = convertHelperStarsToChineseFields(value)
-        return
-      }
+        if (key === '輔星及雜曜' && Array.isArray(value)) {
+          // 只有當陣列內部為物件（含 type/scope 欄位）時才做轉換；
+          // 若已是字串陣列（例如三合輸出），保持原樣。
+          if (value.length > 0 && typeof value[0] === 'object') {
+            result[key] = convertHelperStarsToChineseFields(value)
+          } else {
+            result[key] = value
+          }
+          return
+        }
       result[key] = normalizeHelperStarsInIndicators(value)
     })
 
@@ -224,11 +230,29 @@ export function AIInterpretation() {
         const sanFangSiZheng = calculateSanFangSiZheng(palace.地支, indicators.論命座標系)
         
         // 構建該宮位的指標
+        // 若指標中未包含輔星及雜曜，嘗試從命盤原始資料中抓取 minorStars/adjectiveStars 作為備援
+        const rawHelpers = palace.輔星及雜曜 || []
+        const helperNamesFallback = (() => {
+          try {
+            const pal = (chart as any)?.palaces?.find((p: any) => p?.name === palaceName)
+            if (!pal) return []
+            const minors = (pal.minorStars || []).map((s: any) => s?.name || s?.名稱 || s)
+            const adjectives = (pal.adjectiveStars || []).map((s: any) => s?.name || s?.名稱 || s)
+            return [...minors, ...adjectives]
+          } catch {
+            return []
+          }
+        })()
+
         const palaceIndicator = {
           宮位: palaceName,
           主星: palace.主星 || [],
           亮度: extractBrightness(chart, palaceName, language), // 從命盤中提取廟旺狀態
-          輔星: convertHelperStarsToChineseFields(palace.輔星及雜曜 || []), // 轉換英文字段為中文
+          // 三合輸出要求：顯示輔星及雜曜，但僅包含名稱字串（先使用指標資料，否則回退至命盤）
+          輔星及雜曜: (Array.isArray(rawHelpers) && rawHelpers.length > 0
+            ? rawHelpers.map((s: any) => typeof s === 'string' ? s : s?.名稱 || s?.name || '').filter(Boolean)
+            : helperNamesFallback.filter(Boolean)
+          ),
           三方四正會照: sanFangSiZheng,
           四化引動: {
             生年: extractBirthYearMutagen(indicators.基本資料?.生年四化 || [], palaceName, language),

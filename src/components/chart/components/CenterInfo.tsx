@@ -2,12 +2,10 @@
  * 中宮區域組件
  */
 
-import { HoverHint } from '@/components/ui'
 import { t } from '@/lib/i18n'
 import { localizeChineseText } from '@/lib/localize-knowledge'
 import { getNayin } from '../mutagenLines'
 import { getLocalizedStarName, getLocalizedZodiacName, getLocalizedAstroSign } from '../utils/localization'
-import { Toolbox } from './Toolbox'
 import type { FunctionalAstrolabe, BirthInfo } from '@/lib/astro'
 
 interface CenterInfoProps {

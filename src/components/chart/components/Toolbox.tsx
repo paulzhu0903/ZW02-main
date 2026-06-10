@@ -42,21 +42,29 @@ export function Toolbox({
   const hasMovedDuringDragRef = useRef(false)
   const dragThreshold = 5 // 拖動閾值（像素）
 
-  // 設置預設位置在中宮右下角
+  // 設置預設位置在內容區域寬度 3/4 處
   useEffect(() => {
     const setDefaultPosition = () => {
+      const toolboxWidth = 40 // 漢堡菜單寬度
+      const toolboxHeight = 40 // 漢堡菜單高度
+      const contentMaxWidth = 600 // 主頁內容最大寬度
+      
+      // 內容區域的起始 x 坐標（居中）
+      const contentStartX = (window.innerWidth - contentMaxWidth) / 2
+      
+      // 公式：x = contentStartX + 3 * contentMaxWidth / 4 - 漢堡寬度 / 2
+      const xPosition = contentStartX + (3 * contentMaxWidth / 4) - (toolboxWidth / 2)
+      
+      // y 軸保持在中宮右下角位置
       const centerInfoEl = document.querySelector('[data-centerinfo]') as HTMLElement
-      if (centerInfoEl) {
-        const rect = centerInfoEl.getBoundingClientRect()
-        const toolboxWidth = 40 // 漢堡菜單寬度
-        const toolboxHeight = 40 // 漢堡菜單高度
-        const offset = 8 // 偏移量
+      const yPosition = centerInfoEl 
+        ? centerInfoEl.getBoundingClientRect().bottom - toolboxHeight - 8
+        : window.innerHeight - toolboxHeight - 20
 
-        setPosition({
-          x: rect.right - toolboxWidth - offset,
-          y: rect.bottom - toolboxHeight - offset
-        })
-      }
+      setPosition({
+        x: xPosition,
+        y: yPosition
+      })
     }
 
     // 在下一幀進行設置，確保 DOM 完全渲染
@@ -74,18 +82,26 @@ export function Toolbox({
     if (isDragging || isExpanded) return // 拖動或展開時不調整位置
 
     const observer = new MutationObserver(() => {
+      const toolboxWidth = 40
+      const toolboxHeight = 40
+      const contentMaxWidth = 600 // 主頁內容最大寬度
+      
+      // 內容區域的起始 x 坐標（居中）
+      const contentStartX = (window.innerWidth - contentMaxWidth) / 2
+      
+      // 公式：x = contentStartX + 3 * contentMaxWidth / 4 - 漢堡寬度 / 2
+      const xPosition = contentStartX + (3 * contentMaxWidth / 4) - (toolboxWidth / 2)
+      
+      // y 軸保持在中宮右下角位置
       const centerInfoEl = document.querySelector('[data-centerinfo]') as HTMLElement
-      if (centerInfoEl) {
-        const rect = centerInfoEl.getBoundingClientRect()
-        const toolboxWidth = 40
-        const toolboxHeight = 40
-        const offset = 8
+      const yPosition = centerInfoEl 
+        ? centerInfoEl.getBoundingClientRect().bottom - toolboxHeight - 8
+        : window.innerHeight - toolboxHeight - 20
 
-        setPosition({
-          x: rect.right - toolboxWidth - offset,
-          y: rect.bottom - toolboxHeight - offset
-        })
-      }
+      setPosition({
+        x: xPosition,
+        y: yPosition
+      })
     })
 
     const centerInfoEl = document.querySelector('[data-centerinfo]') as HTMLElement

@@ -126,11 +126,7 @@ export interface ChartIndicators {
     我宮他宮: '我宮' | '他宮' | ''
     主星: string[]
     男女星: string[]
-    輔星及雜曜: Array<{
-      名稱: string
-      類型: string        // helper / adjective / flower / etc
-      範圍: string        // origin / origin-opposite / etc
-    }>
+    // 輔星及雜曜：已移除，不在此輸出中顯示
   }>
   
   運限焦點: {
@@ -185,8 +181,10 @@ function normalizeStar(name: unknown): string {
 }
 
 function normalizePalaceName(name: unknown): string {
+  // 統一宮位名稱，並將各種「仆役/僕役/奴仆/奴僕」同義詞替換為「交友」
   return String(name || '')
     .trim()
+    .replace(/仆役|僕役|奴仆|奴僕/g, '交友')
 }
 
 function getPalaceRole(name: unknown): '我宮' | '他宮' | '' {
@@ -611,7 +609,7 @@ export function buildChartIndicators(
       我宮他宮: item.宮位屬性,
       主星: item.主星,
       男女星: item.男女星標記,
-      輔星及雜曜: item.輔星及雜曜,
+      // 輔星及雜曜 已由需求移除，不包含在輸出中
     })),
 
     運限焦點: {

@@ -10,7 +10,7 @@ astro.config({
 });
 
 // 时辰转换：13:30 -> index 6（午时）
-const chart = astro.bySolar('1970-09-03', 6, '女', true);
+const chart = astro.bySolar('1970-09-03', 6, '男', true);
 
 console.log('=== 基本信息 ===');
 console.log('五行局:', chart.fiveElementsClass);

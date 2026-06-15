@@ -99,6 +99,21 @@ const GENDER_OPTIONS = [
   { value: 'female', labelKey: 'form.female', icon: '♀' },
 ]
 
+const DEFAULT_BIRTH_FORM_STATE = {
+  name: '',
+  birthLocation: '',
+  remark: '',
+  category: '',
+  year: 1970,
+  month: 9,
+  day: 3,
+  inputMode: 'solar' as 'solar' | 'lunar',
+  isLeapMonth: false,
+  hour: 13,
+  minute: 30,
+  gender: 'male' as Gender,
+}
+
 export function BirthForm() {
   // CenterInfo 調用的日調整
   const handleDayChange = (newDay: number) => {
@@ -133,21 +148,21 @@ export function BirthForm() {
   const { setBirthInfo, setChart, recordToLoad, setRecordToLoad } = useChartStore()
   const { language } = useSettingsStore()
 
-  const [name, setName] = useState('')
-  const [birthLocation, setBirthLocation] = useState('')
-    const [remark, setRemark] = useState('')
-  const [category, setCategory] = useState('')
+  const [name, setName] = useState(DEFAULT_BIRTH_FORM_STATE.name)
+  const [birthLocation, setBirthLocation] = useState(DEFAULT_BIRTH_FORM_STATE.birthLocation)
+  const [remark, setRemark] = useState(DEFAULT_BIRTH_FORM_STATE.remark)
+  const [category, setCategory] = useState(DEFAULT_BIRTH_FORM_STATE.category)
   const [editingCategoryIndex, setEditingCategoryIndex] = useState<number | null>(null)
   const [editingCategoryName, setEditingCategoryName] = useState('')
   const [categoryNames, setCategoryNames] = useState<Record<string, string>>({})
-  const [year, setYear] = useState(2004)
-  const [month, setMonth] = useState(3)
-  const [day, setDay] = useState(3)
-  const [inputMode, setInputMode] = useState('solar')
-  const [isLeapMonth, setIsLeapMonth] = useState(false)
-  const [hour, setHour] = useState(10)
-  const [minute, setMinute] = useState(30)
-  const [gender, setGender] = useState<Gender>('male')
+  const [year, setYear] = useState(DEFAULT_BIRTH_FORM_STATE.year)
+  const [month, setMonth] = useState(DEFAULT_BIRTH_FORM_STATE.month)
+  const [day, setDay] = useState(DEFAULT_BIRTH_FORM_STATE.day)
+  const [inputMode, setInputMode] = useState(DEFAULT_BIRTH_FORM_STATE.inputMode)
+  const [isLeapMonth, setIsLeapMonth] = useState(DEFAULT_BIRTH_FORM_STATE.isLeapMonth)
+  const [hour, setHour] = useState(DEFAULT_BIRTH_FORM_STATE.hour)
+  const [minute, setMinute] = useState(DEFAULT_BIRTH_FORM_STATE.minute)
+  const [gender, setGender] = useState<Gender>(DEFAULT_BIRTH_FORM_STATE.gender)
   const [loading, setLoading] = useState(false)
   const [formError, setFormError] = useState('')
   const [isDbModalOpen, setIsDbModalOpen] = useState(false)
@@ -283,23 +298,27 @@ export function BirthForm() {
   }
 
   // "新增" 按鈕：清空表單到預設值
-  const handleAdd = () => {
-    setName('')
-    setBirthLocation('')
-    setRemark('')
-    setYear(2004)
-    setMonth(3)
-    setDay(10)
-    setInputMode('solar')
-    setIsLeapMonth(false)
-    setHour(10)
-    setMinute(30)
-    setGender('male')
+  const resetFormToDefault = () => {
+    setName(DEFAULT_BIRTH_FORM_STATE.name)
+    setBirthLocation(DEFAULT_BIRTH_FORM_STATE.birthLocation)
+    setRemark(DEFAULT_BIRTH_FORM_STATE.remark)
+    setCategory(DEFAULT_BIRTH_FORM_STATE.category)
+    setYear(DEFAULT_BIRTH_FORM_STATE.year)
+    setMonth(DEFAULT_BIRTH_FORM_STATE.month)
+    setDay(DEFAULT_BIRTH_FORM_STATE.day)
+    setInputMode(DEFAULT_BIRTH_FORM_STATE.inputMode)
+    setIsLeapMonth(DEFAULT_BIRTH_FORM_STATE.isLeapMonth)
+    setHour(DEFAULT_BIRTH_FORM_STATE.hour)
+    setMinute(DEFAULT_BIRTH_FORM_STATE.minute)
+    setGender(DEFAULT_BIRTH_FORM_STATE.gender)
     setFormError('')
-    setCategory('')
     setEditingCategoryIndex(null)
     setRecordId(null)
     setIsDbModalOpen(false)
+  }
+
+  const handleAdd = () => {
+    resetFormToDefault()
   }
 
   // "修改" 按鈕：只加載資料，進入編輯模式
@@ -327,21 +346,7 @@ export function BirthForm() {
   const handleEditCancel = () => {
     setIsEditing(false)
     setRecordId(null)
-    // 重置表單
-    setName('')
-    setBirthLocation('')
-    setRemark('')
-    setYear(currentYear)
-    setMonth(1)
-    setDay(1)
-    setInputMode('solar')
-    setIsLeapMonth(false)
-    setHour(9)
-    setMinute(0)
-    setGender('male')
-    setFormError('')
-    setEditingCategoryIndex(null)
-    setCategory('')
+    resetFormToDefault()
   }
 
   const handleSelectFromDbAndSubmit = (record: UserRecord) => {

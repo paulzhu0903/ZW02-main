@@ -13,20 +13,20 @@ import { extractKnowledge, buildPromptContext } from '@/knowledge'
 import { Button, Select } from '@/components/ui'
 import { t, type Language } from '@/lib/i18n'
 import { getShichenOptions } from '@/lib/astro'
+import { PALACE_ORDER, PALACE_NAME_MAP_ZH, PALACE_NAME_TO_ENGLISH_MAP, DECADAL_PALACE_MAP, ANNUAL_PALACE_MAP, NATAL_PALACE_MAP, type FortuneMonthlyAnalysis, type FortuneYearlyDataItem } from '@/components/chart/types'
+import { ANNUAL_LABELS, MONTHLY_LABELS, CHINESE_DAY_NAMES, LUNAR_MONTH_DISPLAY_NAMES, LUNAR_MONTH_MAP, SHICHEN_NAMES } from '@/components/chart/utils/types'
+import { getMonthlySequenceLabel } from '@/components/chart/utils/lunar'
+import { getDecadalPalaceIndex } from '@/components/chart/mutagenLines'
 import { toTraditionalChinese } from '@/lib/localize-knowledge'
 import { solar2lunar } from 'iztro/lib/calendar'
+import { getMonthlyGan, getMonthlyZhi, getYearGanZhi, getMutagenByGan, extractGan, extractZhi } from '@/lib/mutagen'
 
 /* ============================================================
    常数和选项生成
    ============================================================ */
 
-const HEAVENLY_STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
-const EARTHLY_BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
-
 function getGanZhiYear(year: number) {
-  const heavenlyStem = HEAVENLY_STEMS[(year - 4) % 10]
-  const earthlyBranch = EARTHLY_BRANCHES[(year - 4) % 12]
-  return `${heavenlyStem}${earthlyBranch}`
+  return getYearGanZhi(year)
 }
 
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => ({
@@ -61,9 +61,11 @@ const SHICHEN_OPTIONS = getShichenOptions().map((option) => ({
 /**
  * 获取农历月份的中文表示
  */
-function getLunarMonthLabel(month: number, isLeap: boolean): string {
-  const lunarMonthLabels = ['正月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '冬月', '腊月']
-  const label = lunarMonthLabels[month - 1] || `${month}月`
+function getLunarMonthLabel(month: number | string, isLeap: boolean): string {
+  const monthNumber = typeof month === 'number'
+    ? month
+    : (LUNAR_MONTH_MAP[String(month)] ?? Number(month))
+  const label = LUNAR_MONTH_DISPLAY_NAMES[monthNumber - 1] || `${monthNumber}月`
   return isLeap ? `閏${label}` : label
 }
 
@@ -71,12 +73,7 @@ function getLunarMonthLabel(month: number, isLeap: boolean): string {
  * 获取农历日期的中文表示
  */
 function getLunarDayLabel(day: number): string {
-  const lunarDayLabels = [
-    '初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十',
-    '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
-    '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十',
-  ]
-  return lunarDayLabels[day - 1] || `${day}日`
+  return CHINESE_DAY_NAMES[day - 1] || `${day}日`
 }
 
 /**
@@ -85,8 +82,6 @@ function getLunarDayLabel(day: number): string {
  * iztro 时辰: 0=早子(00-01), 1=丑(01-03), ..., 6=午(11-13), 7=未(13-15), ..., 11=亥, 12=晚子(23-00)
  */
 function getLunarHourLabel(hour: number): string {
-  const shichenLabels = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
-  
   let shichenIndex: number
   if (hour === 23) {
     shichenIndex = 0  // 晚子时 23:00-00:00
@@ -96,7 +91,51 @@ function getLunarHourLabel(hour: number): string {
     shichenIndex = Math.floor((hour + 1) / 2)  // 其他时辰
   }
   
-  return shichenLabels[shichenIndex] || ''
+  return SHICHEN_NAMES[shichenIndex] || ''
+}
+
+function getFlowMonthLabel(year: number, lunarMonth: number, isLeap: boolean = false): string {
+  let label = getMonthlySequenceLabel(year, lunarMonth)
+  if (isLeap) {
+    label = `閏${label}`
+  }
+
+  label = label.replace('十一', '冬').replace('十二', '臘')
+  return label
+}
+
+function getPalaceEnglishKey(name: string): string {
+  return PALACE_NAME_TO_ENGLISH_MAP[name.trim()] || ''
+}
+
+/**
+ * 获取指定月份的流月标籤映射（基于该月份的流月命宮位置）
+ */
+function getMonthlyLabelsForMonth(
+  monthlyData: FortuneMonthlyAnalysis[],
+  chart: FunctionalAstrolabe,
+  targetMonth: number
+): Record<string, string> {
+  // 找到目标月份的数据
+  const monthData = monthlyData.find(m => m.月份 === targetMonth)
+  if (!monthData || monthData.宮位索引 === undefined) {
+    return {}
+  }
+
+  const flowLifeIndex = monthData.宮位索引
+  const result: Record<string, string> = {}
+
+  // 根据流月命宮位置，推导该月份每个宮位的流月標籤
+  for (let i = 0; i < 12; i++) {
+    const palaceIndex = (flowLifeIndex + i) % 12
+    const palaceName = chart.palaces[palaceIndex]?.name
+    if (!palaceName) continue
+
+    const monthLabel = MONTHLY_LABELS[i]
+    result[palaceName] = monthLabel
+  }
+
+  return result
 }
 
 /**
@@ -106,8 +145,8 @@ function formatCompleteDateTime(year: number, month: number, day: number, hour: 
   const lines: string[] = []
   
   // 西历信息
-  lines.push(`【西曆】${year}年${month}月${day}日`)
-  lines.push(`【時間】${String(hour).padStart(2, '0')}時${String(minute).padStart(2, '0')}分`)
+  lines.push(`【西曆】${year}年${String(month).padStart(2, '0')}月${String(day).padStart(2, '0')}日`)
+  lines.push(`【時間】${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`)
   
   // 农历信息
   try {
@@ -123,7 +162,7 @@ function formatCompleteDateTime(year: number, month: number, day: number, hour: 
       const hourLabel = getLunarHourLabel(hour)
       
       lines.push(`【農曆】${lunarYear}年${monthLabel}${dayLabel}`)
-      lines.push(`【農曆時辰】${hourLabel}時`)
+      lines.push(`【農曆時辰】${hourLabel}`)
       lines.push(`【天干地支】${getYearGanZhi(lunarYear)}年 (${getMonthlyGan(lunarYear, lunarMonth)}${getMonthlyZhi(lunarMonth)}月)`)
     }
   } catch (e) {
@@ -137,135 +176,6 @@ function formatCompleteDateTime(year: number, month: number, day: number, hour: 
    运势提示词 - 多语言支持，包含流年数据 JSON
    ============================================================ */
 
-interface YearlyDataItem {
-  基本資料: {
-    出生年: number
-    年干: string
-    年支: string
-  }
-  年份: number
-  流年命宮: string
-  天干: string
-  地支: string
-  四化: string[]
-}
-
-interface MonthlyAnalysis {
-  月份: number
-  分數: number
-  流月四化?: string[]
-  評價: 'excellent' | 'good' | 'fair' | 'challenging'
-  宮位?: string
-  天干?: string
-  地支?: string
-}
-
-/* ============================================================
-   流月干支计算的辅助函数（与 ChartDisplay 保持一致）
-   ============================================================ */
-
-/**
- * 五虎遁法則：根據年份天干計算正月天干
- * @param year - 年份
- * @returns 正月天干，如"丙"、"戊"等
- */
-function getFirstMonthGan(year: number): string {
-  const ganList = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
-  const yearGan = ganList[(year - 1900 + 6) % 10]
-  
-  // 五虎遁法則
-  const firstMonthMap: Record<string, string> = {
-    '甲': '丙', '己': '丙',  // 甲己年起丙寅
-    '乙': '戊', '庚': '戊',  // 乙庚年起戊寅
-    '丙': '庚', '辛': '庚',  // 丙辛年起庚寅
-    '丁': '壬', '壬': '壬',  // 丁壬年起壬寅
-    '戊': '甲', '癸': '甲',  // 戊癸年起甲寅
-  }
-  
-  return firstMonthMap[yearGan] || '甲'
-}
-
-/**
- * 計算指定月份的天干
- * @param year - 年份
- * @param lunarMonth - 農曆月份（1-12）
- * @returns 月份天干，如"丙"、"丁"等
- */
-function getMonthlyGan(year: number, lunarMonth: number): string {
-  const ganList = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
-  const firstMonthGan = getFirstMonthGan(year)
-  const firstMonthGanIndex = ganList.indexOf(firstMonthGan)
-  
-  // 正月是firstMonthGan，後續每月遞進一位天干
-  const monthGanIndex = (firstMonthGanIndex + lunarMonth - 1) % 10
-  return ganList[monthGanIndex]
-}
-
-/**
- * 獲取農曆月份對應的地支
- * @param lunarMonth - 農曆月份（1-12）
- * @returns 地支，如"寅"、"卯"等
- */
-function getMonthlyZhi(lunarMonth: number): string {
-  const zhiList = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
-  // 農曆月份對應地支：正月(寅=index 2)、二月(卯=index 3)...十一月(子=index 0)、十二月(丑=index 1)
-  return zhiList[(lunarMonth + 1) % 12]
-}
-
-/**
- * 根據天干獲取四化（十干四化規則 - 紫微斗數基本法則）
- * @param gan - 天干，如"甲"、"乙"等
- * @returns 四化陣列 [祿, 權, 科, 忌]
- */
-function getMutagenByGan(gan: string): string[] {
-  const mutagenMap: Record<string, string[]> = {
-    '甲': ['廉貞', '破軍', '武曲', '太陽'],
-    '乙': ['天機', '天梁', '紫微', '太陰'],
-    '丙': ['天同', '天機', '文昌', '廉貞'],
-    '丁': ['太陰', '天同', '天機', '巨門'],
-    '戊': ['貪狼', '太陰', '右弼', '天機'],
-    '己': ['武曲', '貪狼', '天梁', '文曲'],
-    '庚': ['太陽', '武曲', '太陰', '天同'],
-    '辛': ['巨門', '太陽', '文曲', '文昌'],
-    '壬': ['天梁', '紫微', '左輔', '武曲'],
-    '癸': ['破軍', '巨門', '太陰', '貪狼'],
-  }
-  
-  return mutagenMap[gan] || []
-}
-
-/**
- * 根据年份获取天干地支
- * @param year - 年份
- * @returns 干支字符串，如"甲寅"
- */
-function getYearGanZhi(year: number): string {
-  const ganList = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
-  const zhiList = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
-  
-  const gan = ganList[(year - 1900 + 6) % 10]
-  const zhi = zhiList[(year - 1900) % 12]
-  
-  return gan + zhi
-}
-
-/**
- * 提取干支中的天干
- * @param ganZhi - 干支字符串
- * @returns 天干（如"甲"）
- */
-function extractGan(ganZhi: string): string {
-  return ganZhi.charAt(0) || ''
-}
-
-/**
- * 提取干支中的地支
- * @param ganZhi - 干支字符串
- * @returns 地支（如"寅"）
- */
-function extractZhi(ganZhi: string): string {
-  return ganZhi.charAt(1) || ''
-}
 
 /* ============================================================
    月份运势计算函数
@@ -274,8 +184,8 @@ function extractZhi(ganZhi: string): string {
 function calculateMonthlyScores(
   chart: FunctionalAstrolabe,
   year: number
-): MonthlyAnalysis[] {
-  const monthlyScores: MonthlyAnalysis[] = []
+): FortuneMonthlyAnalysis[] {
+  const monthlyScores: FortuneMonthlyAnalysis[] = []
   
   // 基础分数（50分作为中线）
   const baseScore = 50
@@ -300,18 +210,29 @@ function calculateMonthlyScores(
   for (let month = 1; month <= 12; month++) {
     let monthScore = baseScore
     const monthlyMutagens: string[] = []
+      let lunarMonthLabel = ''
+      let lunarMonthNumber = month
+      let lunarYear = year
+      let lunarIsLeap = false
 
-    try {
-      // 计算流月的日期和干支信息
-      const date = new Date(`${year}-${String(month).padStart(2, '0')}-15`)
-      const horoscope = chart.horoscope(date)
+      try {
+        // 计算流月的日期和干支信息
+        const dateString = `${year}-${String(month).padStart(2, '0')}-15`
+        const date = new Date(dateString)
+        const horoscope = chart.horoscope(date)
+        const lunarResult = solar2lunar(dateString)
 
-      // 計算流月天干和地支（使用五虎遁法則，確保準確）
-      const monthlyHeavenlyStem = getMonthlyGan(year, month)
-      const monthlyEarthlyBranch = getMonthlyZhi(month)
-      
-      // 獲取流月四化 - 根據月份天干使用紫微斗數十干四化規則（iztro 返回值可能不準）
-      const monthlyMutagenArray = getMutagenByGan(monthlyHeavenlyStem)
+        if (lunarResult) {
+          lunarMonthNumber = lunarResult.lunarMonth || month
+          lunarYear = lunarResult.lunarYear || year
+          lunarIsLeap = lunarResult.isLeapMonth || false
+          lunarMonthLabel = getLunarMonthLabel(lunarMonthNumber, lunarIsLeap)
+        }
+
+        // 計算流月天干和地支（使用五虎遁法則，確保準確）
+        const monthlyHeavenlyStem = getMonthlyGan(lunarYear, lunarMonthNumber)
+        const monthlyEarthlyBranch = getMonthlyZhi(lunarMonthNumber)
+        const monthlyMutagenArray = getMutagenByGan(monthlyHeavenlyStem)
       
       for (const star of monthlyMutagenArray) {
         const starName = String(star)
@@ -359,15 +280,22 @@ function calculateMonthlyScores(
         evaluation = 'challenging'
       }
 
-      // 获取流月命宮
       const monthlyPalace = (horoscope.monthly as any)?.palace
+      const monthlyPalaceIndex = (horoscope.monthly as any)?.index
+      const monthlyPalaceName = monthlyPalace
+        ? String(monthlyPalace)
+        : (typeof monthlyPalaceIndex === 'number' && chart.palaces[monthlyPalaceIndex])
+          ? String(chart.palaces[monthlyPalaceIndex].name || '')
+          : undefined
 
       monthlyScores.push({
         月份: month,
         分數: Math.round(monthScore),
+        流月: lunarMonthLabel ? getFlowMonthLabel(lunarYear, lunarMonthNumber, lunarIsLeap) : undefined,
         流月四化: monthlyMutagens.length > 0 ? monthlyMutagens : undefined,
         評價: evaluation,
-        宮位: monthlyPalace ? String(monthlyPalace) : undefined,
+        宮位: monthlyPalaceName || undefined,
+        宮位索引: typeof monthlyPalaceIndex === 'number' ? monthlyPalaceIndex : undefined,
         天干: monthlyHeavenlyStem,
         地支: monthlyEarthlyBranch,
       })
@@ -384,7 +312,7 @@ function calculateMonthlyScores(
   return monthlyScores
 }
 
-function getForttunePrompt(language: Language, year?: number, month?: number, day?: number, hour?: number, minute?: number, yearlyData?: YearlyDataItem[], monthlyAnalysis?: MonthlyAnalysis[]): string {
+function getForttunePrompt(language: Language, year?: number, month?: number, day?: number, hour?: number, minute?: number, yearlyData?: FortuneYearlyDataItem[], monthlyAnalysis?: FortuneMonthlyAnalysis[]): string {
   // 生成完整的日期时间信息
   const dateTimeInfo = (year && month && day !== undefined && hour !== undefined && minute !== undefined) 
     ? formatCompleteDateTime(year, month, day, hour, minute)
@@ -398,11 +326,62 @@ function getForttunePrompt(language: Language, year?: number, month?: number, da
   if (monthlyAnalysis) {
     monthlyDataJson = `\n\n【流月數據】\n${JSON.stringify(monthlyAnalysis.map(m => ({
       月份: m.月份,
+      流月: m.流月,
       宮位: m.宮位,
       天干: m.天干,
       地支: m.地支,
       四化: m.流月四化,
     })), null, 2)}`
+  }
+
+  // 構建論命座標系（借鑑 TimeTableModal 的日期/干支表述）
+  let coordinateJson = ''
+  if (yearlyData && yearlyData.length > 0) {
+    const y = yearlyData[0]
+
+    if (y.宮位列表 && y.宮位列表.length > 0) {
+      // 建立宮位索引到月份資料的映射
+      const palaceIndexToMonthMap: Record<number, FortuneMonthlyAnalysis> = {}
+      monthlyAnalysis?.forEach(monthData => {
+        if (typeof monthData.宮位索引 === 'number') {
+          palaceIndexToMonthMap[monthData.宮位索引] = monthData
+        }
+      })
+
+      const lines = y.宮位列表.map((p) => {
+        const stemBranch = `${p.天干 || ''}${p.地支 || ''}`.trim()
+        const stars = p.主星 && p.主星.length > 0 ? p.主星.join('、') : ''
+        const flags: string[] = []
+        const eng = PALACE_NAME_TO_ENGLISH_MAP[p.宮位]
+        const palaceDisplay = eng ? (language === 'zh-TW' ? toTraditionalChinese(PALACE_NAME_MAP_ZH[eng] || p.宮位) : (PALACE_NAME_MAP_ZH[eng] || p.宮位)) : p.宮位
+        if (p.本命) flags.push(typeof p.本命 === 'string' ? p.本命 : (eng ? (NATAL_PALACE_MAP[eng] || '本命') : '本命'))
+        if (p.大限) flags.push(typeof p.大限 === 'string' ? p.大限 : (DECADAL_PALACE_MAP[eng || p.宮位] || `大${palaceDisplay.replace('宫', '').replace('宮', '')}`))
+        if (p.流年) flags.push(typeof p.流年 === 'string' ? p.流年 : (ANNUAL_PALACE_MAP[eng || p.宮位] || `年${palaceDisplay.replace('宫', '').replace('宮', '')}`))
+        const months = p.流月 ? p.流月.join(' ') : ''
+        // 根據宮位索引找到對應月份的干支資訊
+        const palaceMonthInfo = typeof p.宮位索引 === 'number' ? palaceIndexToMonthMap[p.宮位索引] : undefined
+        const monthlyInfo = palaceMonthInfo?.流月 ? palaceMonthInfo.流月 : ''
+        return [palaceDisplay, stemBranch, stars, flags.join(' '), months, monthlyInfo].filter(Boolean).join(' ')
+      })
+      coordinateJson = `\n\n【論命座標系】\n${lines.join('\n')}`
+    } else {
+      const lunarMonthLabel = month ? `${month}月` : undefined
+      const monthlyGanZhi = (year && month) ? `${getMonthlyGan(year, month)}${getMonthlyZhi(month)}` : undefined
+
+      const coordObj: any = {
+        宮位: y.流年命宮 || '',
+        重要宮位: ['命宮', '疾厄宮', '財帛宮'],
+        天干: y.天干 || '',
+        地支: y.地支 || '',
+        主星: (y.四化 && y.四化.length > 0) ? String(y.四化[0]) : '',
+      }
+
+      if (lunarMonthLabel || monthlyGanZhi) {
+        coordObj.流月 = lunarMonthLabel ? `${lunarMonthLabel}${monthlyGanZhi ? ' ' + monthlyGanZhi + '月' : ''}` : (monthlyGanZhi ? `${monthlyGanZhi}月` : undefined)
+      }
+
+      coordinateJson = `\n\n【論命座標系】\n${JSON.stringify(coordObj, null, 2)}`
+    }
   }
 
   if (language === 'zh-CN') {
@@ -441,6 +420,7 @@ function getForttunePrompt(language: Language, year?: number, month?: number, da
 
 ---
 *注：流年运势受多方因素影响，分析仅供参考，切勿执着。*${dateTimeJson}${yearlyDataJson}${monthlyDataJson}`
+    + coordinateJson
   } else {
     // zh-TW
     const yearlyDataJsonTw = yearlyData ? `\n\n【流年數據】\n${JSON.stringify(yearlyData.map(item => ({
@@ -456,6 +436,7 @@ function getForttunePrompt(language: Language, year?: number, month?: number, da
     if (monthlyAnalysis) {
       monthlyDataJsonTw = `\n\n【流月數據】\n${JSON.stringify(monthlyAnalysis.map(m => ({
         月份: m.月份,
+        流月: m.流月,
         宮位: m.宮位,
         天干: m.天干,
         地支: m.地支,
@@ -498,6 +479,7 @@ function getForttunePrompt(language: Language, year?: number, month?: number, da
 
 ---
 *注：流年運勢受多方因素影響，分析僅供參考，切勿執著。*${dateTimeJson}${yearlyDataJsonTw}${monthlyDataJsonTw}`
+    + coordinateJson
   }
 }
 
@@ -682,8 +664,8 @@ export function YearlyFortune() {
   const [minute, setMinute] = useState<number>(new Date().getMinutes())
   const [inputMode, setInputMode] = useState<'solar' | 'ganZhi'>('solar')
   const [fortune, setFortune] = useState(yearlyFortune[defaultYear] || '')
-  const [monthlyAnalysis, setMonthlyAnalysis] = useState<MonthlyAnalysis[] | null>(null)
-  const [yearlyData, setYearlyData] = useState<YearlyDataItem[] | null>(null)
+  const [monthlyAnalysis, setMonthlyAnalysis] = useState<FortuneMonthlyAnalysis[] | null>(null)
+  const [yearlyData, setYearlyData] = useState<FortuneYearlyDataItem[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -734,12 +716,91 @@ export function YearlyFortune() {
         if (yearly.index !== undefined && yearly.index >= 0 && chart.palaces[yearly.index]) {
           flowYearlyPalaceName = String(chart.palaces[yearly.index].name || '')
         }
+
+        // 获取大限命宮（若有）
+        let decadalPalaceName = ''
+        try {
+          const decadal = (horoscope as any).decadal
+          if (decadal && decadal.index !== undefined && decadal.index >= 0 && chart.palaces[decadal.index]) {
+            decadalPalaceName = String(chart.palaces[decadal.index].name || '')
+          }
+        } catch (e) {
+          decadalPalaceName = ''
+        }
+
+        // 本命宮（一般為命宫）
+        let natalPalaceName = ''
+        try {
+          const natalPalace = (chart.palaces || []).find((p: any) => String(p.name) === '命宫')
+          if (natalPalace) natalPalaceName = String(natalPalace.name || '')
+        } catch (e) {
+          natalPalaceName = ''
+        }
         
         const birthYearGanZhi = getYearGanZhi(birthInfo.year)
         const birthYearGan = extractGan(birthYearGanZhi)
         const birthYearZhi = extractZhi(birthYearGanZhi)
+
+        const decadalIndex = (horoscope as any).decadal?.index
+        const annualIndex = yearly.index
         
-        const yearlyDataArray: YearlyDataItem[] = [{
+        // 计算虚岁和大限号
+        const virtualAge = year - birthInfo.year + 1
+        const decadalNum = Math.floor((virtualAge - 1) / 10)
+        
+const monthlyLabelsByPalace = getMonthlyLabelsForMonth(analysis, chart, month)
+        const palaceList = (chart.palaces || []).map((p: any, idx: number) => {
+          const palaceName = String(p.name || '')
+          const palaceIdxKey = String(idx)
+          const palaceKey = getPalaceEnglishKey(palaceName)
+          const palaceStem = String(p.heavenlyStem || '')
+          const palaceBranch = String(p.earthlyBranch || '')
+          const mainStars = ((p.majorStars || []).map((s: any) => String(s.name))).filter(Boolean)
+          const isNatal = palaceName === '命宫' || palaceName === '命宮'
+          const englishName = PALACE_NAME_TO_ENGLISH_MAP[palaceName]
+          const natalLabel = englishName ? NATAL_PALACE_MAP[englishName] : (isNatal ? '本命' : undefined)
+          
+          // 计算大限标签：获得该宫位在大限盘中的对应宫位
+          let decadalLabel: string | undefined = undefined
+          if (englishName && PALACE_ORDER.includes(englishName) && birthInfo.gender) {
+            const palaceIndex = PALACE_ORDER.indexOf(englishName)
+            const decadalPalaceIndex = getDecadalPalaceIndex(palaceIndex, decadalNum, birthInfo.gender as 'male' | 'female', birthYearGan)
+            const decadalEnglishName = PALACE_ORDER[decadalPalaceIndex]
+            decadalLabel = DECADAL_PALACE_MAP[decadalEnglishName]
+          }
+          
+          // 计算流年标签：基于流年命宫位置推导
+          let annualLabel: string | undefined = undefined
+          if (englishName && PALACE_ORDER.includes(englishName) && yearly.earthlyBranch) {
+            const yearlyLifePalace = (chart.palaces || []).find((palace: any) => String(palace.earthlyBranch || palace.branch) === String(yearly.earthlyBranch))
+            const yearlyLifeEnglish = yearlyLifePalace ? PALACE_NAME_TO_ENGLISH_MAP[String(yearlyLifePalace.name)] : undefined
+            if (yearlyLifeEnglish) {
+              const palaceIndex = PALACE_ORDER.indexOf(englishName)
+              const lifeIndex = PALACE_ORDER.indexOf(yearlyLifeEnglish)
+              if (palaceIndex !== -1 && lifeIndex !== -1) {
+                const labelIndex = (palaceIndex - lifeIndex + PALACE_ORDER.length) % PALACE_ORDER.length
+                annualLabel = ANNUAL_LABELS[labelIndex]
+              }
+            }
+          }
+
+          const monthLabel = monthlyLabelsByPalace[palaceName]
+          const months = monthLabel ? [monthLabel] : undefined
+
+          return {
+            宮位: palaceName,
+            天干: palaceStem,
+            地支: palaceBranch,
+            主星: mainStars,
+            本命: natalLabel || undefined,
+            大限: decadalLabel || undefined,
+            流年: annualLabel || undefined,
+            流月: months,
+            宮位索引: idx,
+          }
+        })
+
+        const yearlyDataArray: FortuneYearlyDataItem[] = [{
           基本資料: {
             出生年: birthInfo.year,
             年干: birthYearGan,
@@ -750,6 +811,9 @@ export function YearlyFortune() {
           天干: heavenlyStem,
           地支: earthlyBranch,
           四化: mutagens,
+          本命宮: natalPalaceName,
+          大限命宮: decadalPalaceName,
+          宮位列表: palaceList,
         }]
         setYearlyData(yearlyDataArray)
       } catch (e) {
@@ -802,6 +866,25 @@ export function YearlyFortune() {
       if (yearly.index !== undefined && yearly.index >= 0 && chart.palaces[yearly.index]) {
         flowYearlyPalaceName = String(chart.palaces[yearly.index].name || '')
       }
+      // 获取大限命宮（若有）
+      let decadalPalaceName = ''
+      try {
+        const decadal = (horoscope as any).decadal
+        if (decadal && decadal.index !== undefined && decadal.index >= 0 && chart.palaces[decadal.index]) {
+          decadalPalaceName = String(chart.palaces[decadal.index].name || '')
+        }
+      } catch (e) {
+        decadalPalaceName = ''
+      }
+
+      // 本命宮（一般為命宫）
+      let natalPalaceName = ''
+      try {
+        const natalPalace = (chart.palaces || []).find((p: any) => String(p.name) === '命宫')
+        if (natalPalace) natalPalaceName = String(natalPalace.name || '')
+      } catch (e) {
+        natalPalaceName = ''
+      }
       
       // 获取出生年的干支
       const birthYearGanZhi = getYearGanZhi(birthInfo.year)
@@ -819,7 +902,70 @@ export function YearlyFortune() {
         birthYearGanZhi,
       })
       
-      const yearlyDataArray: YearlyDataItem[] = [{
+      const monthlyData = monthlyAnalysis || calculateMonthlyScores(chart, year)
+      if (!monthlyAnalysis) {
+        setMonthlyAnalysis(monthlyData)
+      }
+
+      const decadalIndex = (horoscope as any).decadal?.index
+      const annualIndex = yearly.index
+      
+      // 计算虚岁和大限号
+      const virtualAge = year - birthInfo.year + 1
+      const decadalNum = Math.floor((virtualAge - 1) / 10)
+      
+      const monthlyLabelsByPalace = monthlyData ? getMonthlyLabelsForMonth(monthlyData, chart, month) : {}
+      const palaceList = (chart.palaces || []).map((p: any, idx: number) => {
+        const palaceName = String(p.name || '')
+        const palaceIdxKey = String(idx)
+        const palaceStem = String(p.heavenlyStem || '')
+        const palaceBranch = String(p.earthlyBranch || '')
+        const mainStars = ((p.majorStars || []).map((s: any) => String(s.name))).filter(Boolean)
+        const isNatal = palaceName === '命宫' || palaceName === '命宮'
+        const englishName = PALACE_NAME_TO_ENGLISH_MAP[palaceName]
+        const natalLabel = englishName ? NATAL_PALACE_MAP[englishName] : (isNatal ? '本命' : undefined)
+        
+        // 计算大限标签：获得该宫位在大限盘中的对应宫位
+        let decadalLabel: string | undefined = undefined
+        if (englishName && PALACE_ORDER.includes(englishName) && birthInfo.gender) {
+          const palaceIndex = PALACE_ORDER.indexOf(englishName)
+          const decadalPalaceIndex = getDecadalPalaceIndex(palaceIndex, decadalNum, birthInfo.gender as 'male' | 'female', birthYearGan)
+          const decadalEnglishName = PALACE_ORDER[decadalPalaceIndex]
+          decadalLabel = DECADAL_PALACE_MAP[decadalEnglishName]
+        }
+        
+        // 计算流年标签：基于流年命宫位置推导
+        let annualLabel: string | undefined = undefined
+        if (englishName && PALACE_ORDER.includes(englishName) && yearly.earthlyBranch) {
+          const yearlyLifePalace = (chart.palaces || []).find((palace: any) => String(palace.earthlyBranch || palace.branch) === String(yearly.earthlyBranch))
+          const yearlyLifeEnglish = yearlyLifePalace ? PALACE_NAME_TO_ENGLISH_MAP[String(yearlyLifePalace.name)] : undefined
+          if (yearlyLifeEnglish) {
+            const palaceIndex = PALACE_ORDER.indexOf(englishName)
+            const lifeIndex = PALACE_ORDER.indexOf(yearlyLifeEnglish)
+            if (palaceIndex !== -1 && lifeIndex !== -1) {
+              const labelIndex = (palaceIndex - lifeIndex + PALACE_ORDER.length) % PALACE_ORDER.length
+              annualLabel = ANNUAL_LABELS[labelIndex]
+            }
+          }
+        }
+
+        const monthLabel = monthlyLabelsByPalace[palaceName]
+        const months = monthLabel ? [monthLabel] : undefined
+
+        return {
+          宮位: palaceName,
+          天干: palaceStem,
+          地支: palaceBranch,
+          主星: mainStars,
+          本命: natalLabel || undefined,
+          大限: decadalLabel || undefined,
+          流年: annualLabel || undefined,
+          流月: months,
+          宮位索引: idx,
+        }
+      })
+
+      const yearlyDataArray: FortuneYearlyDataItem[] = [{
         基本資料: {
           出生年: birthInfo.year,
           年干: birthYearGan,
@@ -830,19 +976,15 @@ export function YearlyFortune() {
         天干: heavenlyStem,
         地支: earthlyBranch,
         四化: mutagens,
+        本命宮: natalPalaceName,
+        大限命宮: decadalPalaceName,
+        宮位列表: palaceList,
       }]
       
       // 保存流年数据到 state（用于预览显示）
       setYearlyData(yearlyDataArray)
       
       console.log('[YearlyFortune] Final Yearly Data:', yearlyDataArray)
-
-      // 计算月份分析
-      let monthlyData = monthlyAnalysis
-      if (!monthlyData) {
-        monthlyData = calculateMonthlyScores(chart, year)
-        setMonthlyAnalysis(monthlyData)
-      }
 
       const userMessage = `请分析以下命盘的 ${year} 年运势：
 

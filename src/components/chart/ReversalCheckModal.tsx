@@ -317,16 +317,24 @@ export function ReversalCheckModal({
               const CODE_ORDER: Array<'A' | 'B' | 'C' | 'D'> = ['A', 'B', 'C', 'D']
               const codeMap = new Map(abcdReversalSignals.map((s) => [s.code, s]))
 
-              const buildRoleText = (branch: string, direction: '離心' | '向心') => {
+              const buildRoleText = (branch: string, direction: '離心' | '向心', code: 'A' | 'B' | 'C' | 'D') => {
                 const { palaceName, decadal, annual } = getPalaceRoleLabels(branch)
-                return [palaceName, decadal, annual, localize(direction)].filter(Boolean).join(' ')
+                const directionText = `${localize(direction)}${code}`
+                return [palaceName, decadal, annual, directionText].filter(Boolean).join(' ')
+              }
+              const codeSuffixes: Record<'A' | 'B' | 'C' | 'D', string> = {
+                A: '祿',
+                B: '權',
+                C: '科',
+                D: '忌',
               }
               const buildCodeMetaText = (signal: ABCDReversalSignal | undefined, code: 'A' | 'B' | 'C' | 'D') => {
                 const birthMeta = birthCodeMetaByCode?.[code]
+                const suffix = codeSuffixes[code]
                 if (birthMeta?.starName) {
                   const palaceName = birthMeta.palaceName ? localize(birthMeta.palaceName) : '-'
                   const starName = localize(birthMeta.starName)
-                  return `${code}: ${palaceName} ${starName}${code}`
+                  return `${code}: ${palaceName} ${starName} 生年${suffix}`
                 }
 
                 if (!signal) return `${code}: -`
@@ -345,7 +353,7 @@ export function ReversalCheckModal({
                   ''
                 const starName = rawStarName ? localize(rawStarName) : '-'
 
-                return `${code}: ${palaceName} ${starName}${code}`
+                return `${code}: ${palaceName} ${starName} 生年${suffix}`
               }
 
               const cells = CODE_ORDER.map((code) => {
@@ -369,14 +377,14 @@ export function ReversalCheckModal({
                 return {
                   code,
                   metaText: buildCodeMetaText(signal, code),
-                  chainLines: chainPalaces.map((branch) => buildRoleText(branch, chainDirection)),
-                  reverseLines: reversePalaces.map((branch) => buildRoleText(branch, reverseDirection)),
+                  chainLines: chainPalaces.map((branch) => buildRoleText(branch, chainDirection, code)),
+                  reverseLines: reversePalaces.map((branch) => buildRoleText(branch, reverseDirection, code)),
                 }
               })
 
               return (
                 <div className="border border-white/20 rounded overflow-hidden">
-                  <div className="grid grid-cols-[90px_minmax(0,1fr)_minmax(0,1fr)] text-[12px]">
+                  <div className="grid grid-cols-[120px_minmax(0,1fr)_minmax(0,1fr)] text-[12px]">
                     <div className="bg-white/20 border-white/20" />
                     <div className="bg-white/20 border-white/20 px-2 py-0.5 text-[11px] font-semibold text-text">{localize('串聯')}</div>
                     <div className="bg-white/20 border-white/20 px-2 py-0.5 text-[11px] font-semibold text-text">{localize('反背')}</div>

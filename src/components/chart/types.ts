@@ -329,6 +329,46 @@ export const MONTHLY_PALACE_MAP: Record<string, string> = {
   'virtue': '月福', 'parents': '月父',
 }
 
+export interface FortunePalaceAnalysisItem {
+  宮位: string
+  天干?: string
+  地支?: string
+  主星?: string[]
+  本命?: string
+  大限?: string
+  流年?: string
+  流月?: string[]
+  宮位索引?: number
+}
+
+export interface FortuneYearlyDataItem {
+  基本資料: {
+    出生年: number
+    年干: string
+    年支: string
+  }
+  年份: number
+  流年命宮: string
+  天干: string
+  地支: string
+  四化: string[]
+  本命宮?: string
+  大限命宮?: string
+  宮位列表?: FortunePalaceAnalysisItem[]
+}
+
+export interface FortuneMonthlyAnalysis {
+  月份: number
+  分數: number
+  流月?: string
+  流月四化?: string[]
+  評價: 'excellent' | 'good' | 'fair' | 'challenging'
+  宮位?: string
+  宮位索引?: number
+  天干?: string
+  地支?: string
+}
+
 /* ============================================================
    宮位名稱映射（中文名 → 英文參數名）
    ============================================================ */

@@ -37,34 +37,42 @@ export function Toolbox({
   const [isExpanded, setIsExpanded] = useState(false)
   const [position, setPosition] = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
+  const [hasUserMoved, setHasUserMoved] = useState(false)
+  const hasUserMovedRef = useRef(false)
   const toolboxRef = useRef<HTMLDivElement>(null)
   const dragStartPosRef = useRef({ x: 0, y: 0 })
   const hasMovedDuringDragRef = useRef(false)
   const dragThreshold = 5 // 拖動閾值（像素）
 
-  // 設置預設位置在內容區域寬度 3/4 處
+  // 設置預設位置在 4x4 網格的中宮右下角 (2,2)
   useEffect(() => {
     const setDefaultPosition = () => {
+      if (hasUserMovedRef.current) return
+
       const toolboxWidth = 40 // 漢堡菜單寬度
       const toolboxHeight = 40 // 漢堡菜單高度
-      const contentMaxWidth = 600 // 主頁內容最大寬度
       
-      // 內容區域的起始 x 坐標（居中）
-      const contentStartX = (window.innerWidth - contentMaxWidth) / 2
+      // 獲取 4x4 網格容器
+      const gridEl = document.querySelector('[data-palace-grid]') as HTMLElement
       
-      // 公式：x = contentStartX + 3 * contentMaxWidth / 4 - 漢堡寬度 / 2
-      const xPosition = contentStartX + (3 * contentMaxWidth / 4) - (toolboxWidth / 2)
-      
-      // y 軸保持在中宮右下角位置
-      const centerInfoEl = document.querySelector('[data-centerinfo]') as HTMLElement
-      const yPosition = centerInfoEl 
-        ? centerInfoEl.getBoundingClientRect().bottom - toolboxHeight - 8
-        : window.innerHeight - toolboxHeight - 20
-
-      setPosition({
-        x: xPosition,
-        y: yPosition
-      })
+      if (gridEl) {
+        const gridRect = gridEl.getBoundingClientRect()
+        
+        // 計算宮位大小
+        const palaceWidth = gridRect.width / 4
+        const palaceHeight = gridRect.height / 4
+        
+        // 中宮的右下角位置 (2,2)
+        // x = 網格起始 x + 3 個宮位寬度 - 漢堡寬度 - 5 (偏移)
+        // y = 網格起始 y + 3 個宮位高度 - 漢堡高度 - 8 (偏移)
+        const xPosition = gridRect.left + (3 * palaceWidth) - toolboxWidth - 5
+        const yPosition = gridRect.top + (3 * palaceHeight) - toolboxHeight - 8
+        
+        setPosition({
+          x: xPosition,
+          y: yPosition
+        })
+      }
     }
 
     // 在下一幀進行設置，確保 DOM 完全渲染
@@ -73,40 +81,43 @@ export function Toolbox({
     })
 
     // 監聽視窗大小變化
-    window.addEventListener('resize', setDefaultPosition)
-    return () => window.removeEventListener('resize', setDefaultPosition)
+    const handleResize = () => requestAnimationFrame(setDefaultPosition)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  // 監聽中宮元素變化，確保位置始終正確
+  // 監聽網格元素變化，確保位置始終正確
   useEffect(() => {
-    if (isDragging || isExpanded) return // 拖動或展開時不調整位置
+    if (isDragging || isExpanded || hasUserMovedRef.current) return // 拖動、展開或使用者已移動時不調整位置
 
     const observer = new MutationObserver(() => {
       const toolboxWidth = 40
       const toolboxHeight = 40
-      const contentMaxWidth = 600 // 主頁內容最大寬度
       
-      // 內容區域的起始 x 坐標（居中）
-      const contentStartX = (window.innerWidth - contentMaxWidth) / 2
+      // 獲取 4x4 網格容器
+      const gridEl = document.querySelector('[data-palace-grid]') as HTMLElement
       
-      // 公式：x = contentStartX + 3 * contentMaxWidth / 4 - 漢堡寬度 / 2
-      const xPosition = contentStartX + (3 * contentMaxWidth / 4) - (toolboxWidth / 2)
-      
-      // y 軸保持在中宮右下角位置
-      const centerInfoEl = document.querySelector('[data-centerinfo]') as HTMLElement
-      const yPosition = centerInfoEl 
-        ? centerInfoEl.getBoundingClientRect().bottom - toolboxHeight - 8
-        : window.innerHeight - toolboxHeight - 20
-
-      setPosition({
-        x: xPosition,
-        y: yPosition
-      })
+      if (gridEl) {
+        const gridRect = gridEl.getBoundingClientRect()
+        
+        // 計算宮位大小
+        const palaceWidth = gridRect.width / 4
+        const palaceHeight = gridRect.height / 4
+        
+        // 中宮的右下角位置 (2,2)
+        const xPosition = gridRect.left + (3 * palaceWidth) - toolboxWidth
+        const yPosition = gridRect.top + (3 * palaceHeight) - toolboxHeight - 8
+        
+        setPosition({
+          x: xPosition,
+          y: yPosition
+        })
+      }
     })
 
-    const centerInfoEl = document.querySelector('[data-centerinfo]') as HTMLElement
-    if (centerInfoEl) {
-      observer.observe(centerInfoEl, { 
+    const gridEl = document.querySelector('[data-palace-grid]') as HTMLElement
+    if (gridEl) {
+      observer.observe(gridEl, { 
         attributes: true, 
         subtree: true, 
         childList: true 
@@ -144,6 +155,8 @@ export function Toolbox({
       // 只有移動超過閾值時，才真正開始拖動
       if (distance > dragThreshold) {
         hasMovedDuringDragRef.current = true
+        setHasUserMoved(true)
+        hasUserMovedRef.current = true
         setPosition(prev => ({
           x: prev.x + deltaX,
           y: prev.y + deltaY
@@ -163,6 +176,8 @@ export function Toolbox({
       // 只有移動超過閾值時，才真正開始拖動
       if (distance > dragThreshold) {
         hasMovedDuringDragRef.current = true
+        setHasUserMoved(true)
+        hasUserMovedRef.current = true
         setPosition(prev => ({
           x: prev.x + deltaX,
           y: prev.y + deltaY
@@ -261,7 +276,7 @@ export function Toolbox({
   return (
     <div
       ref={toolboxRef}
-      className={`fixed z-50 ${!isDragging ? 'transition-all duration-300' : ''}`}
+      className={`fixed z-40 ${!isDragging ? 'transition-all duration-300' : ''}`}
       style={{
         left: `${adjustedLeft}px`,
         top: `${position.y}px`,
@@ -272,7 +287,7 @@ export function Toolbox({
       {isExpanded ? (
         // 展開狀態：從右往左排列的按鈕 + X關閉按鈕
         <div 
-          className="flex flex-row-reverse items-center gap-1 bg-white/90 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg border border-gray-200" 
+          className="flex flex-row-reverse items-center gap-1 h-10 bg-white/90 backdrop-blur-sm rounded-full px-2 shadow-lg border border-gray-200" 
           onClick={(e) => e.stopPropagation()}
           onMouseDown={handleMouseDown}
           onTouchStart={handleTouchStart}
